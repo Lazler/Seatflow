@@ -73,15 +73,24 @@ export default async function VenueDetail({
                   Sitzplan-Layouts für dieses Venue
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" disabled>
-                <Plus className="h-4 w-4 mr-1" /> Neuer Plan
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
+                  <Plus className="h-4 w-4 mr-1" /> Neuer Plan
+                </Link>
               </Button>
             </CardHeader>
             <CardContent>
               {(sitzplaene ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Noch kein Raumplan — der Builder kommt im nächsten Schritt.
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Noch kein Raumplan angelegt.
+                  </p>
+                  <Button size="sm" asChild>
+                    <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
+                      <Plus className="h-4 w-4 mr-1" /> Ersten Raumplan erstellen
+                    </Link>
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {sitzplaene?.map((plan) => (
@@ -90,8 +99,10 @@ export default async function VenueDetail({
                       className="flex items-center justify-between py-2 border-b border-border last:border-0"
                     >
                       <span className="text-sm font-medium">{plan.name}</span>
-                      <Button size="sm" variant="ghost" disabled>
-                        Bearbeiten
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link href={`/dashboard/venues/${id}/raumplan/${plan.id}`}>
+                          Bearbeiten
+                        </Link>
                       </Button>
                     </div>
                   ))}
