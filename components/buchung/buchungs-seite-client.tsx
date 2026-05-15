@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze } from "@/types/sitzplan";
 
@@ -42,14 +41,11 @@ export default function BuchungsSeiteClient({
   serviceGebuehrCent,
 }: Props) {
   const [ausgewaehlt, setAusgewaehlt] = useState<AusgewaehlterSitz[]>([]);
+  const [belegte, setBelegte] = useState<Set<string>>(new Set(belegteSitzIds));
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
-  const [erfolg, setErfolg] = useState(false);
-
-  const belegte = new Set(belegteSitzIds);
-  const ausgewaehlteIds = new Set(ausgewaehlt.map((s) => s.sitzId));
 
   const kategorienMap = new Map<string, Preiskategorie>(
     konfiguration.kategorien.map((k) => [k.id, k])
@@ -58,6 +54,27 @@ export default function BuchungsSeiteClient({
   const sitzKategorie = new Map<string, string>(
     alleSitze(konfiguration).map(({ sitzId, kategorieId }) => [sitzId, kategorieId])
   );
+
+  // Realtime: Sitze live sperren sobald jemand anderes bucht
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`tickets-${eventId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "tickets", filter: `event_id=eq.${eventId}` },
+        (payload) => {
+          const sitzId = (payload.new as { sitz_id: string }).sitz_id;
+          setBelegte((prev) => new Set([...prev, sitzId]));
+          // Wenn wir diesen Sitz gerade ausgewählt hatten, entfernen
+          setAusgewaehlt((prev) => prev.filter((s) => s.sitzId !== sitzId));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId]);
+
+  const ausgewaehlteIds = new Set(ausgewaehlt.map((s) => s.sitzId));
 
   const onSitzKlicken = useCallback(
     (sitzId: string) => {
@@ -86,67 +103,31 @@ export default function BuchungsSeiteClient({
     setFehler(null);
     setLaedt(true);
 
-    const supabase = createClient();
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId,
+        sitzplaetze: ausgewaehlt.map((a) => ({
+          sitzId: a.sitzId,
+          kategorieId: a.kategorie.id,
+          preisCent: a.kategorie.preis_cent,
+          kategorieName: a.kategorie.name,
+        })),
+        name,
+        email,
+      }),
+    });
 
-    // Buchung anlegen
-    const { data: buchung, error: buchungsFehler } = await supabase
-      .from("buchungen")
-      .insert({
-        event_id: eventId,
-        gaest_name: name,
-        gaest_email: email,
-        gesamt_cent: gesamtPreisCent,
-        status: "ausstehend",
-      })
-      .select("id")
-      .single();
+    const data = await res.json() as { url?: string; error?: string };
 
-    if (buchungsFehler || !buchung) {
-      setFehler("Buchung konnte nicht angelegt werden.");
+    if (!res.ok || !data.url) {
+      setFehler(data.error ?? "Fehler beim Starten des Checkouts.");
       setLaedt(false);
       return;
     }
 
-    // Tickets pro Sitz eintragen
-    const ticketRows = ausgewaehlt.map((a) => ({
-      buchung_id: buchung.id,
-      event_id: eventId,
-      sitz_id: a.sitzId,
-      kategorie_id: a.kategorie.id,
-      preis_cent: a.kategorie.preis_cent,
-    }));
-
-    const { error: ticketFehler } = await supabase.from("tickets").insert(ticketRows);
-
-    if (ticketFehler) {
-      // Buchung wieder löschen, falls Ticket-Insert fehlschlägt (z.B. Sitz bereits belegt)
-      await supabase.from("buchungen").delete().eq("id", buchung.id);
-      setFehler(
-        ticketFehler.code === "23505"
-          ? "Einer der gewählten Plätze wurde gerade von jemand anderem gebucht. Bitte neu wählen."
-          : "Buchung konnte nicht abgeschlossen werden."
-      );
-      setLaedt(false);
-      return;
-    }
-
-    setErfolg(true);
-    setLaedt(false);
-  }
-
-  if (erfolg) {
-    return (
-      <div className="text-center py-16 space-y-3">
-        <div className="text-4xl">🎉</div>
-        <h2 className="text-xl font-bold">Buchung eingegangen!</h2>
-        <p className="text-muted-foreground text-sm">
-          Wir haben deine Anfrage erhalten. Du bekommst eine Bestätigung per E-Mail.
-        </p>
-        <div className="text-sm font-medium pt-2">
-          {ausgewaehlt.map((a) => a.sitzId).join(", ")}
-        </div>
-      </div>
-    );
+    window.location.href = data.url;
   }
 
   return (
@@ -170,18 +151,18 @@ export default function BuchungsSeiteClient({
           </span>
         </div>
 
-        <div className="rounded-xl border border-border shadow-sm overflow-hidden"
-          style={{ width: "100%", maxWidth: konfiguration.breite }}>
-          <div style={{ transform: `scale(min(1, 100% / ${konfiguration.breite}))`, transformOrigin: "top left" }}>
-            <SitzplanCanvas
-              konfiguration={konfiguration}
-              modus="buchung"
-              belegteSitze={belegte}
-              ausgewaehlteSitze={ausgewaehlteIds}
-              onSitzKlicken={onSitzKlicken}
-            />
-          </div>
+        <div className="rounded-xl border border-border shadow-sm overflow-auto">
+          <SitzplanCanvas
+            konfiguration={konfiguration}
+            modus="buchung"
+            belegteSitze={belegte}
+            ausgewaehlteSitze={ausgewaehlteIds}
+            onSitzKlicken={onSitzKlicken}
+          />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Sitzplan wird live aktualisiert — belegte Plätze werden sofort gesperrt.
+        </p>
       </div>
 
       {/* Bestellübersicht + Formular */}
@@ -200,10 +181,7 @@ export default function BuchungsSeiteClient({
                 {ausgewaehlt.map((a) => (
                   <div key={a.sitzId} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: a.kategorie.farbe }}
-                      />
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.kategorie.farbe }} />
                       <span className="font-medium">{a.sitzId}</span>
                       <span className="text-muted-foreground text-xs">{a.kategorie.name}</span>
                     </div>
@@ -233,18 +211,24 @@ export default function BuchungsSeiteClient({
             <form onSubmit={buchen} className="space-y-3 pt-2 border-t border-border">
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-xs">Name *</Label>
-                <Input id="name" placeholder="Vor- und Nachname" value={name} onChange={(e) => setName(e.target.value)} required className="h-8 text-sm" />
+                <Input id="name" placeholder="Vor- und Nachname" value={name}
+                  onChange={(e) => setName(e.target.value)} required className="h-8 text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-xs">E-Mail *</Label>
-                <Input id="email" type="email" placeholder="deine@email.de" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-8 text-sm" />
+                <Input id="email" type="email" placeholder="deine@email.de" value={email}
+                  onChange={(e) => setEmail(e.target.value)} required className="h-8 text-sm" />
               </div>
               {fehler && <p className="text-xs text-destructive">{fehler}</p>}
               <Button type="submit" className="w-full" disabled={laedt || ausgewaehlt.length === 0}>
-                {laedt ? "Wird gebucht…" : ausgewaehlt.length === 0 ? "Platz wählen" : `${ausgewaehlt.length} Ticket${ausgewaehlt.length > 1 ? "s" : ""} buchen`}
+                {laedt
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Weiter zur Zahlung…</>
+                  : ausgewaehlt.length === 0
+                    ? "Platz wählen"
+                    : `${ausgewaehlt.length} Ticket${ausgewaehlt.length > 1 ? "s" : ""} — zur Kasse`}
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Sichere Zahlung via Stripe
+                Weiterleitung zu Stripe — sicher und verschlüsselt
               </p>
             </form>
           </CardContent>
