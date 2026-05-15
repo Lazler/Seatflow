@@ -2,25 +2,31 @@
 
 import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import EditorToolbar from "./editor-toolbar";
+import type { Auswahl } from "./sitzplan-canvas";
 import {
-  type Reihe,
-  type SitzKategorie,
+  type SitzplanElement,
   type SitzplanKonfiguration,
+  type ElementTyp,
+  type Buehne,
+  type ReiheElement,
+  type TischreiheElement,
+  type RundtischElement,
   naechsteBezeichnung,
+  migrierteKonfiguration,
+  elementSitzIds,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-// Canvas läuft nur client-side (Konva braucht window/document)
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 bg-slate-50 rounded-lg border border-border flex items-center justify-center text-muted-foreground text-sm">
-      Canvas wird geladen...
+    <div className="flex-1 bg-slate-50 rounded-lg border border-border flex items-center justify-center text-sm text-muted-foreground">
+      Canvas wird geladen…
     </div>
   ),
 });
@@ -30,12 +36,11 @@ type Props = {
   planName: string;
   venueId: string;
   venueName: string;
-  initialKonfiguration: SitzplanKonfiguration;
+  initialKonfiguration: unknown;
 };
 
-const STANDARD_SITZABSTAND = 34;
-const ERSTE_REIHE_Y = 160;
-const REIHEN_ABSTAND = 44;
+const ERSTE_Y = 200;
+const REIHEN_ABSTAND = 60;
 
 export default function SitzplanEditor({
   planId,
@@ -45,78 +50,98 @@ export default function SitzplanEditor({
   initialKonfiguration,
 }: Props) {
   const router = useRouter();
-  const [konfiguration, setKonfiguration] =
-    useState<SitzplanKonfiguration>(initialKonfiguration);
-  const [ausgewaehlteReiheId, setAusgewaehlteReiheId] = useState<string | null>(null);
+  const [konfig, setKonfig] = useState<SitzplanKonfiguration>(
+    migrierteKonfiguration(initialKonfiguration)
+  );
+  const [auswahl, setAuswahl] = useState<Auswahl>(null);
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
 
-  const gesamtSitze = konfiguration.reihen.reduce(
-    (s, r) => s + r.anzahlSitze,
+  const naechstesY = konfig.elemente.length > 0
+    ? Math.max(...konfig.elemente.map((e) => e.y)) + REIHEN_ABSTAND
+    : ERSTE_Y;
+
+  const gesamtSitze = konfig.elemente.reduce(
+    (s, e) => s + elementSitzIds(e).length,
     0
   );
 
-  function reiheHinzufuegen() {
-    const bezeichnung = naechsteBezeichnung(konfiguration.reihen);
-    const letzteReiheY =
-      konfiguration.reihen.length > 0
-        ? Math.max(...konfiguration.reihen.map((r) => r.y))
-        : ERSTE_REIHE_Y - REIHEN_ABSTAND;
-
-    const neueReihe: Reihe = {
+  function elementHinzufuegen(typ: ElementTyp) {
+    const bezeichnung = naechsteBezeichnung(
+      konfig.elemente,
+      typ === "reihe" ? "" : typ === "tischreihe" ? "T" : "R"
+    );
+    const basis = {
       id: crypto.randomUUID(),
       bezeichnung,
-      y: letzteReiheY + REIHEN_ABSTAND,
-      anzahlSitze: 10,
-      sitzAbstand: STANDARD_SITZABSTAND,
-      kategorie: "standard",
+      x: konfig.breite / 2,
+      y: naechstesY,
+      winkel: 0,
+      kategorie: "standard" as const,
     };
 
-    setKonfiguration((k) => ({ ...k, reihen: [...k.reihen, neueReihe] }));
-    setAusgewaehlteReiheId(neueReihe.id);
+    let neuesElement: SitzplanElement;
+    if (typ === "reihe") {
+      neuesElement = { ...basis, typ: "reihe", anzahlSitze: 10, sitzAbstand: 34 } satisfies ReiheElement;
+    } else if (typ === "tischreihe") {
+      neuesElement = { ...basis, typ: "tischreihe", anzahlTische: 4, sitzeProTisch: 3, tischAbstand: 12 } satisfies TischreiheElement;
+    } else {
+      neuesElement = { ...basis, typ: "rundtisch", anzahlSitze: 8, tischRadius: 35 } satisfies RundtischElement;
+    }
+
+    setKonfig((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
+    setAuswahl({ typ: "element", id: neuesElement.id });
     setGespeichert(false);
   }
 
-  function reiheLoeschen(id: string) {
-    setKonfiguration((k) => ({
+  function elementLoeschen(id: string) {
+    setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
+    setGespeichert(false);
+  }
+
+  function elementAktualisieren(id: string, delta: Partial<SitzplanElement>) {
+    setKonfig((k) => ({
       ...k,
-      reihen: k.reihen.filter((r) => r.id !== id),
+      elemente: k.elemente.map((e) => (e.id === id ? ({ ...e, ...delta } as SitzplanElement) : e)),
     }));
-    setAusgewaehlteReiheId(null);
     setGespeichert(false);
   }
 
-  function reiheAktualisieren(id: string, delta: Partial<Reihe>) {
-    setKonfiguration((k) => ({
+  const elementVerschieben = useCallback((id: string, x: number, y: number) => {
+    setKonfig((k) => ({
       ...k,
-      reihen: k.reihen.map((r) => (r.id === id ? { ...r, ...delta } : r)),
-    }));
-    setGespeichert(false);
-  }
-
-  const reiheVerschieben = useCallback((id: string, neuesY: number) => {
-    setKonfiguration((k) => ({
-      ...k,
-      reihen: k.reihen.map((r) => (r.id === id ? { ...r, y: neuesY } : r)),
+      elemente: k.elemente.map((e) => (e.id === id ? { ...e, x, y } : e)),
     }));
     setGespeichert(false);
   }, []);
 
+  function buehneAktualisieren(delta: Partial<Buehne>) {
+    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, ...delta } }));
+    setGespeichert(false);
+  }
+
+  const buehneVerschieben = useCallback((x: number, y: number) => {
+    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, x, y } }));
+    setGespeichert(false);
+  }, []);
+
+  const buehneTransformieren = useCallback(
+    (breite: number, hoehe: number, x: number, y: number, winkel: number) => {
+      setKonfig((k) => ({ ...k, buehne: { ...k.buehne, breite, hoehe, x, y, winkel } }));
+      setGespeichert(false);
+    },
+    []
+  );
+
   async function speichern() {
     setSpeichernLaedt(true);
     const supabase = createClient();
-
     const { error } = await supabase
       .from("sitzplaene")
-      .update({ konfiguration })
+      .update({ konfiguration: konfig })
       .eq("id", planId);
-
     setSpeichernLaedt(false);
-
-    if (!error) {
-      setGespeichert(true);
-      router.refresh();
-    }
+    if (!error) { setGespeichert(true); router.refresh(); }
   }
 
   return (
@@ -137,19 +162,21 @@ export default function SitzplanEditor({
         )}
       </div>
 
-      {/* Editor-Bereich */}
+      {/* Editor */}
       <div className="flex flex-1 overflow-hidden">
         {/* Canvas */}
         <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-muted/20">
           <div
             className="rounded-xl border border-border shadow-sm overflow-hidden"
-            style={{ width: konfiguration.breite, minHeight: konfiguration.hoehe }}
+            style={{ width: konfig.breite, minHeight: konfig.hoehe }}
           >
             <SitzplanCanvas
-              konfiguration={konfiguration}
-              ausgewaehlteReiheId={ausgewaehlteReiheId}
-              onReiheAuswaehlen={setAusgewaehlteReiheId}
-              onReiheVerschieben={reiheVerschieben}
+              konfiguration={konfig}
+              auswahl={auswahl}
+              onAuswaehlen={setAuswahl}
+              onElementVerschieben={elementVerschieben}
+              onBuehneVerschieben={buehneVerschieben}
+              onBuehneTransformieren={buehneTransformieren}
             />
           </div>
         </div>
@@ -157,30 +184,16 @@ export default function SitzplanEditor({
         {/* Toolbar */}
         <aside className="w-64 border-l border-border bg-background p-4 flex flex-col overflow-hidden shrink-0">
           <EditorToolbar
-            reihen={konfiguration.reihen}
-            ausgewaehlteReiheId={ausgewaehlteReiheId}
+            elemente={konfig.elemente}
+            auswahl={auswahl}
+            buehne={konfig.buehne}
             speichernLaedt={speichernLaedt}
             gesamtSitze={gesamtSitze}
-            onReiheHinzufuegen={reiheHinzufuegen}
-            onReiheLoeschen={reiheLoeschen}
-            onSitzeAendern={(id, delta) =>
-              reiheAktualisieren(id, {
-                anzahlSitze: Math.min(
-                  40,
-                  Math.max(
-                    1,
-                    (konfiguration.reihen.find((r) => r.id === id)?.anzahlSitze ?? 10) + delta
-                  )
-                ),
-              })
-            }
-            onKategorieAendern={(id, kategorie: SitzKategorie) =>
-              reiheAktualisieren(id, { kategorie })
-            }
-            onBezeichnungAendern={(id, bezeichnung) =>
-              reiheAktualisieren(id, { bezeichnung })
-            }
-            onReiheAuswaehlen={setAusgewaehlteReiheId}
+            onHinzufuegen={elementHinzufuegen}
+            onLoeschen={elementLoeschen}
+            onAktualisieren={elementAktualisieren}
+            onBuehneAktualisieren={buehneAktualisieren}
+            onAuswaehlen={setAuswahl}
             onSpeichern={speichern}
           />
         </aside>
