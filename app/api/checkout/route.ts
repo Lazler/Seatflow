@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, titel, datum, service_gebuehr_cent, status")
+    .select("id, titel, datum, service_gebuehr_cent, status, success_url, cancel_url")
     .eq("id", eventId)
     .eq("status", "veroeffentlicht")
     .single();
@@ -100,14 +100,22 @@ export async function POST(req: NextRequest) {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const internalSuccessUrl = `${appUrl}/buchen/${eventId}/bestaetigung?session_id={CHECKOUT_SESSION_ID}`;
+  const internalCancelUrl = `${appUrl}/buchen/${eventId}`;
+
+  // Custom success_url: Buchungs-ID als Query-Parameter anhängen
+  const successUrl = event.success_url
+    ? `${event.success_url}${event.success_url.includes("?") ? "&" : "?"}buchung_id=${buchung.id}`
+    : internalSuccessUrl;
+  const cancelUrl = event.cancel_url ?? internalCancelUrl;
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: lineItems,
     customer_email: email,
     metadata: { buchung_id: buchung.id, event_id: eventId },
-    success_url: `${appUrl}/buchen/${eventId}/bestaetigung?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/buchen/${eventId}`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
     payment_method_types: ["card", "sepa_debit", "sofort"],
     locale: "de",
   });

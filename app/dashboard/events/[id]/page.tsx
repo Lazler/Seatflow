@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users } from "lucide-react";
 import EventStatusAktion from "./event-status-aktion";
 import SitzplanZuweisung from "./sitzplan-zuweisung";
+import EventWeiterleitungen from "./event-weiterleitungen";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -195,6 +196,13 @@ export default async function EventDetail({
             eventId={event.id}
             aktuellerSitzplanId={event.sitzplan_id ?? null}
             sitzplaene={sitzplaene ?? []}
+          />
+
+          {/* Weiterleitungs-URLs */}
+          <EventWeiterleitungen
+            eventId={event.id}
+            initialSuccessUrl={event.success_url ?? null}
+            initialCancelUrl={event.cancel_url ?? null}
           />
 
           {/* Buchungslink */}

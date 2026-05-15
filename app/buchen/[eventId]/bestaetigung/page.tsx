@@ -59,21 +59,19 @@ export default async function BestaetigungsSeite({
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <nav className="border-b border-border bg-background">
-        <div className="max-w-xl mx-auto px-4 h-14 flex items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs">SF</span>
-            </div>
-            <span className="font-semibold text-sm">SeatFlow</span>
+      <nav className="border-b border-border bg-background sticky top-0 z-10">
+        <div className="max-w-xl mx-auto px-4 h-14 flex items-center gap-2">
+          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground font-bold text-[10px]">SF</span>
           </div>
+          <span className="font-semibold text-sm">SeatFlow</span>
         </div>
       </nav>
 
-      <div className="max-w-xl mx-auto px-4 py-12 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-8 sm:py-12 space-y-6">
         <div className="text-center space-y-2">
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-          <h1 className="text-2xl font-bold">Zahlung bestätigt!</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">Zahlung bestätigt!</h1>
           <p className="text-muted-foreground text-sm">
             Deine Tickets wurden per E-Mail verschickt, {buchung.gaest_name}.
           </p>
