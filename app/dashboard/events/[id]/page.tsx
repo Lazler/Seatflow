@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users } from "lucide-react";
 import EventStatusAktion from "./event-status-aktion";
+import SitzplanZuweisung from "./sitzplan-zuweisung";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -50,6 +51,15 @@ export default async function EventDetail({
   if (!event) notFound();
 
   const venue = event.venues as { id: string; name: string; adresse: string | null } | null;
+
+  const { data: sitzplaene } = venue
+    ? await supabase
+        .from("sitzplaene")
+        .select("id, name")
+        .eq("venue_id", venue.id)
+        .order("erstellt_am", { ascending: false })
+    : { data: [] };
+
   const buchungsUrl = `/buchen/${event.id}`;
   const bezahlteBuchungen = (buchungen ?? []).filter((b) => b.status === "bezahlt");
   const gesamteinnahmenCent = bezahlteBuchungen.reduce((s, b) => s + b.gesamt_cent, 0);
@@ -179,6 +189,13 @@ export default async function EventDetail({
         <div className="space-y-4">
           {/* Aktionen */}
           <EventStatusAktion eventId={event.id} status={event.status} />
+
+          {/* Sitzplan zuweisen */}
+          <SitzplanZuweisung
+            eventId={event.id}
+            aktuellerSitzplanId={event.sitzplan_id ?? null}
+            sitzplaene={sitzplaene ?? []}
+          />
 
           {/* Buchungslink */}
           {event.status === "veroeffentlicht" && (
