@@ -47,17 +47,17 @@ export default function BuchungsSeiteClient({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
-  // Native Konva-Skalierung für 1:1 rendering
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const [renderScale, setRenderScale] = useState(1);
+  // Mobile-Skalierung: Canvas auf Bildschirmbreite skalieren
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const [mobileRenderScale, setMobileRenderScale] = useState(1);
   useEffect(() => {
     const update = () => {
-      if (!canvasContainerRef.current) return;
-      setRenderScale(Math.min(1, canvasContainerRef.current.offsetWidth / konfiguration.breite));
+      if (!mobileContainerRef.current) return;
+      setMobileRenderScale(Math.min(1, mobileContainerRef.current.offsetWidth / konfiguration.breite));
     };
     update();
     const ro = new ResizeObserver(update);
-    if (canvasContainerRef.current) ro.observe(canvasContainerRef.current);
+    if (mobileContainerRef.current) ro.observe(mobileContainerRef.current);
     return () => ro.disconnect();
   }, [konfiguration.breite]);
 
@@ -205,11 +205,11 @@ export default function BuchungsSeiteClient({
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           <Legende kategorien={konfiguration.kategorien} />
-          <div ref={canvasContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
+          <div className="w-full rounded-xl border border-border shadow-sm overflow-x-auto">
             <SitzplanCanvas
               konfiguration={konfiguration}
               modus="buchung"
-              renderScale={renderScale}
+              renderScale={1}
               belegteSitze={belegte}
               ausgewaehlteSitze={ausgewaehlteIds}
               onSitzKlicken={onSitzKlicken}
@@ -237,11 +237,11 @@ export default function BuchungsSeiteClient({
       {/* ---- Mobile-Layout: Canvas oben, Sticky-Bar unten ---- */}
       <div className="lg:hidden space-y-3">
         <Legende kategorien={konfiguration.kategorien} />
-        <div className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
+        <div ref={mobileContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
           <SitzplanCanvas
             konfiguration={konfiguration}
             modus="buchung"
-            renderScale={renderScale}
+            renderScale={mobileRenderScale}
             belegteSitze={belegte}
             ausgewaehlteSitze={ausgewaehlteIds}
             onSitzKlicken={onSitzKlicken}
