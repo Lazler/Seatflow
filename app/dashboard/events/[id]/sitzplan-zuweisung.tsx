@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Map, Plus, Trash2, GripVertical } from "lucide-react";
+import { Map, Plus, Trash2 } from "lucide-react";
 
 type Sitzplan = { id: string; name: string };
 
@@ -96,42 +96,38 @@ export default function SitzplanZuweisung({
         {etagen.length === 0 ? (
           <p className="text-xs text-muted-foreground">Noch keine Ebene konfiguriert.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {etagen.map((etage, idx) => (
-              <div key={etage.id} className="flex items-start gap-2 group">
-                {mehrereEbenen && (
-                  <div className="flex flex-col items-center pt-2 text-muted-foreground/40">
-                    <GripVertical className="h-4 w-4" />
-                  </div>
-                )}
-                <div className="flex-1 space-y-1.5">
+              <div key={etage.id} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={etage.name}
+                    onChange={(e) => etageAktualisieren(etage.id, { name: e.target.value })}
+                    placeholder={`Ebene ${idx + 1}`}
+                    className="h-7 flex-1 text-xs rounded-md border border-input bg-transparent px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
                   {mehrereEbenen && (
-                    <input
-                      value={etage.name}
-                      onChange={(e) => etageAktualisieren(etage.id, { name: e.target.value })}
-                      placeholder={`Ebene ${idx + 1}`}
-                      className="h-7 w-full text-xs rounded-md border border-input bg-transparent px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => etageEntfernen(etage.id)}
+                      className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   )}
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={etage.sitzplan_id}
-                    onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
-                  >
-                    <option value="">— Kein Sitzplan —</option>
-                    {sitzplaene.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
                 </div>
-                {mehrereEbenen && (
-                  <button
-                    type="button"
-                    onClick={() => etageEntfernen(etage.id)}
-                    className="mt-2 h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={etage.sitzplan_id}
+                  onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
+                >
+                  <option value="">— Kein Sitzplan —</option>
+                  {sitzplaene.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                {mehrereEbenen && idx < etagen.length - 1 && (
+                  <div className="h-px bg-border mt-1" />
                 )}
               </div>
             ))}

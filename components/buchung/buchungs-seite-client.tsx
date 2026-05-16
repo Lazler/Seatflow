@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, ChevronUp, ChevronDown, Layers } from "lucide-react";
+import { X, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze } from "@/types/sitzplan";
 
@@ -174,6 +174,21 @@ export default function BuchungsSeiteClient({
 
   const alleKategorien = aktiverFloor.konfiguration.kategorien;
 
+  const floorSelector = mehrereEbenen && (
+    <div className="flex items-center gap-3">
+      <span className="text-sm font-medium text-foreground shrink-0">Ebene</span>
+      <select
+        value={aktiverFloorIdx}
+        onChange={(e) => setAktiverFloorIdx(Number(e.target.value))}
+        className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {floors.map((floor, idx) => (
+          <option key={floor.id} value={idx}>{floorLabel(floor, idx)}</option>
+        ))}
+      </select>
+    </div>
+  );
+
   const formularInhalt = (
     <form onSubmit={buchen} className="space-y-3">
       <div className="space-y-1.5">
@@ -240,32 +255,13 @@ export default function BuchungsSeiteClient({
     </div>
   );
 
-  const floorTabs = mehrereEbenen && (
-    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg self-start">
-      <Layers className="h-3.5 w-3.5 text-muted-foreground ml-1 shrink-0" />
-      {floors.map((floor, idx) => (
-        <button
-          key={floor.id}
-          type="button"
-          onClick={() => setAktiverFloorIdx(idx)}
-          className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-            idx === aktiverFloorIdx
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {floorLabel(floor, idx)}
-        </button>
-      ))}
-    </div>
-  );
 
   return (
     <>
       {/* ---- Desktop-Layout: 2/3 Canvas + 1/3 Sidebar ---- */}
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
-          {floorTabs}
+          {floorSelector}
           <Legende kategorien={alleKategorien} />
           <div ref={desktopContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
             <SitzplanCanvas
@@ -298,7 +294,7 @@ export default function BuchungsSeiteClient({
 
       {/* ---- Mobile-Layout: Canvas oben, Sticky-Bar unten ---- */}
       <div className="lg:hidden space-y-3">
-        {floorTabs}
+        {floorSelector}
         <Legende kategorien={alleKategorien} />
         <div ref={mobileContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
           <SitzplanCanvas
