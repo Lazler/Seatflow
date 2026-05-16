@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { X, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze } from "@/types/sitzplan";
+import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
+import { preisNachRegel, regelLabel } from "@/types/ticket-typ";
 
 const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canvas"), {
   ssr: false,
@@ -33,6 +35,7 @@ type Props = {
   floors: Floor[];
   belegteSitzIds: string[];
   serviceGebuehrCent: number;
+  ticketTypen?: TicketTyp[];
 };
 
 type AusgewaehlterSitz = {
@@ -92,6 +95,7 @@ export default function BuchungsSeiteClient({
   floors,
   belegteSitzIds,
   serviceGebuehrCent,
+  ticketTypen = [],
 }: Props) {
   const mehrereEbenen = floors.length > 1;
   const [aktiverFloorIdx, setAktiverFloorIdx] = useState(0);
@@ -103,6 +107,10 @@ export default function BuchungsSeiteClient({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
+  const [gewaehlterTypId, setGewaehlterTypId] = useState<string | null>(
+    ticketTypen.length === 1 ? ticketTypen[0].id : null
+  );
+  const [extraFelder, setExtraFelder] = useState<Record<string, string>>({});
   const desktopContainerRef = useRef<HTMLDivElement>(null);
   const mobileContainerRef  = useRef<HTMLDivElement>(null);
   const [desktopRenderScale, setDesktopRenderScale] = useState(1);
@@ -180,13 +188,27 @@ export default function BuchungsSeiteClient({
     [aktiverFloor, aktiverFloorMap]
   );
 
+  const gewaehlterTyp = ticketTypen.find((t) => t.id === gewaehlterTypId) ?? null;
+
+  function effektiverPreis(basisCent: number): number {
+    if (!gewaehlterTyp) return basisCent;
+    return preisNachRegel(basisCent, gewaehlterTyp.preis_regel);
+  }
+
   const gesamtPreisCent =
-    ausgewaehlt.reduce((s, a) => s + a.kategorie.preis_cent, 0) +
+    ausgewaehlt.reduce((s, a) => s + effektiverPreis(a.kategorie.preis_cent), 0) +
     ausgewaehlt.length * serviceGebuehrCent;
 
   async function buchen(e: React.FormEvent) {
     e.preventDefault();
     if (ausgewaehlt.length === 0) { setFehler("Bitte mindestens einen Sitzplatz wählen."); return; }
+    if (ticketTypen.length > 0 && !gewaehlterTypId) { setFehler("Bitte einen Ticket-Typ wählen."); return; }
+    // Validate required extra fields
+    if (gewaehlterTyp) {
+      for (const feld of gewaehlterTyp.pflichtfelder.filter((f) => f.pflicht)) {
+        if (!extraFelder[feld.label]?.trim()) { setFehler(`Pflichtfeld: ${feld.label}`); return; }
+      }
+    }
     setFehler(null);
     setLaedt(true);
     const res = await fetch("/api/checkout", {
@@ -196,9 +218,12 @@ export default function BuchungsSeiteClient({
         eventId,
         sitzplaetze: ausgewaehlt.map((a) => ({
           sitzId: a.sitzId, kategorieId: a.kategorie.id,
-          preisCent: a.kategorie.preis_cent, kategorieName: a.kategorie.name,
+          preisCent: effektiverPreis(a.kategorie.preis_cent),
+          kategorieName: a.kategorie.name,
+          bezeichnung: `${a.kategorie.name} · ${a.sitzId}`,
         })),
         name, email,
+        ticketTyp: gewaehlterTyp ? { id: gewaehlterTyp.id, name: gewaehlterTyp.name, extra_felder: extraFelder } : null,
       }),
     });
     const data = await res.json() as { url?: string; error?: string };
@@ -228,6 +253,70 @@ export default function BuchungsSeiteClient({
 
   const formularInhalt = (
     <form onSubmit={buchen} className="space-y-3">
+      {/* Ticket-Typ selector */}
+      {ticketTypen.length > 0 && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">Ticket-Typ *</Label>
+          <div className="space-y-1.5">
+            {ticketTypen.map((typ) => (
+              <button
+                key={typ.id}
+                type="button"
+                onClick={() => { setGewaehlterTypId(typ.id); setExtraFelder({}); }}
+                className={`w-full text-left rounded-lg border px-3 py-2.5 transition-all ${
+                  gewaehlterTypId === typ.id
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-input hover:border-primary/40 hover:bg-muted/40"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{typ.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {typ.preis_regel.typ === "basis"
+                      ? "Normalpreis"
+                      : regelLabel(typ.preis_regel)}
+                  </span>
+                </div>
+                {typ.beschreibung && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{typ.beschreibung}</p>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Extra fields for selected type */}
+      {gewaehlterTyp?.pflichtfelder && gewaehlterTyp.pflichtfelder.length > 0 && (
+        <div className="space-y-2 rounded-lg bg-muted/40 p-3 border border-border">
+          <p className="text-xs font-medium text-muted-foreground">Zusätzliche Angaben für „{gewaehlterTyp.name}"</p>
+          {gewaehlterTyp.pflichtfelder.map((feld: PflichtFeld) => (
+            <div key={feld.id} className="space-y-1">
+              <Label className="text-xs">{feld.label}{feld.pflicht ? " *" : ""}</Label>
+              {feld.typ === "auswahl" && feld.optionen?.length ? (
+                <select
+                  value={extraFelder[feld.label] ?? ""}
+                  onChange={(e) => setExtraFelder((prev) => ({ ...prev, [feld.label]: e.target.value }))}
+                  required={feld.pflicht}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">— Bitte wählen —</option>
+                  {feld.optionen.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <Input
+                  type={feld.typ === "email" ? "email" : feld.typ === "zahl" ? "number" : "text"}
+                  value={extraFelder[feld.label] ?? ""}
+                  onChange={(e) => setExtraFelder((prev) => ({ ...prev, [feld.label]: e.target.value }))}
+                  required={feld.pflicht}
+                  className="h-8 text-sm"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label htmlFor="name" className="text-xs">Name *</Label>
         <Input id="name" placeholder="Vor- und Nachname" value={name}
@@ -268,7 +357,17 @@ export default function BuchungsSeiteClient({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm">{(a.kategorie.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
+              <span className="text-sm">
+                {gewaehlterTyp && gewaehlterTyp.preis_regel.typ !== "basis"
+                  ? <>
+                      <span className="line-through text-muted-foreground text-xs mr-1">
+                        {(a.kategorie.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
+                      </span>
+                      {(effektiverPreis(a.kategorie.preis_cent) / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
+                    </>
+                  : (a.kategorie.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })
+                }
+              </span>
               <button type="button" onClick={() => onSitzKlicken(a.sitzId)}
                 className="text-muted-foreground hover:text-foreground p-0.5 transition-colors">
                 <X className="h-3.5 w-3.5" />

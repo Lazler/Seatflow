@@ -4,6 +4,7 @@ import { Calendar, MapPin, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";
+import type { TicketTyp } from "@/types/ticket-typ";
 
 type EtageRaw = { id: string; name: string; sitzplan_id: string };
 
@@ -18,7 +19,7 @@ export default async function BuchungsSeite({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, etagen, cancel_url, venues(name, adresse)"
+      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, etagen, ticket_typen, cancel_url, venues(name, adresse)"
     )
     .eq("id", eventId)
     .eq("status", "veroeffentlicht")
@@ -137,6 +138,7 @@ export default async function BuchungsSeite({
             floors={floors}
             belegteSitzIds={belegteSitzIds}
             serviceGebuehrCent={event.service_gebuehr_cent ?? 50}
+            ticketTypen={((event.ticket_typen as TicketTyp[] | null) ?? []).filter((t) => t.aktiv)}
           />
         ) : (
           <div className="rounded-xl border border-border bg-background p-12 text-center text-muted-foreground text-sm">

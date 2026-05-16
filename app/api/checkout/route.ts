@@ -3,11 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
-  const { eventId, sitzplaetze, name, email } = await req.json() as {
+  const { eventId, sitzplaetze, name, email, ticketTyp } = await req.json() as {
     eventId: string;
     sitzplaetze: { sitzId: string; kategorieId: string; preisCent: number; kategorieName: string; bezeichnung?: string }[];
     name: string;
     email: string;
+    ticketTyp?: { id: string; name: string; extra_felder: Record<string, string> } | null;
   };
 
   if (!eventId || !sitzplaetze?.length || !name || !email) {
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
       gaest_email: email,
       gesamt_cent: gesamtCent,
       status: "ausstehend",
+      ...(ticketTyp ? { ticket_typ: ticketTyp } : {}),
     })
     .select("id")
     .single();

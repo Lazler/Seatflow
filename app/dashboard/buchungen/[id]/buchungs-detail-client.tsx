@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket } from "lucide-react";
 
+type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
+
 type Buchung = {
   id: string; gaest_name: string; gaest_email: string;
   gesamt_cent: number; status: string; erstellt_am: string;
-  event_id: string; notiz: string | null;
+  event_id: string; notiz: string | null; ticket_typ: TicketTypInfo | null;
 };
 type TicketRow = { id: string; sitzplatz_id: string; sitzplatz_bezeichnung: string; preis_cent: number };
 type Kommentar = { id: string; text: string; erstellt_am: string };
@@ -185,6 +187,21 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                       {buchung.gaest_email}
                     </a>
                   </div>
+                  {buchung.ticket_typ && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ticket-Typ</p>
+                      <p className="text-sm font-medium mt-0.5">{buchung.ticket_typ.name}</p>
+                      {buchung.ticket_typ.extra_felder && Object.keys(buchung.ticket_typ.extra_felder).length > 0 && (
+                        <div className="mt-1.5 space-y-0.5">
+                          {Object.entries(buchung.ticket_typ.extra_felder).map(([label, val]) => (
+                            <p key={label} className="text-xs bg-muted/60 rounded px-2 py-1">
+                              <span className="text-muted-foreground">{label}:</span> {val}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>

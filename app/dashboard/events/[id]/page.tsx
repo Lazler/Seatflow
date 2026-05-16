@@ -8,6 +8,8 @@ import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users } from "lucide
 import EventStatusAktion from "./event-status-aktion";
 import SitzplanZuweisung, { type Etage } from "./sitzplan-zuweisung";
 import EventWeiterleitungen from "./event-weiterleitungen";
+import TicketTypen from "./ticket-typen";
+import type { TicketTyp } from "@/types/ticket-typ";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -197,6 +199,12 @@ export default async function EventDetail({
             aktuellerSitzplanId={event.sitzplan_id ?? null}
             aktuelleEtagen={(event.etagen as Etage[] | null) ?? null}
             sitzplaene={sitzplaene ?? []}
+          />
+
+          {/* Ticket-Typen */}
+          <TicketTypen
+            eventId={event.id}
+            initialTypen={(event.ticket_typen as TicketTyp[] | null) ?? []}
           />
 
           {/* Weiterleitungs-URLs */}
