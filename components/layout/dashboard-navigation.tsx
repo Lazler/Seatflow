@@ -5,12 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Calendar, MapPin, LogOut } from "lucide-react";
+import { LayoutDashboard, Calendar, MapPin, LogOut, ReceiptText } from "lucide-react";
 
 const NAVIGATION = [
-  { href: "/dashboard", label: "Übersicht", icon: LayoutDashboard, exakt: true },
-  { href: "/dashboard/events", label: "Events", icon: Calendar, exakt: false },
-  { href: "/dashboard/venues", label: "Venues", icon: MapPin, exakt: false },
+  { href: "/dashboard",           label: "Übersicht", icon: LayoutDashboard, exakt: true  },
+  { href: "/dashboard/buchungen", label: "Buchungen", icon: ReceiptText,     exakt: false },
+  { href: "/dashboard/events",    label: "Events",    icon: Calendar,        exakt: false },
+  { href: "/dashboard/venues",    label: "Venues",    icon: MapPin,          exakt: false },
 ];
 
 export function DashboardNavigation() {
