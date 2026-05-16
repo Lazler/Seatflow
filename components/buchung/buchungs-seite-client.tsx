@@ -41,6 +41,52 @@ type AusgewaehlterSitz = {
   kategorie: Preiskategorie;
 };
 
+/* ─── Segmented floor picker ──────────────────────────────────────────────── */
+function FloorPicker({
+  floors,
+  aktiv,
+  onWechseln,
+  floorLabel,
+}: {
+  floors: Floor[];
+  aktiv: number;
+  onWechseln: (idx: number) => void;
+  floorLabel: (f: Floor, i: number) => string;
+}) {
+  return (
+    <div className="relative flex bg-muted/60 rounded-2xl p-1">
+      {/* Sliding pill — smooth material-easing transition */}
+      <div
+        aria-hidden
+        className="absolute top-1 bottom-1 rounded-[14px] bg-background shadow-[0_1px_4px_rgba(0,0,0,0.10)] border border-black/[0.06] pointer-events-none"
+        style={{
+          transition: "left 220ms cubic-bezier(0.4,0,0.2,1), width 220ms cubic-bezier(0.4,0,0.2,1)",
+          left:  `calc(4px + ${aktiv} * ((100% - 8px) / ${floors.length}))`,
+          width: `calc((100% - 8px) / ${floors.length})`,
+        }}
+      />
+      {floors.map((floor, idx) => (
+        <button
+          key={floor.id}
+          type="button"
+          onClick={() => onWechseln(idx)}
+          className="relative z-10 flex-1 py-2 px-4 text-sm font-medium rounded-[14px] text-center select-none"
+        >
+          <span
+            style={{
+              transition: "color 220ms cubic-bezier(0.4,0,0.2,1)",
+              color: idx === aktiv ? "var(--foreground)" : "var(--muted-foreground)",
+            }}
+          >
+            {floorLabel(floor, idx)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Main component ──────────────────────────────────────────────────────── */
 export default function BuchungsSeiteClient({
   eventId,
   floors,
@@ -49,6 +95,7 @@ export default function BuchungsSeiteClient({
 }: Props) {
   const mehrereEbenen = floors.length > 1;
   const [aktiverFloorIdx, setAktiverFloorIdx] = useState(0);
+  const [fading, setFading] = useState(false);
   const [ausgewaehlt, setAusgewaehlt] = useState<AusgewaehlterSitz[]>([]);
   const [belegte, setBelegte] = useState<Set<string>>(new Set(belegteSitzIds));
   const [name, setName] = useState("");
@@ -57,11 +104,21 @@ export default function BuchungsSeiteClient({
   const [laedt, setLaedt] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
   const desktopContainerRef = useRef<HTMLDivElement>(null);
-  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const mobileContainerRef  = useRef<HTMLDivElement>(null);
   const [desktopRenderScale, setDesktopRenderScale] = useState(1);
-  const [mobileRenderScale, setMobileRenderScale] = useState(1);
+  const [mobileRenderScale,  setMobileRenderScale]  = useState(1);
 
   const aktiverFloor = floors[aktiverFloorIdx] ?? floors[0];
+
+  function switchFloor(idx: number) {
+    if (idx === aktiverFloorIdx) return;
+    setFading(true);
+    // Short fade-out, then swap content and fade back in
+    setTimeout(() => { setAktiverFloorIdx(idx); setFading(false); }, 140);
+  }
+
+  const floorLabel = (floor: Floor, idx: number) =>
+    floor.name ?? (floors.length === 1 ? "Sitzplan" : `Ebene ${idx + 1}`);
 
   useEffect(() => {
     const makeUpdater = (
@@ -81,13 +138,11 @@ export default function BuchungsSeiteClient({
     return () => { rod.disconnect(); rom.disconnect(); };
   }, [aktiverFloor.konfiguration.breite]);
 
-  // Realtime: Sitze live sperren
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
       .channel(`tickets-${eventId}`)
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "tickets", filter: `event_id=eq.${eventId}` },
         (payload) => {
           const sitzId = (payload.new as { sitz_id: string }).sitz_id;
@@ -99,19 +154,13 @@ export default function BuchungsSeiteClient({
     return () => { supabase.removeChannel(channel); };
   }, [eventId]);
 
-  // Per-floor seat → category maps
   const floorMaps = floors.map((floor) => ({
     id: floor.id,
-    kategorienMap: new Map<string, Preiskategorie>(
-      floor.konfiguration.kategorien.map((k) => [k.id, k])
-    ),
-    sitzKategorie: new Map<string, string>(
-      alleSitze(floor.konfiguration).map(({ sitzId, kategorieId }) => [sitzId, kategorieId])
-    ),
+    kategorienMap: new Map<string, Preiskategorie>(floor.konfiguration.kategorien.map((k) => [k.id, k])),
+    sitzKategorie: new Map<string, string>(alleSitze(floor.konfiguration).map(({ sitzId, kategorieId }) => [sitzId, kategorieId])),
   }));
 
   const aktiverFloorMap = floorMaps[aktiverFloorIdx];
-
   const ausgewaehlteIdsAktiverFloor = new Set(
     ausgewaehlt.filter((s) => s.floorId === aktiverFloor.id).map((s) => s.sitzId)
   );
@@ -137,59 +186,43 @@ export default function BuchungsSeiteClient({
 
   async function buchen(e: React.FormEvent) {
     e.preventDefault();
-    if (ausgewaehlt.length === 0) {
-      setFehler("Bitte mindestens einen Sitzplatz wählen.");
-      return;
-    }
+    if (ausgewaehlt.length === 0) { setFehler("Bitte mindestens einen Sitzplatz wählen."); return; }
     setFehler(null);
     setLaedt(true);
-
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         eventId,
         sitzplaetze: ausgewaehlt.map((a) => ({
-          sitzId: a.sitzId,
-          kategorieId: a.kategorie.id,
-          preisCent: a.kategorie.preis_cent,
-          kategorieName: a.kategorie.name,
+          sitzId: a.sitzId, kategorieId: a.kategorie.id,
+          preisCent: a.kategorie.preis_cent, kategorieName: a.kategorie.name,
         })),
-        name,
-        email,
+        name, email,
       }),
     });
-
     const data = await res.json() as { url?: string; error?: string };
-    if (!res.ok || !data.url) {
-      setFehler(data.error ?? "Fehler beim Starten des Checkouts.");
-      setLaedt(false);
-      return;
-    }
+    if (!res.ok || !data.url) { setFehler(data.error ?? "Fehler beim Starten des Checkouts."); setLaedt(false); return; }
     window.location.href = data.url;
   }
 
-  const floorLabel = (floor: Floor, idx: number) =>
-    floor.name ?? (floors.length === 1 ? "Sitzplan" : `Ebene ${idx + 1}`);
-
   const alleKategorien = aktiverFloor.konfiguration.kategorien;
 
-  const etagenTabs = mehrereEbenen && (
-    <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
-      {floors.map((floor, idx) => (
-        <button
-          key={floor.id}
-          type="button"
-          onClick={() => setAktiverFloorIdx(idx)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium text-left transition-all whitespace-nowrap shadow-sm ${
-            idx === aktiverFloorIdx
-              ? "bg-background text-foreground shadow-md border border-border/80"
-              : "bg-background/75 text-muted-foreground hover:bg-background hover:text-foreground border border-transparent backdrop-blur-sm"
-          }`}
-        >
-          {floorLabel(floor, idx)}
-        </button>
-      ))}
+  /* Canvas with fade transition */
+  const canvasWrapper = (ref: React.RefObject<HTMLDivElement | null>, scale: number) => (
+    <div
+      ref={ref}
+      className="w-full rounded-xl border border-border shadow-sm overflow-hidden"
+      style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}
+    >
+      <SitzplanCanvas
+        konfiguration={aktiverFloor.konfiguration}
+        modus="buchung"
+        renderScale={scale}
+        belegteSitze={belegte}
+        ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
+        onSitzKlicken={onSitzKlicken}
+      />
     </div>
   );
 
@@ -237,7 +270,7 @@ export default function BuchungsSeiteClient({
             <div className="flex items-center gap-2">
               <span className="text-sm">{(a.kategorie.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
               <button type="button" onClick={() => onSitzKlicken(a.sitzId)}
-                className="text-muted-foreground hover:text-foreground p-0.5">
+                className="text-muted-foreground hover:text-foreground p-0.5 transition-colors">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -259,24 +292,16 @@ export default function BuchungsSeiteClient({
     </div>
   );
 
-
   return (
     <>
-      {/* ---- Desktop-Layout: 2/3 Canvas + 1/3 Sidebar ---- */}
+      {/* ── Desktop ── */}
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
+          {mehrereEbenen && (
+            <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
+          )}
           <Legende kategorien={alleKategorien} />
-          <div ref={desktopContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden relative">
-            {etagenTabs}
-            <SitzplanCanvas
-              konfiguration={aktiverFloor.konfiguration}
-              modus="buchung"
-              renderScale={desktopRenderScale}
-              belegteSitze={belegte}
-              ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
-              onSitzKlicken={onSitzKlicken}
-            />
-          </div>
+          {canvasWrapper(desktopContainerRef, desktopRenderScale)}
           <p className="text-xs text-muted-foreground">Sitze werden live gesperrt sobald jemand anderes bucht.</p>
         </div>
         <div>
@@ -285,33 +310,24 @@ export default function BuchungsSeiteClient({
               <CardTitle className="text-base">Deine Auswahl</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {ausgewaehlt.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-3">
-                  Klicke auf einen freien Platz.
-                </p>
-              ) : sitzlisteInhalt}
+              {ausgewaehlt.length === 0
+                ? <p className="text-sm text-muted-foreground text-center py-3">Klicke auf einen freien Platz.</p>
+                : sitzlisteInhalt}
               {formularInhalt}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* ---- Mobile-Layout: Canvas oben, Sticky-Bar unten ---- */}
+      {/* ── Mobile ── */}
       <div className="lg:hidden space-y-3">
+        {mehrereEbenen && (
+          <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
+        )}
         <Legende kategorien={alleKategorien} />
-        <div ref={mobileContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden relative">
-          {etagenTabs}
-          <SitzplanCanvas
-            konfiguration={aktiverFloor.konfiguration}
-            modus="buchung"
-            renderScale={mobileRenderScale}
-            belegteSitze={belegte}
-            ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
-            onSitzKlicken={onSitzKlicken}
-          />
-        </div>
+        {canvasWrapper(mobileContainerRef, mobileRenderScale)}
 
-        {/* Sticky Bottom Sheet */}
+        {/* Sticky bottom sheet */}
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border shadow-xl">
           <button
             type="button"
@@ -319,18 +335,12 @@ export default function BuchungsSeiteClient({
             onClick={() => ausgewaehlt.length > 0 && setDrawerOffen((v) => !v)}
           >
             <div className="flex items-center gap-2">
-              {ausgewaehlt.length === 0 ? (
-                <span className="text-sm text-muted-foreground">Platz im Sitzplan wählen</span>
-              ) : (
-                <>
-                  <span className="text-sm font-semibold">
-                    {ausgewaehlt.length} Platz{ausgewaehlt.length > 1 ? "plätze" : ""}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {ausgewaehlt.map((a) => a.sitzId).join(", ")}
-                  </span>
-                </>
-              )}
+              {ausgewaehlt.length === 0
+                ? <span className="text-sm text-muted-foreground">Platz im Sitzplan wählen</span>
+                : <>
+                    <span className="text-sm font-semibold">{ausgewaehlt.length} Platz{ausgewaehlt.length > 1 ? "plätze" : ""}</span>
+                    <span className="text-xs text-muted-foreground">{ausgewaehlt.map((a) => a.sitzId).join(", ")}</span>
+                  </>}
             </div>
             <div className="flex items-center gap-3">
               {ausgewaehlt.length > 0 && (
@@ -341,22 +351,17 @@ export default function BuchungsSeiteClient({
               {ausgewaehlt.length > 0 && (drawerOffen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />)}
             </div>
           </button>
-
           {drawerOffen && (
             <div className="px-4 pb-4 space-y-3 border-t border-border pt-3 max-h-[60vh] overflow-y-auto">
               {sitzlisteInhalt}
               {formularInhalt}
             </div>
           )}
-
           {!drawerOffen && ausgewaehlt.length > 0 && (
             <div className="px-4 pb-4">
-              <Button className="w-full" size="lg" onClick={() => setDrawerOffen(true)}>
-                Zur Kasse
-              </Button>
+              <Button className="w-full" size="lg" onClick={() => setDrawerOffen(true)}>Zur Kasse</Button>
             </div>
           )}
-
           <div className="h-safe-bottom" />
         </div>
         <div className="h-28" />
@@ -375,12 +380,10 @@ function Legende({ kategorien }: { kategorien: { id: string; name: string; farbe
         </span>
       ))}
       <span className="flex items-center gap-1.5">
-        <span className="w-3 h-3 rounded-full shrink-0 bg-slate-300" />
-        Belegt
+        <span className="w-3 h-3 rounded-full shrink-0 bg-slate-300" />Belegt
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-3 h-3 rounded-full shrink-0 bg-green-500" />
-        Ausgewählt
+        <span className="w-3 h-3 rounded-full shrink-0 bg-green-500" />Ausgewählt
       </span>
     </div>
   );
