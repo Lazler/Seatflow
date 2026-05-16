@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { X, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze } from "@/types/sitzplan";
-import SitzplanSkaliert from "./sitzplan-skaliert";
 
 const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canvas"), {
   ssr: false,
@@ -47,8 +46,20 @@ export default function BuchungsSeiteClient({
   const [email, setEmail] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
-  // Mobile: Warenkorb-Drawer auf/zu
   const [drawerOffen, setDrawerOffen] = useState(false);
+  // Native Konva-Skalierung für 1:1 rendering
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [renderScale, setRenderScale] = useState(1);
+  useEffect(() => {
+    const update = () => {
+      if (!canvasContainerRef.current) return;
+      setRenderScale(Math.min(1, canvasContainerRef.current.offsetWidth / konfiguration.breite));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (canvasContainerRef.current) ro.observe(canvasContainerRef.current);
+    return () => ro.disconnect();
+  }, [konfiguration.breite]);
 
   const kategorienMap = new Map<string, Preiskategorie>(
     konfiguration.kategorien.map((k) => [k.id, k])
@@ -194,15 +205,16 @@ export default function BuchungsSeiteClient({
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           <Legende kategorien={konfiguration.kategorien} />
-          <SitzplanSkaliert breite={konfiguration.breite} hoehe={konfiguration.hoehe}>
+          <div ref={canvasContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
             <SitzplanCanvas
               konfiguration={konfiguration}
               modus="buchung"
+              renderScale={renderScale}
               belegteSitze={belegte}
               ausgewaehlteSitze={ausgewaehlteIds}
               onSitzKlicken={onSitzKlicken}
             />
-          </SitzplanSkaliert>
+          </div>
           <p className="text-xs text-muted-foreground">Sitze werden live gesperrt sobald jemand anderes bucht.</p>
         </div>
         <div>
@@ -225,15 +237,16 @@ export default function BuchungsSeiteClient({
       {/* ---- Mobile-Layout: Canvas oben, Sticky-Bar unten ---- */}
       <div className="lg:hidden space-y-3">
         <Legende kategorien={konfiguration.kategorien} />
-        <SitzplanSkaliert breite={konfiguration.breite} hoehe={konfiguration.hoehe}>
+        <div className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
           <SitzplanCanvas
             konfiguration={konfiguration}
             modus="buchung"
+            renderScale={renderScale}
             belegteSitze={belegte}
             ausgewaehlteSitze={ausgewaehlteIds}
             onSitzKlicken={onSitzKlicken}
           />
-        </SitzplanSkaliert>
+        </div>
 
         {/* Sticky Bottom Sheet */}
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border shadow-xl">
