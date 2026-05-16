@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 
+type SitzplatzPayload = {
+  sitzId: string;
+  kategorieId: string;
+  preisCent: number;
+  kategorieName: string;
+  bezeichnung?: string;
+  ticketTyp?: { id: string; name: string; extra_felder: Record<string, string> } | null;
+};
+
 export async function POST(req: NextRequest) {
-  const { eventId, sitzplaetze, name, email, ticketTyp } = await req.json() as {
+  const { eventId, sitzplaetze, name, email } = await req.json() as {
     eventId: string;
-    sitzplaetze: { sitzId: string; kategorieId: string; preisCent: number; kategorieName: string; bezeichnung?: string }[];
+    sitzplaetze: SitzplatzPayload[];
     name: string;
     email: string;
-    ticketTyp?: { id: string; name: string; extra_felder: Record<string, string> } | null;
   };
 
   if (!eventId || !sitzplaetze?.length || !name || !email) {
@@ -32,6 +40,9 @@ export async function POST(req: NextRequest) {
   const gesamtCent = sitzplaetze.reduce((s, p) => s + p.preisCent, 0) + sitzplaetze.length * serviceGebuehrCent;
 
   // Buchung anlegen (status: ausstehend)
+  // Store the first ticket type at buchung level for backwards compat (detail view)
+  const firstTicketTyp = sitzplaetze.find((p) => p.ticketTyp)?.ticketTyp ?? null;
+
   const { data: buchung, error: buchungsFehler } = await supabase
     .from("buchungen")
     .insert({
@@ -40,7 +51,7 @@ export async function POST(req: NextRequest) {
       gaest_email: email,
       gesamt_cent: gesamtCent,
       status: "ausstehend",
-      ...(ticketTyp ? { ticket_typ: ticketTyp } : {}),
+      ...(firstTicketTyp ? { ticket_typ: firstTicketTyp } : {}),
     })
     .select("id")
     .single();
@@ -57,6 +68,7 @@ export async function POST(req: NextRequest) {
       sitzplatz_id: p.sitzId,
       sitzplatz_bezeichnung: p.bezeichnung ?? `${p.kategorieName} · ${p.sitzId}`,
       preis_cent: p.preisCent,
+      ...(p.ticketTyp ? { ticket_typ: p.ticketTyp } : {}),
     }))
   );
 
