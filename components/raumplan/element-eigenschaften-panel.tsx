@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   AlignJustify, Armchair, CircleDot, Trash2, Minus, Plus,
-  RotateCcw, ChevronLeft, Users, Check,
+  RotateCcw, ChevronLeft, Users, Check, Copy,
 } from "lucide-react";
 import {
   type SitzplanElement, type Preiskategorie, type ElementTyp,
@@ -68,9 +68,10 @@ type Props = {
   onChange: (delta: Partial<SitzplanElement>) => void;
   onLoeschen: () => void;
   onSchliessen: () => void;
+  onDuplizieren: () => void;
 };
 
-export default function ElementEigenschaftenPanel({ el, kategorien, onChange, onLoeschen, onSchliessen }: Props) {
+export default function ElementEigenschaftenPanel({ el, kategorien, onChange, onLoeschen, onSchliessen, onDuplizieren }: Props) {
   const { icon: Icon, label: typLabel } = TYP_META[el.typ];
   const [loeschen, setLoeschen] = useState(false);
   const sitzAnzahl = elementSitzIds(el).length;
@@ -205,8 +206,12 @@ export default function ElementEigenschaftenPanel({ el, kategorien, onChange, on
 
       </div>
 
-      {/* ── Footer: Löschen ── */}
-      <div className="shrink-0 px-4 py-3 border-t border-border">
+      {/* ── Footer: Duplizieren + Löschen ── */}
+      <div className="shrink-0 px-4 py-3 border-t border-border space-y-2">
+        <button type="button" onClick={onDuplizieren}
+          className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-input text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <Copy className="h-3.5 w-3.5" /> Element duplizieren
+        </button>
         {loeschen ? (
           <div className="rounded-lg border border-destructive/30 p-3 space-y-2 animate-slide-up"
             style={{ background: "color-mix(in srgb, var(--destructive) 8%, transparent)" }}>

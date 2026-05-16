@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text, Group, Line, Transformer } from "react-konva";
 import type Konva from "konva";
 import {
@@ -21,7 +21,7 @@ import {
   tischreiheBreite,
 } from "@/types/sitzplan";
 
-export type Auswahl = { typ: "buehne" } | { typ: "element"; id: string } | null;
+export type Auswahl = { typ: "buehne" } | { typ: "element"; ids: string[] } | null;
 
 function sitzFarbe({ sitzId, kategoriefarbe, belegt, buchungAusgewaehlt, editorAusgewaehlt }: {
   sitzId: string; kategoriefarbe: string; belegt: boolean; buchungAusgewaehlt: boolean; editorAusgewaehlt: boolean;
@@ -197,6 +197,7 @@ type Props = {
   auswahl?: Auswahl;
   onAuswaehlen?: (a: Auswahl) => void;
   onElementVerschieben?: (id: string, x: number, y: number) => void;
+  onMehrereElementeVerschieben?: (list: { id: string; x: number; y: number }[]) => void;
   onBuehneVerschieben?: (x: number, y: number) => void;
   onBuehneTransformiert?: (breite: number, hoehe: number, x: number, y: number, winkel: number) => void;
   belegteSitze?: Set<string>;
@@ -206,13 +207,29 @@ type Props = {
 
 export default function SitzplanCanvas({
   konfiguration, modus, renderScale = 1,
-  auswahl, onAuswaehlen, onElementVerschieben, onBuehneVerschieben, onBuehneTransformiert,
+  auswahl, onAuswaehlen, onElementVerschieben, onMehrereElementeVerschieben, onBuehneVerschieben, onBuehneTransformiert,
   belegteSitze = new Set(), ausgewaehlteSitze = new Set(), onSitzKlicken,
 }: Props) {
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const istBuchungsmodus = modus === "buchung";
   const scale = Math.min(1, renderScale);
+
+  // Shift key tracking (ref, no re-render)
+  const shiftHeldRef = useRef(false);
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.key === "Shift") shiftHeldRef.current = true; };
+    const up   = (e: KeyboardEvent) => { if (e.key === "Shift") shiftHeldRef.current = false; };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+  }, []);
+
+  // Rubber band selection state + refs
+  const [selectRect, setSelectRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const isSelectingRef = useRef(false);
+  const selectStartRef = useRef({ x: 0, y: 0 });
+  const drewBandRef = useRef(false);
 
   useEffect(() => {
     if (!trRef.current) return;
@@ -225,7 +242,7 @@ export default function SitzplanCanvas({
   const { breite: raumbreite, hoehe: raumhoehe } = konfiguration;
 
   function renderElement(el: SitzplanElement) {
-    const istAusgewaehlt = auswahl?.typ === "element" && auswahl.id === el.id;
+    const istAusgewaehlt = auswahl?.typ === "element" && auswahl.ids.includes(el.id);
     const kat = kategorienMap.get(el.kategorie_id);
     const gemeinsam = {
       kategoriefarbe: kat?.farbe ?? "#3b82f6",
@@ -235,8 +252,35 @@ export default function SitzplanCanvas({
       istBuchungsmodus,
       raumbreite,
       raumhoehe,
-      onKlick: () => onAuswaehlen?.(istAusgewaehlt ? null : { typ: "element", id: el.id }),
-      onDragEnd: (x: number, y: number) => onElementVerschieben?.(el.id, x, y),
+      onKlick: () => {
+        const shift = shiftHeldRef.current;
+        const currentIds = auswahl?.typ === "element" ? auswahl.ids : [];
+        if (shift) {
+          const newIds = currentIds.includes(el.id)
+            ? currentIds.filter(id => id !== el.id)
+            : [...currentIds, el.id];
+          onAuswaehlen?.(newIds.length > 0 ? { typ: "element", ids: newIds } : null);
+        } else {
+          const alreadySingle = currentIds.length === 1 && currentIds[0] === el.id;
+          onAuswaehlen?.(alreadySingle ? null : { typ: "element", ids: [el.id] });
+        }
+      },
+      onDragEnd: (x: number, y: number) => {
+        const selectedIds = auswahl?.typ === "element" ? auswahl.ids : [];
+        if (selectedIds.length > 1 && selectedIds.includes(el.id)) {
+          const dx = x - el.x; const dy = y - el.y;
+          const list = konfiguration.elemente
+            .filter(e => selectedIds.includes(e.id))
+            .map(e => ({
+              id: e.id,
+              x: e.id === el.id ? x : Math.max(DRAG_MARGIN, Math.min(raumbreite - DRAG_MARGIN, e.x + dx)),
+              y: e.id === el.id ? y : Math.max(DRAG_MARGIN, Math.min(raumhoehe - DRAG_MARGIN, e.y + dy)),
+            }));
+          onMehrereElementeVerschieben?.(list);
+        } else {
+          onElementVerschieben?.(el.id, x, y);
+        }
+      },
       onSitzKlick: onSitzKlicken,
     };
     switch (el.typ) {
@@ -250,10 +294,47 @@ export default function SitzplanCanvas({
     <Stage
       width={raumbreite * scale} height={raumhoehe * scale}
       scale={{ x: scale, y: scale }}
-      onClick={(e) => { if (e.target === e.target.getStage()) onAuswaehlen?.(null); }}
+      onMouseDown={(e) => {
+        if (istBuchungsmodus) return;
+        const targetId = (e.target as Konva.Shape).id?.() ?? "";
+        const isEmpty = e.target === e.target.getStage() || targetId === "bg";
+        if (!isEmpty) return;
+        const pos = e.target.getStage()!.getPointerPosition()!;
+        const x = pos.x / scale; const y = pos.y / scale;
+        isSelectingRef.current = true;
+        drewBandRef.current = false;
+        selectStartRef.current = { x, y };
+        setSelectRect({ x, y, w: 0, h: 0 });
+      }}
+      onMouseMove={(e) => {
+        if (!isSelectingRef.current) return;
+        const pos = e.target.getStage()!.getPointerPosition()!;
+        const cx = pos.x / scale; const cy = pos.y / scale;
+        const { x: sx, y: sy } = selectStartRef.current;
+        const w = cx - sx; const h = cy - sy;
+        setSelectRect({ x: w < 0 ? cx : sx, y: h < 0 ? cy : sy, w: Math.abs(w), h: Math.abs(h) });
+        if (Math.abs(w) > 4 || Math.abs(h) > 4) drewBandRef.current = true;
+      }}
+      onMouseUp={() => {
+        if (!isSelectingRef.current) return;
+        isSelectingRef.current = false;
+        const rect = selectRect;
+        setSelectRect(null);
+        if (!rect || !drewBandRef.current) return;
+        const found = konfiguration.elemente.filter(el =>
+          el.x >= rect.x && el.x <= rect.x + rect.w &&
+          el.y >= rect.y && el.y <= rect.y + rect.h
+        );
+        if (found.length > 0) onAuswaehlen?.({ typ: "element", ids: found.map(e => e.id) });
+      }}
+      onClick={(e) => {
+        if (drewBandRef.current) return;
+        const targetId = (e.target as Konva.Shape).id?.() ?? "";
+        if (e.target === e.target.getStage() || targetId === "bg") onAuswaehlen?.(null);
+      }}
     >
       <Layer>
-        <Rect x={0} y={0} width={raumbreite} height={raumhoehe} fill="#f8fafc" />
+        <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe} fill="#f8fafc" />
         {Array.from({ length: Math.ceil(raumhoehe / 40) }, (_, i) => (
           <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
         ))}
@@ -268,6 +349,14 @@ export default function SitzplanCanvas({
           onDragEnd={(x, y) => onBuehneVerschieben?.(x, y)} nodeRef={buehneRef}
         />
         {konfiguration.elemente.map(renderElement)}
+        {selectRect && (
+          <Rect
+            x={selectRect.x} y={selectRect.y} width={selectRect.w} height={selectRect.h}
+            fill={FARBE_ELEMENT_SELEKTIERT + "18"}
+            stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1}
+            dash={[5, 3]} listening={false}
+          />
+        )}
         {!istBuchungsmodus && (
           <Transformer ref={trRef} rotateEnabled
             enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right"]}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,7 +13,7 @@ import {
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft } from "lucide-react";
+import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -56,13 +56,29 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
     setKonfig((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
-    setAuswahl({ typ: "element", id: neuesElement.id });
+    setAuswahl({ typ: "element", ids: [neuesElement.id] });
     setGespeichert(false);
   }
 
   function elementLoeschen(id: string) {
     setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
     setAuswahl(null);
+    setGespeichert(false);
+  }
+
+  function elementDuplizieren(id: string) {
+    const original = konfig.elemente.find((e) => e.id === id);
+    if (!original) return;
+    const kopie: SitzplanElement = {
+      ...original,
+      id: crypto.randomUUID(),
+      bezeichnung: naechsteBezeichnung(konfig.elemente,
+        original.typ === "reihe" ? "" : original.typ === "tischreihe" ? "T" : "R"),
+      x: Math.min(original.x + 40, konfig.breite - 60),
+      y: Math.min(original.y + 40, konfig.hoehe - 60),
+    };
+    setKonfig((k) => ({ ...k, elemente: [...k.elemente, kopie] }));
+    setAuswahl({ typ: "element", ids: [kopie.id] });
     setGespeichert(false);
   }
 
@@ -76,6 +92,17 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   const elementVerschieben = useCallback((id: string, x: number, y: number) => {
     setKonfig((k) => ({ ...k, elemente: k.elemente.map((e) => e.id === id ? { ...e, x, y } : e) }));
+    setGespeichert(false);
+  }, []);
+
+  const elementeMehrfachVerschieben = useCallback((list: { id: string; x: number; y: number }[]) => {
+    setKonfig((k) => ({
+      ...k,
+      elemente: k.elemente.map((e) => {
+        const upd = list.find((u) => u.id === e.id);
+        return upd ? { ...e, x: upd.x, y: upd.y } : e;
+      }),
+    }));
     setGespeichert(false);
   }, []);
 
@@ -112,9 +139,26 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     if (!error) { setGespeichert(true); router.refresh(); }
   }
 
-  const ausgewaehltesElement = auswahl?.typ === "element"
-    ? konfig.elemente.find((e) => e.id === auswahl.id) ?? null
-    : null;
+  const ausgewaehltesElement =
+    auswahl?.typ === "element" && auswahl.ids.length === 1
+      ? konfig.elemente.find((e) => e.id === auswahl.ids[0]) ?? null
+      : null;
+  const auswahlIds = auswahl?.typ === "element" ? auswahl.ids : [];
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+        const ids = auswahl?.typ === "element" ? auswahl.ids : [];
+        if (ids.length === 0) return;
+        setKonfig((k) => ({ ...k, elemente: k.elemente.filter((el) => !ids.includes(el.id)) }));
+        setAuswahl(null);
+        setGespeichert(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [auswahl]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -149,6 +193,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               auswahl={auswahl}
               onAuswaehlen={setAuswahl}
               onElementVerschieben={elementVerschieben}
+              onMehrereElementeVerschieben={elementeMehrfachVerschieben}
               onBuehneVerschieben={buehneVerschieben}
               onBuehneTransformiert={buehneTransformiert}
             />
@@ -157,13 +202,40 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
         {/* Sidebar: wechselt zwischen globalen Einstellungen und Element-Eigenschaften */}
         <aside className="w-64 border-l border-border bg-background flex flex-col overflow-hidden shrink-0">
-          {ausgewaehltesElement ? (
+          {auswahlIds.length > 1 ? (
+            <div className="flex flex-col h-full">
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+                <button type="button" onClick={() => setAuswahl(null)}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-sm font-semibold">{auswahlIds.length} Elemente</span>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+                <MousePointer2 className="h-8 w-8 opacity-30" />
+                <p className="text-sm">Ziehe ein Element um alle <strong>{auswahlIds.length} Elemente</strong> gemeinsam zu verschieben.</p>
+                <p className="text-xs">Shift+Klick zum Abwählen.</p>
+              </div>
+              <div className="px-4 py-3 border-t border-border">
+                <button type="button"
+                  onClick={() => {
+                    setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
+                    setAuswahl(null);
+                    setGespeichert(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" /> {auswahlIds.length} Elemente löschen
+                </button>
+              </div>
+            </div>
+          ) : ausgewaehltesElement ? (
             <ElementEigenschaftenPanel
               el={ausgewaehltesElement}
               kategorien={konfig.kategorien}
               onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
               onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
               onSchliessen={() => setAuswahl(null)}
+              onDuplizieren={() => elementDuplizieren(ausgewaehltesElement.id)}
             />
           ) : (
             <EditorToolbar
