@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import EditorToolbar from "./editor-toolbar";
-import ElementInspektor from "./element-inspektor";
+import ElementEigenschaftenPanel from "./element-eigenschaften-panel";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
@@ -137,51 +137,48 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </div>
       </div>
 
-      {/* Hauptbereich: Canvas-Spalte + Sidebar */}
+      {/* Hauptbereich: Canvas + kontext-sensitive Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Canvas-Spalte: scrollbarer Canvas + Inspektor direkt darunter */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
-            <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
-              style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
-              <SitzplanCanvas
-                konfiguration={konfig}
-                modus="editor"
-                auswahl={auswahl}
-                onAuswaehlen={setAuswahl}
-                onElementVerschieben={elementVerschieben}
-                onBuehneVerschieben={buehneVerschieben}
-                onBuehneTransformiert={buehneTransformiert}
-              />
-            </div>
+        {/* Canvas */}
+        <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
+          <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
+            style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
+            <SitzplanCanvas
+              konfiguration={konfig}
+              modus="editor"
+              auswahl={auswahl}
+              onAuswaehlen={setAuswahl}
+              onElementVerschieben={elementVerschieben}
+              onBuehneVerschieben={buehneVerschieben}
+              onBuehneTransformiert={buehneTransformiert}
+            />
           </div>
+        </div>
 
-          {/* Inspektor: direkt am unteren Rand des Canvas-Bereichs */}
-          {ausgewaehltesElement && (
-            <ElementInspektor
+        {/* Sidebar: wechselt zwischen globalen Einstellungen und Element-Eigenschaften */}
+        <aside className="w-64 border-l border-border bg-background flex flex-col overflow-hidden shrink-0">
+          {ausgewaehltesElement ? (
+            <ElementEigenschaftenPanel
               el={ausgewaehltesElement}
               kategorien={konfig.kategorien}
               onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
               onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
               onSchliessen={() => setAuswahl(null)}
             />
+          ) : (
+            <EditorToolbar
+              elemente={konfig.elemente}
+              buehne={konfig.buehne}
+              kategorien={konfig.kategorien}
+              raumbreite={konfig.breite}
+              raumhoehe={konfig.hoehe}
+              gesamtSitze={gesamtSitze}
+              onHinzufuegen={elementHinzufuegen}
+              onBuehneAktualisieren={buehneAktualisieren}
+              onKategorienAktualisieren={kategorienAktualisieren}
+              onRaumgroesseAktualisieren={raumgroesseAktualisieren}
+            />
           )}
-        </div>
-
-        {/* Globale Sidebar */}
-        <aside className="w-64 border-l border-border bg-background flex flex-col overflow-hidden shrink-0">
-          <EditorToolbar
-            elemente={konfig.elemente}
-            buehne={konfig.buehne}
-            kategorien={konfig.kategorien}
-            raumbreite={konfig.breite}
-            raumhoehe={konfig.hoehe}
-            gesamtSitze={gesamtSitze}
-            onHinzufuegen={elementHinzufuegen}
-            onBuehneAktualisieren={buehneAktualisieren}
-            onKategorienAktualisieren={kategorienAktualisieren}
-            onRaumgroesseAktualisieren={raumgroesseAktualisieren}
-          />
         </aside>
       </div>
     </div>
