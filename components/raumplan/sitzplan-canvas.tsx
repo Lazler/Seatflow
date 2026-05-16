@@ -432,6 +432,8 @@ export default function SitzplanCanvas({
   const kategorienMap = new Map<string, Preiskategorie>(konfiguration.kategorien.map((k) => [k.id, k]));
   const { breite: raumbreite, hoehe: raumhoehe } = konfiguration;
 
+  if (scale <= 0 || raumbreite <= 0 || raumhoehe <= 0) return null;
+
   function renderElement(el: SitzplanElement) {
     const istAusgewaehlt = auswahl?.typ === "element" && auswahl.ids.includes(el.id);
     const kat = kategorienMap.get(el.kategorie_id);

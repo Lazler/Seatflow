@@ -168,7 +168,9 @@ export default function BuchungsSeiteClient({
   useEffect(() => {
     const makeUpdater = (ref: React.RefObject<HTMLDivElement | null>, setter: (v: number) => void) => () => {
       if (!ref.current) return;
-      setter(Math.min(1, ref.current.offsetWidth / aktiverFloor.konfiguration.breite));
+      const w = ref.current.offsetWidth;
+      if (w <= 0) return;
+      setter(Math.min(1, w / aktiverFloor.konfiguration.breite));
     };
     const updateDesktop = makeUpdater(desktopContainerRef, setDesktopRenderScale);
     const updateMobile = makeUpdater(mobileContainerRef, setMobileRenderScale);
