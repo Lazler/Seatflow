@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download } from "lucide-react";
 
 type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
 
@@ -138,9 +138,16 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           </p>
         </div>
         {!editModus ? (
-          <Button size="sm" variant="outline" onClick={() => setEditModus(true)}>
-            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Bearbeiten
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <a href={`/api/tickets/pdf?buchungId=${buchung.id}`} target="_blank" rel="noopener noreferrer">
+                <Download className="h-3.5 w-3.5 mr-1.5" /> PDF
+              </a>
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setEditModus(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Bearbeiten
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={editAbbrechen} disabled={speichertEdit}>

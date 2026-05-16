@@ -9,7 +9,9 @@ import EventStatusAktion from "./event-status-aktion";
 import SitzplanZuweisung, { type Etage } from "./sitzplan-zuweisung";
 import EventWeiterleitungen from "./event-weiterleitungen";
 import TicketTypen from "./ticket-typen";
+import TicketDesigner from "./ticket-designer";
 import type { TicketTyp } from "@/types/ticket-typ";
+import type { TicketDesign } from "@/types/ticket-design";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -199,6 +201,15 @@ export default async function EventDetail({
             aktuellerSitzplanId={event.sitzplan_id ?? null}
             aktuelleEtagen={(event.etagen as Etage[] | null) ?? null}
             sitzplaene={sitzplaene ?? []}
+          />
+
+          {/* Ticket-Designer */}
+          <TicketDesigner
+            eventId={event.id}
+            eventTitel={event.titel}
+            eventDatum={event.datum}
+            venue={venue?.name}
+            initialDesign={(event.ticket_design as TicketDesign | null) ?? null}
           />
 
           {/* Ticket-Typen */}

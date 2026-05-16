@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { sendTicketMail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import type Stripe from "stripe";
+import type { TicketDesign } from "@/types/ticket-design";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -41,16 +42,21 @@ export async function POST(req: NextRequest) {
 
   if (!buchung) return NextResponse.json({ received: true });
 
-  // Tickets und Event-Infos für die E-Mail laden
-  const [{ data: tickets }, { data: ev }] = await Promise.all([
+  // Tickets, buchung details und Event-Infos für die E-Mail laden
+  const [{ data: tickets }, { data: ev }, { data: buchungDetail }] = await Promise.all([
     supabase
       .from("tickets")
-      .select("sitzplatz_id, sitzplatz_bezeichnung, preis_cent")
+      .select("sitzplatz_id, sitzplatz_bezeichnung, preis_cent, qr_code")
       .eq("buchung_id", buchungId),
     supabase
       .from("events")
-      .select("titel, datum, venues(name)")
+      .select("titel, datum, ticket_design, venues(name)")
       .eq("id", eventId)
+      .single(),
+    supabase
+      .from("buchungen")
+      .select("ticket_typ")
+      .eq("id", buchungId)
       .single(),
   ]);
 
@@ -61,6 +67,8 @@ export async function POST(req: NextRequest) {
       ? (ev.venues as unknown as { name: string }).name
       : undefined
     : undefined;
+
+  const ticketTyp = buchungDetail?.ticket_typ as { name: string } | null;
 
   await sendTicketMail({
     to: buchung.gaest_email,
@@ -73,8 +81,11 @@ export async function POST(req: NextRequest) {
       sitzId: t.sitzplatz_id,
       kategorieName: t.sitzplatz_bezeichnung,
       preisCent: t.preis_cent,
+      qrCode: t.qr_code,
     })),
     gesamtCent: buchung.gesamt_cent,
+    ticketTypName: ticketTyp?.name,
+    design: ev.ticket_design as TicketDesign | null,
   });
 
   return NextResponse.json({ received: true });
