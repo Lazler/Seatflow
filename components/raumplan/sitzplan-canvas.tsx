@@ -173,14 +173,19 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
   );
 }
 
-// ── Tischreihe ────────────────────────────────────────────────────────────────
+// ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
 function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
-  const tischBreite = el.sitzeProTisch * TISCH_SITZ_ABSTAND;
-  const gesamtBreite = tischreiheBreite(el);
-  const sitzY = TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS;
+  const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
+  const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
+  const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
+
+  // Selection outline bounds
+  const selTop = (el.sitzeOben  ? sitzTopY - SITZ_RADIUS : -TISCH_HOEHE / 2) - 8;
+  const selBot = (el.sitzeUnten ? sitzBotY + SITZ_RADIUS :  TISCH_HOEHE / 2) + 8;
+
   return (
-    <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={gesamtBreite / 2}
+    <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={tischBreite / 2}
       draggable={!istBuchungsmodus}
       dragBoundFunc={(pos) => ({ x: Math.max(DRAG_MARGIN, Math.min(raumbreite - DRAG_MARGIN, pos.x)), y: Math.max(DRAG_MARGIN, Math.min(raumhoehe - DRAG_MARGIN, pos.y)) })}
       onClick={!istBuchungsmodus ? onKlick : undefined} onTap={!istBuchungsmodus ? onKlick : undefined}
@@ -188,59 +193,56 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Table row label — pill chip, same gap as Reihe */}
-      <LabelChip x={-(SITZ_RADIUS + 20)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
-      {Array.from({ length: el.anzahlTische }, (_, ti) => {
-        const tischX = ti * (tischBreite + el.tischAbstand);
+      {/* Table surface */}
+      <Rect
+        x={0} y={-TISCH_HOEHE / 2}
+        width={tischBreite} height={TISCH_HOEHE}
+        fill={kategoriefarbe + "28"}
+        stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
+        strokeWidth={1.5} cornerRadius={6}
+        shadowColor={kategoriefarbe} shadowBlur={8} shadowOpacity={0.18} shadowOffsetY={2}
+      />
+      {/* Table label — on the surface, always upright (like Rundtisch) */}
+      <Text
+        x={tischBreite / 2} y={0}
+        offsetX={tischBreite / 2} offsetY={TISCH_HOEHE / 2}
+        rotation={-el.winkel}
+        width={tischBreite} height={TISCH_HOEHE}
+        text={el.bezeichnung} fill="#1e3a5f" fontSize={11} fontStyle="bold"
+        align="center" verticalAlign="middle" listening={false}
+      />
+      {/* Top seats */}
+      {el.sitzeOben && Array.from({ length: el.sitzeProSeite }, (_, i) => {
+        const sitzId = `${el.bezeichnung}-${i + 1}`;
         return (
-          <Group key={ti} x={tischX}>
-            {/* Premium table card */}
-            <Rect
-              x={0} y={-TISCH_HOEHE / 2}
-              width={tischBreite} height={TISCH_HOEHE}
-              fill={kategoriefarbe + "28"}
-              stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
-              strokeWidth={1.5}
-              cornerRadius={6}
-              shadowColor={kategoriefarbe}
-              shadowBlur={8}
-              shadowOpacity={0.18}
-              shadowOffsetY={2}
-            />
-            {/* Table number — always upright */}
-            <Text
-              x={tischBreite / 2} y={0}
-              offsetX={tischBreite / 2} offsetY={TISCH_HOEHE / 2}
-              rotation={-el.winkel}
-              width={tischBreite} height={TISCH_HOEHE}
-              text={String(ti + 1)}
-              fill="#1e3a5f" fontSize={10} fontStyle="bold"
-              align="center" verticalAlign="middle" listening={false}
-            />
-            {Array.from({ length: el.sitzeProTisch }, (_, si) => {
-              const globalIndex = ti * el.sitzeProTisch + si;
-              const sitzId = `${el.bezeichnung}-${globalIndex + 1}`;
-              return (
-                <SitzKreis key={si}
-                  x={si * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzY}
-                  sitzId={sitzId} nummer={globalIndex + 1}
-                  kategoriefarbe={kategoriefarbe}
-                  belegt={belegte.has(sitzId)}
-                  buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
-                  editorAusgewaehlt={editorAusgewaehlt}
-                  istBuchungsmodus={istBuchungsmodus}
-                  elementWinkel={el.winkel}
-                  onSitzKlick={onSitzKlick}
-                />
-              );
-            })}
-          </Group>
+          <SitzKreis key={`o${i}`}
+            x={i * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzTopY}
+            sitzId={sitzId} nummer={i + 1}
+            kategoriefarbe={kategoriefarbe}
+            belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+            editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
+            elementWinkel={el.winkel} onSitzKlick={onSitzKlick}
+          />
+        );
+      })}
+      {/* Bottom seats */}
+      {el.sitzeUnten && Array.from({ length: el.sitzeProSeite }, (_, i) => {
+        const sitzId = `${el.bezeichnung}-${el.sitzeProSeite + i + 1}`;
+        return (
+          <SitzKreis key={`u${i}`}
+            x={i * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzBotY}
+            sitzId={sitzId} nummer={el.sitzeProSeite + i + 1}
+            kategoriefarbe={kategoriefarbe}
+            belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+            editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
+            elementWinkel={el.winkel} onSitzKlick={onSitzKlick}
+          />
         );
       })}
       {editorAusgewaehlt && (
         <Rect
-          x={-10} y={-TISCH_HOEHE / 2 - 10}
-          width={gesamtBreite + 20} height={TISCH_HOEHE + TISCH_SEAT_GAP + SITZ_RADIUS * 2 + 20}
+          x={-8} y={selTop}
+          width={tischBreite + 16} height={selBot - selTop}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
           fill="rgba(245,158,11,0.04)" cornerRadius={10}
           dash={[6, 4]} listening={false}

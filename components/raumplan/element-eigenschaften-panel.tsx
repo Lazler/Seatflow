@@ -31,6 +31,18 @@ function Divider() {
   return <div className="h-px bg-border mx-4" />;
 }
 
+function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-1.5">
+      <span className="text-sm text-foreground">{label}</span>
+      <button type="button" onClick={() => onChange(!value)}
+        className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${value ? "bg-primary" : "bg-input"}`}>
+        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : "translate-x-0"}`} />
+      </button>
+    </div>
+  );
+}
+
 function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
   label: string; value: number; min?: number; max?: number; schritt?: number;
   onChange: (v: number) => void; einheit?: string;
@@ -139,12 +151,12 @@ export default function ElementEigenschaftenPanel({ el, kategorien, onChange, on
         </>)}
 
         {el.typ === "tischreihe" && (<>
-          <Stepper label="Tische" value={el.anzahlTische} min={1} max={20}
-            onChange={(v) => onChange({ anzahlTische: v } as Partial<SitzplanElement>)} />
-          <Stepper label="Sitze / Tisch" value={el.sitzeProTisch} min={1} max={10}
-            onChange={(v) => onChange({ sitzeProTisch: v } as Partial<SitzplanElement>)} />
-          <Stepper label="Tischabstand" value={el.tischAbstand} min={4} max={80} einheit="px"
-            onChange={(v) => onChange({ tischAbstand: v } as Partial<SitzplanElement>)} />
+          <Stepper label="Sitze pro Seite" value={el.sitzeProSeite} min={1} max={12}
+            onChange={(v) => onChange({ sitzeProSeite: v } as Partial<SitzplanElement>)} />
+          <ToggleRow label="Sitzreihe oben" value={el.sitzeOben}
+            onChange={(v) => onChange({ sitzeOben: v } as Partial<SitzplanElement>)} />
+          <ToggleRow label="Sitzreihe unten" value={el.sitzeUnten}
+            onChange={(v) => onChange({ sitzeUnten: v } as Partial<SitzplanElement>)} />
         </>)}
 
         {el.typ === "rundtisch" && (<>

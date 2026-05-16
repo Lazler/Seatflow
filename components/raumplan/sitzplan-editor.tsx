@@ -52,7 +52,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
     let neuesElement: SitzplanElement;
     if      (typ === "reihe")      neuesElement = { ...basis, typ: "reihe",      anzahlSitze: 10, sitzAbstand: 34 } satisfies ReiheElement;
-    else if (typ === "tischreihe") neuesElement = { ...basis, typ: "tischreihe", anzahlTische: 4, sitzeProTisch: 3, tischAbstand: 12 } satisfies TischreiheElement;
+    else if (typ === "tischreihe") neuesElement = { ...basis, typ: "tischreihe", sitzeProSeite: 4, sitzeOben: true, sitzeUnten: true } satisfies TischreiheElement;
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
     setKonfig((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));

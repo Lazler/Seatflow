@@ -31,9 +31,9 @@ export type ReiheElement = BasisElement & {
 
 export type TischreiheElement = BasisElement & {
   typ: "tischreihe";
-  anzahlTische: number;
-  sitzeProTisch: number;
-  tischAbstand: number;
+  sitzeProSeite: number;  // seats along each long side
+  sitzeOben: boolean;     // enable top row of seats
+  sitzeUnten: boolean;    // enable bottom row of seats
 };
 
 export type RundtischElement = BasisElement & {
@@ -63,7 +63,7 @@ export type SitzplanKonfiguration = {
 
 // --- Konstanten ---
 export const SITZ_RADIUS = 13;
-export const TISCH_HOEHE = 18;
+export const TISCH_HOEHE = 28;
 export const TISCH_SITZ_ABSTAND = 32;
 export const TISCH_SEAT_GAP = 8;
 export const FARBE_BELEGT             = "#94a3b8";
@@ -73,16 +73,20 @@ export const FARBE_ELEMENT_SELEKTIERT = "#f59e0b";
 // --- Hilfsfunktionen ---
 
 export function elementSitzIds(el: SitzplanElement): string[] {
-  const anzahl =
-    el.typ === "reihe"      ? el.anzahlSitze :
-    el.typ === "tischreihe" ? el.anzahlTische * el.sitzeProTisch :
-                              el.anzahlSitze;
+  if (el.typ === "tischreihe") {
+    const ids: string[] = [];
+    if (el.sitzeOben)
+      for (let i = 0; i < el.sitzeProSeite; i++) ids.push(`${el.bezeichnung}-${i + 1}`);
+    if (el.sitzeUnten)
+      for (let i = 0; i < el.sitzeProSeite; i++) ids.push(`${el.bezeichnung}-${el.sitzeProSeite + i + 1}`);
+    return ids;
+  }
+  const anzahl = el.typ === "reihe" ? el.anzahlSitze : el.anzahlSitze;
   return Array.from({ length: anzahl }, (_, i) => `${el.bezeichnung}-${i + 1}`);
 }
 
 export function tischreiheBreite(el: TischreiheElement): number {
-  return el.anzahlTische * el.sitzeProTisch * TISCH_SITZ_ABSTAND +
-         (el.anzahlTische - 1) * el.tischAbstand;
+  return el.sitzeProSeite * TISCH_SITZ_ABSTAND;
 }
 
 export function naechsteBezeichnung(elemente: SitzplanElement[], prefix = ""): string {
@@ -136,12 +140,22 @@ export function migrierteKonfiguration(raw: unknown): SitzplanKonfiguration {
     };
   }
   if (Array.isArray(k.elemente)) {
-    basis.elemente = (k.elemente as Record<string, unknown>[]).map((e) => ({
-      ...e,
-      // alte "kategorie" → "kategorie_id"
-      kategorie_id: (e.kategorie_id as string) ??
-        ((e.kategorie as string) === "premium" ? "kat-2" : "kat-1"),
-    })) as SitzplanElement[];
+    basis.elemente = (k.elemente as Record<string, unknown>[]).map((e) => {
+      const base = {
+        ...e,
+        kategorie_id: (e.kategorie_id as string) ??
+          ((e.kategorie as string) === "premium" ? "kat-2" : "kat-1"),
+      };
+      if (e.typ === "tischreihe") {
+        return {
+          ...base,
+          sitzeProSeite: (e.sitzeProSeite as number) ?? (e.sitzeProTisch as number) ?? 4,
+          sitzeOben: (e.sitzeOben as boolean) ?? true,
+          sitzeUnten: (e.sitzeUnten as boolean) ?? true,
+        };
+      }
+      return base;
+    }) as SitzplanElement[];
   }
   return basis;
 }
