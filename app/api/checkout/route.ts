@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
     success_url: successUrl,
     cancel_url: cancelUrl,
     payment_method_types: ["card", "sepa_debit", "sofort"],
+    allow_promotion_codes: true,
     locale: "de",
   });
 
