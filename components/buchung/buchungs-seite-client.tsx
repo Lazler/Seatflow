@@ -148,6 +148,7 @@ export default function BuchungsSeiteClient({
   const [email, setEmail] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
+  const [agbAkzeptiert, setAgbAkzeptiert] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
   const [schritt, setSchritt] = useState<Schritt>("auswahl");
 
@@ -263,6 +264,7 @@ export default function BuchungsSeiteClient({
   async function zahlungspflichtigBestellen() {
     if (!name.trim()) { setFehler("Bitte deinen Namen eingeben."); return; }
     if (!email.trim() || !email.includes("@")) { setFehler("Bitte eine gültige E-Mail eingeben."); return; }
+    if (!agbAkzeptiert) { setFehler("Bitte akzeptiere die AGB um fortzufahren."); return; }
     setLaedt(true);
     setFehler(null);
     const res = await fetch("/api/checkout", {
@@ -523,6 +525,24 @@ export default function BuchungsSeiteClient({
               <span className="text-xl font-bold tabular-nums">{euro(gesamtPreisCent)}</span>
             </div>
 
+            {/* AGB + Widerruf */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agbAkzeptiert}
+                onChange={(e) => { setAgbAkzeptiert(e.target.checked); setFehler(null); }}
+                className="mt-0.5 h-4 w-4 rounded border-border shrink-0"
+              />
+              <span className="text-xs text-muted-foreground leading-relaxed">
+                Ich akzeptiere die{" "}
+                <a href="/agb" target="_blank" className="text-primary underline underline-offset-2">AGB</a>{" "}
+                und{" "}
+                <a href="/datenschutz" target="_blank" className="text-primary underline underline-offset-2">Datenschutzerklärung</a>.
+                Ich weise ausdrücklich darauf hin, dass gemäß{" "}
+                <strong>§ 312g Abs. 2 Nr. 9 BGB</strong> kein Widerrufsrecht für Tickets zu Veranstaltungen besteht.
+              </span>
+            </label>
+
             {fehler && (
               <p className="text-xs text-destructive bg-destructive/5 rounded-lg px-3 py-2">{fehler}</p>
             )}
@@ -530,17 +550,17 @@ export default function BuchungsSeiteClient({
             <button
               type="button"
               onClick={zahlungspflichtigBestellen}
-              disabled={laedt}
+              disabled={laedt || !agbAkzeptiert}
               className="w-full h-12 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all
                 bg-primary text-primary-foreground hover:bg-primary/90
-                disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {laedt
                 ? <><Loader2 className="h-5 w-5 animate-spin" /> Weiterleitung…</>
                 : <><Lock className="h-4 w-4" /> Zahlungspflichtig bestellen</>}
             </button>
 
-            <div className="flex items-center justify-center gap-4 pt-1">
+            <div className="flex items-center justify-center gap-4">
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
                 SSL-verschlüsselt

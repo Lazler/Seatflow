@@ -4,6 +4,7 @@ import { sendTicketMail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import type Stripe from "stripe";
 import type { TicketDesign } from "@/types/ticket-design";
+import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -32,7 +33,6 @@ export async function POST(req: NextRequest) {
 
   const supabase = await createClient();
 
-  // Buchung auf bezahlt setzen
   const { data: buchung } = await supabase
     .from("buchungen")
     .update({ status: "bezahlt" })
@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
 
   if (!buchung) return NextResponse.json({ received: true });
 
-  // Tickets, buchung details und Event-Infos für die E-Mail laden
   const [{ data: tickets }, { data: ev }, { data: buchungDetail }] = await Promise.all([
     supabase
       .from("tickets")
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
       .eq("buchung_id", buchungId),
     supabase
       .from("events")
-      .select("titel, datum, ticket_design, venues(name)")
+      .select("titel, datum, ticket_design, ticket_template_id, venues(name)")
       .eq("id", eventId)
       .single(),
     supabase
@@ -62,10 +61,19 @@ export async function POST(req: NextRequest) {
 
   if (!ev || !tickets?.length) return NextResponse.json({ received: true });
 
+  // Resolve template design
+  let design: TicketDesign = (ev.ticket_design as TicketDesign | null) ?? DEFAULT_TICKET_DESIGN;
+  if (ev.ticket_template_id) {
+    const { data: tmpl } = await supabase
+      .from("ticket_templates")
+      .select("design")
+      .eq("id", ev.ticket_template_id)
+      .single();
+    if (tmpl?.design) design = tmpl.design as TicketDesign;
+  }
+
   const venue = ev.venues
-    ? !Array.isArray(ev.venues)
-      ? (ev.venues as unknown as { name: string }).name
-      : undefined
+    ? !Array.isArray(ev.venues) ? (ev.venues as unknown as { name: string }).name : undefined
     : undefined;
 
   const ticketTyp = buchungDetail?.ticket_typ as { name: string } | null;
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest) {
     })),
     gesamtCent: buchung.gesamt_cent,
     ticketTypName: ticketTyp?.name,
-    design: ev.ticket_design as TicketDesign | null,
+    design,
   });
 
   return NextResponse.json({ received: true });

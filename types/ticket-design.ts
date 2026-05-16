@@ -5,6 +5,7 @@ export type TicketDesign = {
   textFarbe: string;
   logoUrl?: string;
   fusszeile?: string;
+  kleingedrucktes?: string;
   zeigeVeranstaltungsort: boolean;
   zeigeKategorie: boolean;
   zeigeQrCode: boolean;

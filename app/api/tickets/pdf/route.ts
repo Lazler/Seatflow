@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht authentifiziert" }, { status: 401 });
 
-  // Load buchung
   const { data: buchung } = await supabase
     .from("buchungen")
     .select("id, gaest_name, event_id, ticket_typ")
@@ -24,10 +23,9 @@ export async function GET(req: NextRequest) {
 
   if (!buchung) return NextResponse.json({ error: "Buchung nicht gefunden" }, { status: 404 });
 
-  // Verify organizer owns this event
   const { data: event } = await supabase
     .from("events")
-    .select("id, titel, datum, ticket_design, veranstalter_id, venues(name)")
+    .select("id, titel, datum, ticket_design, ticket_template_id, veranstalter_id, venues(name)")
     .eq("id", buchung.event_id)
     .single();
 
@@ -35,7 +33,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
 
-  // Load tickets
+  // Resolve template design (template takes priority over inline ticket_design)
+  let design: TicketDesign = (event.ticket_design as TicketDesign | null) ?? DEFAULT_TICKET_DESIGN;
+  if (event.ticket_template_id) {
+    const { data: tmpl } = await supabase
+      .from("ticket_templates")
+      .select("design")
+      .eq("id", event.ticket_template_id)
+      .single();
+    if (tmpl?.design) design = tmpl.design as TicketDesign;
+  }
+
   const { data: tickets } = await supabase
     .from("tickets")
     .select("sitzplatz_id, sitzplatz_bezeichnung, preis_cent, qr_code")
@@ -43,20 +51,18 @@ export async function GET(req: NextRequest) {
 
   if (!tickets?.length) return NextResponse.json({ error: "Keine Tickets" }, { status: 404 });
 
-  const design: TicketDesign = (event.ticket_design as TicketDesign | null) ?? DEFAULT_TICKET_DESIGN;
   const venue = event.venues && !Array.isArray(event.venues)
     ? (event.venues as unknown as { name: string }).name
     : undefined;
   const ticketTyp = buchung.ticket_typ as { name: string } | null;
 
-  // Generate one QR code per ticket (using qr_code unique identifier)
   const ticketDataList = await Promise.all(
     tickets.map(async (t) => ({
       eventTitel: event.titel,
       eventDatum: new Date(event.datum),
       venue,
       sitzplaetze: [{ sitzId: t.sitzplatz_id, bezeichnung: t.sitzplatz_bezeichnung, preisCent: t.preis_cent }],
-      buchungId: buchungId,
+      buchungId,
       gaestName: buchung.gaest_name,
       ticketTypName: ticketTyp?.name,
       qrCodeDataUrl: await QRCode.toDataURL(t.qr_code, { width: 200, margin: 1, errorCorrectionLevel: "M" }),

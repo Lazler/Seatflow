@@ -9,7 +9,7 @@ import EventStatusAktion from "./event-status-aktion";
 import SitzplanZuweisung, { type Etage } from "./sitzplan-zuweisung";
 import EventWeiterleitungen from "./event-weiterleitungen";
 import TicketTypen from "./ticket-typen";
-import TicketDesigner from "./ticket-designer";
+import TicketTemplateSelector from "./ticket-template-selector";
 import type { TicketTyp } from "@/types/ticket-typ";
 import type { TicketDesign } from "@/types/ticket-design";
 
@@ -38,7 +38,7 @@ export default async function EventDetail({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: event }, { data: buchungen }] = await Promise.all([
+  const [{ data: event }, { data: buchungen }, { data: templates }] = await Promise.all([
     supabase
       .from("events")
       .select("*, venues(id, name, adresse)")
@@ -51,6 +51,11 @@ export default async function EventDetail({
       .eq("event_id", id)
       .order("erstellt_am", { ascending: false })
       .limit(50),
+    supabase
+      .from("ticket_templates")
+      .select("id, name, design")
+      .eq("veranstalter_id", user!.id)
+      .order("erstellt_am", { ascending: false }),
   ]);
 
   if (!event) notFound();
@@ -203,13 +208,11 @@ export default async function EventDetail({
             sitzplaene={sitzplaene ?? []}
           />
 
-          {/* Ticket-Designer */}
-          <TicketDesigner
+          {/* Ticket-Template */}
+          <TicketTemplateSelector
             eventId={event.id}
-            eventTitel={event.titel}
-            eventDatum={event.datum}
-            venue={venue?.name}
-            initialDesign={(event.ticket_design as TicketDesign | null) ?? null}
+            templates={(templates ?? []) as { id: string; name: string; design: TicketDesign }[]}
+            initialTemplateId={(event.ticket_template_id as string | null) ?? null}
           />
 
           {/* Ticket-Typen */}

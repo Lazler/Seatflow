@@ -1,5 +1,5 @@
 import {
-  Document, Page, View, Text, Image, StyleSheet, Font,
+  Document, Page, View, Text, Image, StyleSheet,
 } from "@react-pdf/renderer";
 import type { TicketDesign } from "@/types/ticket-design";
 
@@ -26,6 +26,70 @@ function formatDatum(d: Date) {
   });
 }
 
+/* ─── Inline markdown parser for PDF Text ───────────────────────────────────
+   Supports: **bold**, *italic*, plain text.
+   Returns an array of <Text> nodes with appropriate font families.          */
+function parseInline(text: string, baseColor: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <Text key={i} style={{ fontFamily: "Helvetica-Bold", color: baseColor }}>{part.slice(2, -2)}</Text>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <Text key={i} style={{ fontFamily: "Helvetica-Oblique", color: baseColor }}>{part.slice(1, -1)}</Text>;
+    }
+    return <Text key={i} style={{ color: baseColor }}>{part}</Text>;
+  });
+}
+
+/* ─── Block markdown renderer for PDF ──────────────────────────────────────
+   Supports: # H1, ## H2, - bullet, * bullet, blank lines, paragraphs.     */
+function MarkdownBlock({ markdown, textFarbe }: { markdown: string; textFarbe: string }) {
+  const lines = markdown.split("\n");
+  const muted = "#64748b";
+
+  return (
+    <View>
+      {lines.map((line, i) => {
+        const trimmed = line.trimEnd();
+
+        if (trimmed.startsWith("# ")) {
+          return (
+            <Text key={i} style={{ fontFamily: "Helvetica-Bold", fontSize: 11, color: textFarbe, marginBottom: 4, marginTop: 6 }}>
+              {trimmed.slice(2)}
+            </Text>
+          );
+        }
+        if (trimmed.startsWith("## ")) {
+          return (
+            <Text key={i} style={{ fontFamily: "Helvetica-Bold", fontSize: 9, color: textFarbe, marginBottom: 3, marginTop: 5 }}>
+              {trimmed.slice(3)}
+            </Text>
+          );
+        }
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+          return (
+            <View key={i} style={{ flexDirection: "row", marginBottom: 2, paddingLeft: 4 }}>
+              <Text style={{ fontSize: 8, color: muted, marginRight: 5, marginTop: 1 }}>•</Text>
+              <Text style={{ fontSize: 8, color: muted, flex: 1 }}>
+                {parseInline(trimmed.slice(2), muted)}
+              </Text>
+            </View>
+          );
+        }
+        if (trimmed === "") {
+          return <View key={i} style={{ height: 5 }} />;
+        }
+        return (
+          <Text key={i} style={{ fontSize: 8, color: muted, marginBottom: 2, lineHeight: 1.5 }}>
+            {parseInline(trimmed, muted)}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
 export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
   const design = tickets[0]?.design;
   if (!design || tickets.length === 0) return null;
@@ -36,13 +100,14 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       padding: 24,
       fontFamily: "Helvetica",
     },
+    ticketWrapper: {
+      marginBottom: 20,
+    },
     ticket: {
       backgroundColor: design.hintergrundFarbe,
       borderRadius: 10,
       overflow: "hidden",
-      marginBottom: 16,
       flexDirection: "row",
-      // Shadow via border
       border: "1pt solid #e2e8f0",
     },
     leftAccent: {
@@ -99,7 +164,6 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
     value: {
       fontSize: 11,
       color: design.textFarbe,
-      fontFamily: "Helvetica",
     },
     valueBold: {
       fontSize: 11,
@@ -149,11 +213,10 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
     bookingId: {
       fontSize: 6,
       color: "#cbd5e1",
-      fontFamily: "Helvetica",
       marginTop: 2,
       textAlign: "center",
     },
-    footer: {
+    ticketFooter: {
       backgroundColor: "#f8fafc",
       borderTop: "1pt solid #e2e8f0",
       padding: "8pt 20pt",
@@ -170,6 +233,22 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       maxWidth: 80,
       objectFit: "contain",
     },
+    // Fine print below ticket
+    kleingedrucktesWrapper: {
+      marginTop: 10,
+      paddingHorizontal: 12,
+      paddingTop: 10,
+      paddingBottom: 4,
+      borderLeft: "2pt solid #e2e8f0",
+    },
+    kleingedrucktesHeader: {
+      fontSize: 7,
+      color: "#94a3b8",
+      fontFamily: "Helvetica-Bold",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
   });
 
   return (
@@ -180,82 +259,79 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
     >
       <Page size="A4" style={styles.page}>
         {tickets.map((ticket, ti) => (
-          <View key={ti} style={styles.ticket}>
-            {/* Left accent stripe */}
-            <View style={styles.leftAccent} />
-
-            <View style={styles.body}>
-              {/* Header */}
-              <View style={styles.header}>
-                <Text style={styles.headerTitle}>{ticket.eventTitel}</Text>
-                {ticket.ticketTypName && (
-                  <View style={styles.headerBadge}>
-                    <Text style={styles.headerBadgeText}>{ticket.ticketTypName}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Main content */}
-              <View style={styles.content}>
-                <View style={styles.infoSection}>
-                  {/* Date */}
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Datum & Uhrzeit</Text>
-                    <Text style={styles.value}>{formatDatum(ticket.eventDatum)}</Text>
-                  </View>
-
-                  {/* Venue */}
-                  {design.zeigeVeranstaltungsort && ticket.venue && (
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Veranstaltungsort</Text>
-                      <Text style={styles.value}>{ticket.venue}</Text>
+          <View key={ti} style={styles.ticketWrapper}>
+            {/* Ticket card */}
+            <View style={styles.ticket}>
+              <View style={styles.leftAccent} />
+              <View style={styles.body}>
+                <View style={styles.header}>
+                  <Text style={styles.headerTitle}>{ticket.eventTitel}</Text>
+                  {ticket.ticketTypName && (
+                    <View style={styles.headerBadge}>
+                      <Text style={styles.headerBadgeText}>{ticket.ticketTypName}</Text>
                     </View>
                   )}
-
-                  {/* Guest */}
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Inhaber</Text>
-                    <Text style={styles.valueBold}>{ticket.gaestName}</Text>
-                  </View>
-
-                  <View style={styles.divider} />
-
-                  {/* Seats */}
-                  {ticket.sitzplaetze.map((s, si) => (
-                    <View key={si} style={styles.seatRow}>
-                      <View>
-                        <Text style={styles.seatId}>{s.sitzId}</Text>
-                        {design.zeigeKategorie && (
-                          <Text style={styles.seatLabel}>{s.bezeichnung}</Text>
-                        )}
-                      </View>
-                      <Text style={styles.seatPrice}>{euro(s.preisCent)}</Text>
-                    </View>
-                  ))}
                 </View>
 
-                {/* QR Code */}
-                {design.zeigeQrCode && (
-                  <View style={styles.qrSection}>
-                    <Image src={ticket.qrCodeDataUrl} style={styles.qrImage} />
-                    <Text style={styles.qrLabel}>Einlass-QR</Text>
-                    <Text style={styles.bookingId}>{ticket.buchungId.slice(0, 8).toUpperCase()}</Text>
+                <View style={styles.content}>
+                  <View style={styles.infoSection}>
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Datum & Uhrzeit</Text>
+                      <Text style={styles.value}>{formatDatum(ticket.eventDatum)}</Text>
+                    </View>
+                    {design.zeigeVeranstaltungsort && ticket.venue && (
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Veranstaltungsort</Text>
+                        <Text style={styles.value}>{ticket.venue}</Text>
+                      </View>
+                    )}
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Inhaber</Text>
+                      <Text style={styles.valueBold}>{ticket.gaestName}</Text>
+                    </View>
+                    <View style={styles.divider} />
+                    {ticket.sitzplaetze.map((s, si) => (
+                      <View key={si} style={styles.seatRow}>
+                        <View>
+                          <Text style={styles.seatId}>{s.sitzId}</Text>
+                          {design.zeigeKategorie && (
+                            <Text style={styles.seatLabel}>{s.bezeichnung}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.seatPrice}>{euro(s.preisCent)}</Text>
+                      </View>
+                    ))}
                   </View>
-                )}
-              </View>
 
-              {/* Footer */}
-              <View style={styles.footer}>
-                {design.logoUrl ? (
-                  <Image src={design.logoUrl} style={styles.logoImage} />
-                ) : (
-                  <Text style={styles.footerText}>SeatFlow</Text>
-                )}
-                <Text style={styles.footerText}>
-                  {design.fusszeile || `Buchung #${ticket.buchungId.slice(0, 8).toUpperCase()}`}
-                </Text>
+                  {design.zeigeQrCode && (
+                    <View style={styles.qrSection}>
+                      <Image src={ticket.qrCodeDataUrl} style={styles.qrImage} />
+                      <Text style={styles.qrLabel}>Einlass-QR</Text>
+                      <Text style={styles.bookingId}>{ticket.buchungId.slice(0, 8).toUpperCase()}</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.ticketFooter}>
+                  {design.logoUrl ? (
+                    <Image src={design.logoUrl} style={styles.logoImage} />
+                  ) : (
+                    <Text style={styles.footerText}>SeatFlow</Text>
+                  )}
+                  <Text style={styles.footerText}>
+                    {design.fusszeile || `Buchung #${ticket.buchungId.slice(0, 8).toUpperCase()}`}
+                  </Text>
+                </View>
               </View>
             </View>
+
+            {/* Fine print / Kleingedrucktes — rendered as formatted markdown below ticket */}
+            {design.kleingedrucktes?.trim() && (
+              <View style={styles.kleingedrucktesWrapper}>
+                <Text style={styles.kleingedrucktesHeader}>Hinweise & Bedingungen</Text>
+                <MarkdownBlock markdown={design.kleingedrucktes} textFarbe={design.textFarbe} />
+              </View>
+            )}
           </View>
         ))}
       </Page>
