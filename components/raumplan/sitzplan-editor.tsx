@@ -137,22 +137,35 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </div>
       </div>
 
-      {/* Hauptbereich: Canvas + Sidebar */}
+      {/* Hauptbereich: Canvas-Spalte + Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
-          <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
-            style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
-            <SitzplanCanvas
-              konfiguration={konfig}
-              modus="editor"
-              auswahl={auswahl}
-              onAuswaehlen={setAuswahl}
-              onElementVerschieben={elementVerschieben}
-              onBuehneVerschieben={buehneVerschieben}
-              onBuehneTransformiert={buehneTransformiert}
-            />
+        {/* Canvas-Spalte: scrollbarer Canvas + Inspektor direkt darunter */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
+            <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
+              style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
+              <SitzplanCanvas
+                konfiguration={konfig}
+                modus="editor"
+                auswahl={auswahl}
+                onAuswaehlen={setAuswahl}
+                onElementVerschieben={elementVerschieben}
+                onBuehneVerschieben={buehneVerschieben}
+                onBuehneTransformiert={buehneTransformiert}
+              />
+            </div>
           </div>
+
+          {/* Inspektor: direkt am unteren Rand des Canvas-Bereichs */}
+          {ausgewaehltesElement && (
+            <ElementInspektor
+              el={ausgewaehltesElement}
+              kategorien={konfig.kategorien}
+              onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
+              onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
+              onSchliessen={() => setAuswahl(null)}
+            />
+          )}
         </div>
 
         {/* Globale Sidebar */}
@@ -171,17 +184,6 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           />
         </aside>
       </div>
-
-      {/* Bottom-Inspektor: erscheint wenn Element ausgewählt */}
-      {ausgewaehltesElement && (
-        <ElementInspektor
-          el={ausgewaehltesElement}
-          kategorien={konfig.kategorien}
-          onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
-          onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
-          onSchliessen={() => setAuswahl(null)}
-        />
-      )}
     </div>
   );
 }

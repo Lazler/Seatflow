@@ -47,18 +47,28 @@ export default function BuchungsSeiteClient({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
-  // Mobile-Skalierung: Canvas auf Bildschirmbreite skalieren
+  // Canvas-Skalierung: passt sich an Container an, aber nie über 1:1
+  const desktopContainerRef = useRef<HTMLDivElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const [desktopRenderScale, setDesktopRenderScale] = useState(1);
   const [mobileRenderScale, setMobileRenderScale] = useState(1);
+
   useEffect(() => {
-    const update = () => {
-      if (!mobileContainerRef.current) return;
-      setMobileRenderScale(Math.min(1, mobileContainerRef.current.offsetWidth / konfiguration.breite));
+    const makeUpdater = (
+      ref: React.RefObject<HTMLDivElement | null>,
+      setter: (v: number) => void,
+    ) => () => {
+      if (!ref.current) return;
+      setter(Math.min(1, ref.current.offsetWidth / konfiguration.breite));
     };
-    update();
-    const ro = new ResizeObserver(update);
-    if (mobileContainerRef.current) ro.observe(mobileContainerRef.current);
-    return () => ro.disconnect();
+    const updateDesktop = makeUpdater(desktopContainerRef, setDesktopRenderScale);
+    const updateMobile  = makeUpdater(mobileContainerRef,  setMobileRenderScale);
+    updateDesktop(); updateMobile();
+    const rod = new ResizeObserver(updateDesktop);
+    const rom = new ResizeObserver(updateMobile);
+    if (desktopContainerRef.current) rod.observe(desktopContainerRef.current);
+    if (mobileContainerRef.current)  rom.observe(mobileContainerRef.current);
+    return () => { rod.disconnect(); rom.disconnect(); };
   }, [konfiguration.breite]);
 
   const kategorienMap = new Map<string, Preiskategorie>(
@@ -205,11 +215,11 @@ export default function BuchungsSeiteClient({
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           <Legende kategorien={konfiguration.kategorien} />
-          <div className="w-full rounded-xl border border-border shadow-sm overflow-x-auto">
+          <div ref={desktopContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
             <SitzplanCanvas
               konfiguration={konfiguration}
               modus="buchung"
-              renderScale={1}
+              renderScale={desktopRenderScale}
               belegteSitze={belegte}
               ausgewaehlteSitze={ausgewaehlteIds}
               onSitzKlicken={onSitzKlicken}
