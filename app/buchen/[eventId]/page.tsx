@@ -46,10 +46,10 @@ export default async function BuchungsSeite({
         supabase.from("sitzplaene").select("id, konfiguration").eq("id", id).single()
       )
     ),
-    supabase.from("tickets").select("sitz_id").eq("event_id", eventId),
+    supabase.from("tickets").select("sitzplatz_id").eq("event_id", eventId),
   ]);
 
-  const belegteSitzIds = (belegteTicketsResult.data ?? []).map((t) => t.sitz_id);
+  const belegteSitzIds = (belegteTicketsResult.data ?? []).map((t) => t.sitzplatz_id);
 
   // Build floor data
   const floors = sitzplanIds

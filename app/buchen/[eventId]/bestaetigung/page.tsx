@@ -48,7 +48,7 @@ export default async function BestaetigungsSeite({
 
   const { data: tickets } = await supabase
     .from("tickets")
-    .select("sitz_id")
+    .select("sitzplatz_id")
     .eq("buchung_id", buchungId);
 
   const qrDataUrl = await QRCode.toDataURL(buchungId, { width: 240, margin: 1 });
@@ -97,7 +97,7 @@ export default async function BestaetigungsSeite({
                 )}
                 <span className="flex items-center gap-2">
                   <Ticket className="h-4 w-4 shrink-0" />
-                  {tickets?.map((t) => t.sitz_id).join(", ")}
+                  {tickets?.map((t) => t.sitzplatz_id).join(", ")}
                 </span>
               </div>
             </div>

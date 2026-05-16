@@ -16,16 +16,16 @@ type Buchung = {
   gesamt_cent: number; status: string; erstellt_am: string;
   event_id: string; notiz: string | null;
 };
-type TicketRow = { id: string; sitz_id: string; kategorie_id: string; preis_cent: number };
+type TicketRow = { id: string; sitzplatz_id: string; sitzplatz_bezeichnung: string; preis_cent: number };
 type Kommentar = { id: string; text: string; erstellt_am: string };
 type EventInfo = { id: string; titel: string; datum: string; serviceGebuehrCent: number };
 
-const STATUS_OPTIONEN = ["ausstehend", "bezahlt", "abgesagt", "erstattet"] as const;
+const STATUS_OPTIONEN = ["ausstehend", "bezahlt", "storniert", "erstattet"] as const;
 const STATUS_LABEL: Record<string, string> = {
-  bezahlt: "Bezahlt", ausstehend: "Ausstehend", abgesagt: "Abgesagt", erstattet: "Erstattet",
+  bezahlt: "Bezahlt", ausstehend: "Ausstehend", storniert: "Storniert", erstattet: "Erstattet",
 };
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  bezahlt: "default", ausstehend: "secondary", abgesagt: "destructive", erstattet: "outline",
+  bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
 };
 
 function euro(cent: number) {
@@ -57,10 +57,9 @@ type Props = {
   event: EventInfo;
   tickets: TicketRow[];
   kommentare: Kommentar[];
-  kategorienMap: Record<string, { name: string; farbe: string }>;
 };
 
-export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare, kategorienMap }: Props) {
+export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare }: Props) {
   const router = useRouter();
   const [editModus, setEditModus] = useState(false);
   const [name, setName] = useState(buchung.gaest_name);
@@ -217,21 +216,19 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                 <p className="text-sm text-muted-foreground">Keine Tickets erfasst.</p>
               ) : (
                 <div className="divide-y divide-border">
-                  {tickets.map((t) => {
-                    const kat = kategorienMap[t.kategorie_id];
-                    return (
-                      <div key={t.id} className="flex items-center justify-between py-2.5">
-                        <div className="flex items-center gap-2.5">
-                          {kat && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: kat.farbe }} />}
-                          <div>
-                            <span className="text-sm font-medium font-mono">{t.sitz_id}</span>
-                            {kat && <span className="text-xs text-muted-foreground ml-2">{kat.name}</span>}
-                          </div>
+                  {tickets.map((t) => (
+                    <div key={t.id} className="flex items-center justify-between py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div>
+                          <span className="text-sm font-medium font-mono">{t.sitzplatz_id}</span>
+                          {t.sitzplatz_bezeichnung && t.sitzplatz_bezeichnung !== t.sitzplatz_id && (
+                            <span className="text-xs text-muted-foreground ml-2">{t.sitzplatz_bezeichnung}</span>
+                          )}
                         </div>
-                        <span className="text-sm tabular-nums">{euro(t.preis_cent)}</span>
                       </div>
-                    );
-                  })}
+                      <span className="text-sm tabular-nums">{euro(t.preis_cent)}</span>
+                    </div>
+                  ))}
                   <div className="pt-2.5 space-y-1">
                     {event.serviceGebuehrCent > 0 && (
                       <div className="flex justify-between text-xs text-muted-foreground">

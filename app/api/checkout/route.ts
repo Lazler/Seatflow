@@ -5,7 +5,7 @@ import { stripe } from "@/lib/stripe";
 export async function POST(req: NextRequest) {
   const { eventId, sitzplaetze, name, email } = await req.json() as {
     eventId: string;
-    sitzplaetze: { sitzId: string; kategorieId: string; preisCent: number; kategorieName: string }[];
+    sitzplaetze: { sitzId: string; kategorieId: string; preisCent: number; kategorieName: string; bezeichnung?: string }[];
     name: string;
     email: string;
   };
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
     sitzplaetze.map((p) => ({
       buchung_id: buchung.id,
       event_id: eventId,
-      sitz_id: p.sitzId,
-      kategorie_id: p.kategorieId,
+      sitzplatz_id: p.sitzId,
+      sitzplatz_bezeichnung: p.bezeichnung ?? `${p.kategorieName} · ${p.sitzId}`,
       preis_cent: p.preisCent,
     }))
   );

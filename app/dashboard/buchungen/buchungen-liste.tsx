@@ -23,10 +23,10 @@ type Event = { id: string; titel: string };
 type SortKey = "datum_desc" | "datum_asc" | "betrag_desc" | "betrag_asc";
 
 const STATUS_LABEL: Record<string, string> = {
-  bezahlt: "Bezahlt", ausstehend: "Ausstehend", abgesagt: "Abgesagt", erstattet: "Erstattet",
+  bezahlt: "Bezahlt", ausstehend: "Ausstehend", storniert: "Storniert", erstattet: "Erstattet",
 };
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  bezahlt: "default", ausstehend: "secondary", abgesagt: "destructive", erstattet: "outline",
+  bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
 };
 
 function euro(cent: number) {
@@ -86,7 +86,7 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
     { key: "alle",       label: "Alle",        count: buchungen.length },
     { key: "bezahlt",    label: "Bezahlt",     count: buchungen.filter(b => b.status === "bezahlt").length },
     { key: "ausstehend", label: "Ausstehend",  count: buchungen.filter(b => b.status === "ausstehend").length },
-    { key: "abgesagt",   label: "Abgesagt",    count: buchungen.filter(b => b.status === "abgesagt").length },
+    { key: "storniert",  label: "Storniert",   count: buchungen.filter(b => b.status === "storniert").length },
   ];
 
   const SORT_OPTIONS: { key: SortKey; label: string; icon?: React.ReactNode }[] = [

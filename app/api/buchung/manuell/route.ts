@@ -8,13 +8,13 @@ export async function POST(req: NextRequest) {
 
   const { eventId, sitzplaetze, gaestName, gaestEmail, status } = await req.json() as {
     eventId: string;
-    sitzplaetze: { sitzId: string; kategorieId: string; preisCent: number }[];
+    sitzplaetze: { sitzId: string; bezeichnung?: string; preisCent: number }[];
     gaestName: string;
     gaestEmail: string;
     status: "bezahlt" | "ausstehend";
   };
 
-  if (!eventId || !sitzplaetze?.length || !gaestName || !gaestEmail) {
+  if (!eventId || !Array.isArray(sitzplaetze) || !sitzplaetze.length || !gaestName || !gaestEmail) {
     return NextResponse.json({ error: "Fehlende Felder" }, { status: 400 });
   }
 
@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
     sitzplaetze.map((p) => ({
       buchung_id: buchung.id,
       event_id: eventId,
-      sitz_id: p.sitzId,
-      kategorie_id: p.kategorieId,
+      sitzplatz_id: p.sitzId,
+      sitzplatz_bezeichnung: p.bezeichnung ?? p.sitzId,
       preis_cent: p.preisCent,
     }))
   );

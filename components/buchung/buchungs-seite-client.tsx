@@ -145,7 +145,7 @@ export default function BuchungsSeiteClient({
       .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "tickets", filter: `event_id=eq.${eventId}` },
         (payload) => {
-          const sitzId = (payload.new as { sitz_id: string }).sitz_id;
+          const sitzId = (payload.new as { sitzplatz_id: string }).sitzplatz_id;
           setBelegte((prev) => new Set([...prev, sitzId]));
           setAusgewaehlt((prev) => prev.filter((s) => s.sitzId !== sitzId));
         }

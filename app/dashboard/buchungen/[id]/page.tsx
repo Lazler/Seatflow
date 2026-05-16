@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import BuchungsDetail from "./buchungs-detail-client";
-import { migrierteKonfiguration } from "@/types/sitzplan";
 
 export default async function BuchungDetailSeite({
   params,
@@ -30,28 +29,17 @@ export default async function BuchungDetailSeite({
 
   if (!event || event.veranstalter_id !== user.id) notFound();
 
-  const [ticketsRes, kommentareRes, sitzplanRes] = await Promise.all([
+  const [ticketsRes, kommentareRes] = await Promise.all([
     supabase
       .from("tickets")
-      .select("id, sitz_id, kategorie_id, preis_cent")
+      .select("id, sitzplatz_id, sitzplatz_bezeichnung, preis_cent")
       .eq("buchung_id", id),
     supabase
       .from("buchungs_kommentare")
       .select("id, text, erstellt_am")
       .eq("buchung_id", id)
       .order("erstellt_am", { ascending: true }),
-    event.sitzplan_id
-      ? supabase.from("sitzplaene").select("konfiguration").eq("id", event.sitzplan_id).single()
-      : { data: null },
   ]);
-
-  const kategorienMap: Record<string, { name: string; farbe: string }> = {};
-  if (sitzplanRes.data) {
-    const konfig = migrierteKonfiguration(sitzplanRes.data.konfiguration);
-    for (const k of konfig.kategorien) {
-      kategorienMap[k.id] = { name: k.name, farbe: k.farbe };
-    }
-  }
 
   return (
     <BuchungsDetail
@@ -59,7 +47,6 @@ export default async function BuchungDetailSeite({
       event={{ id: event.id, titel: event.titel, datum: event.datum, serviceGebuehrCent: event.service_gebuehr_cent ?? 50 }}
       tickets={ticketsRes.data ?? []}
       kommentare={kommentareRes.data ?? []}
-      kategorienMap={kategorienMap}
     />
   );
 }

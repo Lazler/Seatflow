@@ -52,7 +52,7 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
 
     Promise.all([
       supabase.from("sitzplaene").select("konfiguration").eq("id", ev.sitzplan_id).single(),
-      supabase.from("tickets").select("sitz_id").eq("event_id", eventId),
+      supabase.from("tickets").select("sitzplatz_id").eq("event_id", eventId),
     ]).then(([planRes, ticketRes]) => {
       const konfig: SitzplanKonfiguration = migrierteKonfiguration(planRes.data?.konfiguration);
       const katMap = new Map(konfig.kategorien.map((k) => [k.id, k]));
@@ -72,7 +72,7 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
       );
 
       setAlleeSitze(sitze);
-      setBelegte(new Set((ticketRes.data ?? []).map((t) => t.sitz_id)));
+      setBelegte(new Set((ticketRes.data ?? []).map((t) => t.sitzplatz_id)));
       setAusgewaehlt(new Set());
       setSitzplanLaedt(false);
     });
@@ -125,7 +125,7 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
         status,
         sitzplaetze: ausgewaehlteSitze.map((s) => ({
           sitzId: s.sitzId,
-          kategorieId: s.kategorieId,
+          bezeichnung: `${s.kategorieName} · ${s.elementBezeichnung}`,
           preisCent: s.preisCent,
         })),
       }),

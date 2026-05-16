@@ -45,30 +45,16 @@ export async function POST(req: NextRequest) {
   const [{ data: tickets }, { data: ev }] = await Promise.all([
     supabase
       .from("tickets")
-      .select("sitz_id, kategorie_id, preis_cent")
+      .select("sitzplatz_id, sitzplatz_bezeichnung, preis_cent")
       .eq("buchung_id", buchungId),
     supabase
       .from("events")
-      .select("titel, datum, sitzplan_id, venues(name)")
+      .select("titel, datum, venues(name)")
       .eq("id", eventId)
       .single(),
   ]);
 
   if (!ev || !tickets?.length) return NextResponse.json({ received: true });
-
-  // Kategorienamen aus dem Sitzplan holen
-  let kategorienMap = new Map<string, string>();
-  if (ev.sitzplan_id) {
-    const { data: plan } = await supabase
-      .from("sitzplaene")
-      .select("konfiguration")
-      .eq("id", ev.sitzplan_id)
-      .single();
-    if (plan?.konfiguration) {
-      const konfig = plan.konfiguration as { kategorien?: { id: string; name: string }[] };
-      kategorienMap = new Map((konfig.kategorien ?? []).map((k) => [k.id, k.name]));
-    }
-  }
 
   const venue = ev.venues
     ? !Array.isArray(ev.venues)
@@ -84,8 +70,8 @@ export async function POST(req: NextRequest) {
     venue,
     buchungId,
     sitze: tickets.map((t) => ({
-      sitzId: t.sitz_id,
-      kategorieName: kategorienMap.get(t.kategorie_id) ?? t.kategorie_id,
+      sitzId: t.sitzplatz_id,
+      kategorieName: t.sitzplatz_bezeichnung,
       preisCent: t.preis_cent,
     })),
     gesamtCent: buchung.gesamt_cent,
