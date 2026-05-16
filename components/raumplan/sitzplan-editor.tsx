@@ -147,6 +147,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const alleBezeichnungen = ausgewaehltesElement
     ? konfig.elemente.filter((e) => e.id !== ausgewaehltesElement.id).map((e) => e.bezeichnung)
     : [];
+  const bezeichnungen = konfig.elemente.map((e) => e.bezeichnung);
+  const hatDuplikate = bezeichnungen.length !== new Set(bezeichnungen).size;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -176,8 +178,9 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-muted-foreground hidden sm:inline">{konfig.breite} × {konfig.hoehe} px · {gesamtSitze} Plätze</span>
-          {gespeichert && <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>}
-          <Button size="sm" onClick={speichern} disabled={speichernLaedt}>
+          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>}
+          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Bezeichnungen</span>}
+          <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
             <Save className="h-3.5 w-3.5 mr-1.5" />
             {speichernLaedt ? "Speichern…" : "Speichern"}
           </Button>
