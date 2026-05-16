@@ -142,8 +142,8 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Row label left — pill chip */}
-      <LabelChip x={-(SITZ_RADIUS + 22)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+      {/* Row label — pill chip, anchored left of first seat */}
+      <LabelChip x={-(SITZ_RADIUS + 20)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
         const sitzId = `${el.bezeichnung}-${i + 1}`;
         return (
@@ -160,8 +160,6 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
           />
         );
       })}
-      {/* Row label right — pill chip */}
-      <LabelChip x={breite + SITZ_RADIUS + 22} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       {editorAusgewaehlt && (
         <Rect
           x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
@@ -190,8 +188,8 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Element label — pill chip to the left */}
-      <LabelChip x={-28} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+      {/* Table row label — pill chip, same gap as Reihe */}
+      <LabelChip x={-(SITZ_RADIUS + 20)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       {Array.from({ length: el.anzahlTische }, (_, ti) => {
         const tischX = ti * (tischBreite + el.tischAbstand);
         return (
@@ -338,7 +336,10 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
     <Group ref={nodeRef} x={buehne.x} y={buehne.y} rotation={buehne.winkel}
       offsetX={buehne.breite / 2} offsetY={buehne.hoehe / 2}
       draggable={!istBuchungsmodus}
-      dragBoundFunc={(pos) => ({ x: Math.max(buehne.breite / 2 + 4, Math.min(raumbreite - buehne.breite / 2 - 4, pos.x)), y: Math.max(buehne.hoehe / 2 + 4, Math.min(raumhoehe - buehne.hoehe / 2 - 4, pos.y)) })}
+      dragBoundFunc={(pos) => ({
+        x: Math.max(visW / 2 + 4, Math.min(raumbreite - visW / 2 - 4, pos.x)),
+        y: Math.max(visH / 2 + 4, Math.min(raumhoehe - visH / 2 - 4, pos.y)),
+      })}
       onClick={!istBuchungsmodus ? onKlick : undefined} onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
