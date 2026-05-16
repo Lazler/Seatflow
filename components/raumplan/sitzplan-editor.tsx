@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import type Konva from "konva";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
   ssr: false,
@@ -30,8 +29,7 @@ type Props = {
   initialKonfiguration: unknown;
 };
 
-const ERSTE_Y = 200;
-const REIHEN_ABSTAND = 60;
+const REIHEN_ABSTAND = 70;
 
 export default function SitzplanEditor({ planId, planName, venueId, venueName, initialKonfiguration }: Props) {
   const router = useRouter();
@@ -39,31 +37,23 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
-  const stageContainerRef = useRef<HTMLDivElement>(null);
 
-  const naechstesY = konfig.elemente.length > 0
-    ? Math.max(...konfig.elemente.map((e) => e.y)) + REIHEN_ABSTAND : ERSTE_Y;
+  // Nächste freie Y-Position für neues Element (innerhalb Canvas)
+  function naechstesY(breite: number, hoehe: number, elemente: SitzplanElement[]): number {
+    void breite;
+    if (elemente.length === 0) return Math.round(hoehe * 0.35);
+    const maxY = Math.max(...elemente.map((e) => e.y));
+    const kandidat = maxY + REIHEN_ABSTAND;
+    return Math.min(kandidat, hoehe - 60);
+  }
 
   const gesamtSitze = konfig.elemente.reduce((s, e) => s + elementSitzIds(e).length, 0);
-
-  // Bühne-Transform-Event vom Canvas empfangen
-  useEffect(() => {
-    const container = stageContainerRef.current?.querySelector("canvas")?.parentElement?.parentElement;
-    if (!container) return;
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { breite: number; hoehe: number; x: number; y: number; winkel: number };
-      setKonfig((k) => ({ ...k, buehne: { ...k.buehne, ...detail } }));
-      setGespeichert(false);
-    };
-    // Konva fires custom events on the stage container
-    container.addEventListener("buehne-transform", handler);
-    return () => container.removeEventListener("buehne-transform", handler);
-  }, []);
 
   function elementHinzufuegen(typ: ElementTyp) {
     const bezeichnung = naechsteBezeichnung(konfig.elemente, typ === "reihe" ? "" : typ === "tischreihe" ? "T" : "R");
     const defaultKatId = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
-    const basis = { id: crypto.randomUUID(), bezeichnung, x: konfig.breite / 2, y: naechstesY, winkel: 0, kategorie_id: defaultKatId };
+    const y = naechstesY(konfig.breite, konfig.hoehe, konfig.elemente);
+    const basis = { id: crypto.randomUUID(), bezeichnung, x: Math.round(konfig.breite / 2), y, winkel: 0, kategorie_id: defaultKatId };
 
     let neuesElement: SitzplanElement;
     if      (typ === "reihe")      neuesElement = { ...basis, typ: "reihe",      anzahlSitze: 10, sitzAbstand: 34 } satisfies ReiheElement;
@@ -103,8 +93,18 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     setGespeichert(false);
   }, []);
 
+  const buehneTransformiert = useCallback((breite: number, hoehe: number, x: number, y: number, winkel: number) => {
+    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, breite, hoehe, x, y, winkel } }));
+    setGespeichert(false);
+  }, []);
+
   function kategorienAktualisieren(kategorien: Preiskategorie[]) {
     setKonfig((k) => ({ ...k, kategorien }));
+    setGespeichert(false);
+  }
+
+  function raumgroesseAktualisieren(breite: number, hoehe: number) {
+    setKonfig((k) => ({ ...k, breite, hoehe }));
     setGespeichert(false);
   }
 
@@ -118,6 +118,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      {/* Header */}
       <div className="h-14 border-b border-border flex items-center px-4 gap-3 shrink-0 bg-background">
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/dashboard/venues/${venueId}`}><ArrowLeft className="h-4 w-4" /></Link>
@@ -126,12 +127,16 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           <p className="text-xs text-muted-foreground">{venueName}</p>
           <p className="font-semibold text-sm truncate">{planName}</p>
         </div>
-        {gespeichert && <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>}
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-muted-foreground">{konfig.breite} × {konfig.hoehe} px</span>
+          {gespeichert && <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>}
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div ref={stageContainerRef} className="flex-1 overflow-auto p-6 flex items-start justify-center bg-muted/20">
-          <div className="rounded-xl border border-border shadow-sm overflow-hidden"
+        {/* Canvas-Bereich */}
+        <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
+          <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
             style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
             <SitzplanCanvas
               konfiguration={konfig}
@@ -140,16 +145,20 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               onAuswaehlen={setAuswahl}
               onElementVerschieben={elementVerschieben}
               onBuehneVerschieben={buehneVerschieben}
+              onBuehneTransformiert={buehneTransformiert}
             />
           </div>
         </div>
 
-        <aside className="w-64 border-l border-border bg-background p-4 flex flex-col overflow-hidden shrink-0">
+        {/* Sidebar */}
+        <aside className="w-72 border-l border-border bg-background flex flex-col overflow-hidden shrink-0">
           <EditorToolbar
             elemente={konfig.elemente}
             auswahl={auswahl}
             buehne={konfig.buehne}
             kategorien={konfig.kategorien}
+            raumbreite={konfig.breite}
+            raumhoehe={konfig.hoehe}
             speichernLaedt={speichernLaedt}
             gesamtSitze={gesamtSitze}
             onHinzufuegen={elementHinzufuegen}
@@ -157,6 +166,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             onAktualisieren={elementAktualisieren}
             onBuehneAktualisieren={buehneAktualisieren}
             onKategorienAktualisieren={kategorienAktualisieren}
+            onRaumgroesseAktualisieren={raumgroesseAktualisieren}
             onAuswaehlen={setAuswahl}
             onSpeichern={speichern}
           />

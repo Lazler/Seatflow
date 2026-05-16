@@ -23,7 +23,6 @@ import {
 
 export type Auswahl = { typ: "buehne" } | { typ: "element"; id: string } | null;
 
-// Farbe eines Sitzes im Kontext aller Zustände
 function sitzFarbe({
   sitzId,
   kategoriefarbe,
@@ -37,14 +36,15 @@ function sitzFarbe({
   buchungAusgewaehlt: boolean;
   editorAusgewaehlt: boolean;
 }): { fill: string; opacity: number } {
-  if (belegt)            return { fill: FARBE_BELEGT, opacity: 0.4 };
+  void sitzId;
+  if (belegt)             return { fill: FARBE_BELEGT, opacity: 0.4 };
   if (buchungAusgewaehlt) return { fill: FARBE_AUSGEWAEHLT, opacity: 1 };
   if (editorAusgewaehlt)  return { fill: FARBE_ELEMENT_SELEKTIERT, opacity: 1 };
   return { fill: kategoriefarbe, opacity: 1 };
-  void sitzId;
 }
 
-// Gemeinsame Props für alle Element-Renderer
+const DRAG_MARGIN = 40;
+
 type ElementProps<T> = {
   el: T;
   kategoriefarbe: string;
@@ -52,27 +52,31 @@ type ElementProps<T> = {
   belegte: Set<string>;
   buchungAusgewaehlt: Set<string>;
   istBuchungsmodus: boolean;
+  raumbreite: number;
+  raumhoehe: number;
   onKlick: () => void;
   onDragEnd: (x: number, y: number) => void;
   onSitzKlick?: (sitzId: string) => void;
 };
 
-// --- Reihe ---
-function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
+function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
-
   return (
     <Group
       x={el.x} y={el.y} rotation={el.winkel}
       offsetX={breite / 2}
       draggable={!istBuchungsmodus}
+      dragBoundFunc={(pos) => ({
+        x: Math.max(DRAG_MARGIN, Math.min(raumbreite - DRAG_MARGIN, pos.x)),
+        y: Math.max(DRAG_MARGIN, Math.min(raumhoehe - DRAG_MARGIN, pos.y)),
+      })}
       onClick={!istBuchungsmodus ? onKlick : undefined}
       onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      <Text x={-36} y={-SITZ_RADIUS} width={30} height={SITZ_RADIUS*2} text={el.bezeichnung} fill="#64748b" fontSize={12} fontStyle="bold" verticalAlign="middle" align="right" />
+      <Text x={-36} y={-SITZ_RADIUS} width={30} height={SITZ_RADIUS * 2} text={el.bezeichnung} fill="#64748b" fontSize={12} fontStyle="bold" verticalAlign="middle" align="right" />
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
         const sitzId = `${el.bezeichnung}-${i + 1}`;
         const belegt = belegte.has(sitzId);
@@ -86,31 +90,33 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
             onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
           >
             <Circle radius={SITZ_RADIUS} fill={fill} opacity={opacity} />
-            <Text x={-SITZ_RADIUS} y={-7} width={SITZ_RADIUS*2} text={String(i+1)} fill="white" fontSize={9} align="center" listening={false} />
+            <Text x={-SITZ_RADIUS} y={-7} width={SITZ_RADIUS * 2} text={String(i + 1)} fill="white" fontSize={9} align="center" listening={false} />
           </Group>
         );
       })}
-      <Text x={breite + SITZ_RADIUS + 6} y={-SITZ_RADIUS} width={30} height={SITZ_RADIUS*2} text={el.bezeichnung} fill="#64748b" fontSize={12} fontStyle="bold" verticalAlign="middle" />
+      <Text x={breite + SITZ_RADIUS + 6} y={-SITZ_RADIUS} width={30} height={SITZ_RADIUS * 2} text={el.bezeichnung} fill="#64748b" fontSize={12} fontStyle="bold" verticalAlign="middle" />
       {editorAusgewaehlt && (
-        <Rect x={-SITZ_RADIUS-8} y={-SITZ_RADIUS-6} width={breite+SITZ_RADIUS*2+16} height={SITZ_RADIUS*2+12}
-          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" cornerRadius={8} dash={[6,3]} listening={false} />
+        <Rect x={-SITZ_RADIUS - 8} y={-SITZ_RADIUS - 6} width={breite + SITZ_RADIUS * 2 + 16} height={SITZ_RADIUS * 2 + 12}
+          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" cornerRadius={8} dash={[6, 3]} listening={false} />
       )}
     </Group>
   );
 }
 
-// --- Tischreihe ---
-function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
+function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProTisch * TISCH_SITZ_ABSTAND;
   const gesamtBreite = tischreiheBreite(el);
   const sitzY = TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS;
-  const tischFarbe = kategoriefarbe + "55"; // transparent
-
+  const tischFarbe = kategoriefarbe + "55";
   return (
     <Group
       x={el.x} y={el.y} rotation={el.winkel}
       offsetX={gesamtBreite / 2}
       draggable={!istBuchungsmodus}
+      dragBoundFunc={(pos) => ({
+        x: Math.max(DRAG_MARGIN, Math.min(raumbreite - DRAG_MARGIN, pos.x)),
+        y: Math.max(DRAG_MARGIN, Math.min(raumhoehe - DRAG_MARGIN, pos.y)),
+      })}
       onClick={!istBuchungsmodus ? onKlick : undefined}
       onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
@@ -122,9 +128,9 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
         const tischX = ti * (tischBreite + el.tischAbstand);
         return (
           <Group key={ti} x={tischX}>
-            <Rect x={0} y={-TISCH_HOEHE/2} width={tischBreite} height={TISCH_HOEHE} fill={tischFarbe} cornerRadius={4}
+            <Rect x={0} y={-TISCH_HOEHE / 2} width={tischBreite} height={TISCH_HOEHE} fill={tischFarbe} cornerRadius={4}
               stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe} strokeWidth={1.5} />
-            <Text x={0} y={-7} width={tischBreite} text={String(ti+1)} fill="#1e40af" fontSize={10} fontStyle="bold" align="center" listening={false} />
+            <Text x={0} y={-7} width={tischBreite} text={String(ti + 1)} fill="#1e40af" fontSize={10} fontStyle="bold" align="center" listening={false} />
             {Array.from({ length: el.sitzeProTisch }, (_, si) => {
               const globalIndex = ti * el.sitzeProTisch + si;
               const sitzId = `${el.bezeichnung}-${globalIndex + 1}`;
@@ -140,7 +146,7 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
                   onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
                 >
                   <Circle radius={SITZ_RADIUS} fill={fill} opacity={opacity} />
-                  <Text x={-SITZ_RADIUS} y={-7} width={SITZ_RADIUS*2} text={String(globalIndex+1)} fill="white" fontSize={9} align="center" listening={false} />
+                  <Text x={-SITZ_RADIUS} y={-7} width={SITZ_RADIUS * 2} text={String(globalIndex + 1)} fill="white" fontSize={9} align="center" listening={false} />
                 </Group>
               );
             })}
@@ -148,22 +154,25 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
         );
       })}
       {editorAusgewaehlt && (
-        <Rect x={-8} y={-TISCH_HOEHE/2-8} width={gesamtBreite+16} height={TISCH_HOEHE+TISCH_SEAT_GAP+SITZ_RADIUS*2+16}
-          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" cornerRadius={8} dash={[6,3]} listening={false} />
+        <Rect x={-8} y={-TISCH_HOEHE / 2 - 8} width={gesamtBreite + 16} height={TISCH_HOEHE + TISCH_SEAT_GAP + SITZ_RADIUS * 2 + 16}
+          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" cornerRadius={8} dash={[6, 3]} listening={false} />
       )}
     </Group>
   );
 }
 
-// --- Rundtisch ---
-function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, onKlick, onDragEnd, onSitzKlick }: ElementProps<RundtischElement>) {
+function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<RundtischElement>) {
   const sitzAbstandVomMittelpunkt = el.tischRadius + SITZ_RADIUS + 8;
   const tischFarbe = kategoriefarbe + "55";
-
+  const r = sitzAbstandVomMittelpunkt + SITZ_RADIUS + 8;
   return (
     <Group
       x={el.x} y={el.y} rotation={el.winkel}
       draggable={!istBuchungsmodus}
+      dragBoundFunc={(pos) => ({
+        x: Math.max(r, Math.min(raumbreite - r, pos.x)),
+        y: Math.max(r, Math.min(raumhoehe - r, pos.y)),
+      })}
       onClick={!istBuchungsmodus ? onKlick : undefined}
       onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
@@ -171,7 +180,7 @@ function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, b
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
       <Circle radius={el.tischRadius} fill={tischFarbe} stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe} strokeWidth={1.5} />
-      <Text x={-el.tischRadius} y={-8} width={el.tischRadius*2} text={el.bezeichnung} fill="#1e40af" fontSize={11} fontStyle="bold" align="center" listening={false} />
+      <Text x={-el.tischRadius} y={-8} width={el.tischRadius * 2} text={el.bezeichnung} fill="#1e40af" fontSize={11} fontStyle="bold" align="center" listening={false} />
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
         const winkelRad = (2 * Math.PI * i) / el.anzahlSitze - Math.PI / 2;
         const sx = Math.cos(winkelRad) * sitzAbstandVomMittelpunkt;
@@ -188,21 +197,21 @@ function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, b
             onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
           >
             <Circle radius={SITZ_RADIUS} fill={fill} opacity={opacity} />
-            <Text x={-SITZ_RADIUS} y={-7} width={SITZ_RADIUS*2} text={String(i+1)} fill="white" fontSize={9} align="center" listening={false} />
+            <Text x={-SITZ_RADIUS} y={-7} width={SITZ_RADIUS * 2} text={String(i + 1)} fill="white" fontSize={9} align="center" listening={false} />
           </Group>
         );
       })}
       {editorAusgewaehlt && (
-        <Circle radius={sitzAbstandVomMittelpunkt+SITZ_RADIUS+6}
-          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" dash={[6,3]} listening={false} />
+        <Circle radius={sitzAbstandVomMittelpunkt + SITZ_RADIUS + 6}
+          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" dash={[6, 3]} listening={false} />
       )}
     </Group>
   );
 }
 
-// --- Bühne ---
-function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, onKlick, onDragEnd, nodeRef }: {
+function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, nodeRef }: {
   buehne: Buehne; ausgewaehlt: boolean; istBuchungsmodus: boolean;
+  raumbreite: number; raumhoehe: number;
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   nodeRef: React.RefObject<Konva.Group | null>;
 }) {
@@ -212,6 +221,10 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, onKlick, onDr
       x={buehne.x} y={buehne.y} rotation={buehne.winkel}
       offsetX={buehne.breite / 2} offsetY={buehne.hoehe / 2}
       draggable={!istBuchungsmodus}
+      dragBoundFunc={(pos) => ({
+        x: Math.max(buehne.breite / 2 + 4, Math.min(raumbreite - buehne.breite / 2 - 4, pos.x)),
+        y: Math.max(buehne.hoehe / 2 + 4, Math.min(raumhoehe - buehne.hoehe / 2 - 4, pos.y)),
+      })}
       onClick={!istBuchungsmodus ? onKlick : undefined}
       onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
@@ -226,18 +239,16 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, onKlick, onDr
   );
 }
 
-// --- Haupt-Canvas ---
 export type CanvasModus = "editor" | "buchung";
 
 type Props = {
   konfiguration: SitzplanKonfiguration;
   modus: CanvasModus;
-  // Editor
   auswahl?: Auswahl;
   onAuswaehlen?: (a: Auswahl) => void;
   onElementVerschieben?: (id: string, x: number, y: number) => void;
   onBuehneVerschieben?: (x: number, y: number) => void;
-  // Buchung
+  onBuehneTransformiert?: (breite: number, hoehe: number, x: number, y: number, winkel: number) => void;
   belegteSitze?: Set<string>;
   ausgewaehlteSitze?: Set<string>;
   onSitzKlicken?: (sitzId: string) => void;
@@ -245,14 +256,13 @@ type Props = {
 
 export default function SitzplanCanvas({
   konfiguration, modus,
-  auswahl, onAuswaehlen, onElementVerschieben, onBuehneVerschieben,
+  auswahl, onAuswaehlen, onElementVerschieben, onBuehneVerschieben, onBuehneTransformiert,
   belegteSitze = new Set(), ausgewaehlteSitze = new Set(), onSitzKlicken,
 }: Props) {
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const istBuchungsmodus = modus === "buchung";
 
-  // Transformer für Bühne im Editor
   useEffect(() => {
     if (!trRef.current) return;
     if (auswahl?.typ === "buehne" && buehneRef.current) {
@@ -263,10 +273,11 @@ export default function SitzplanCanvas({
     trRef.current.getLayer()?.batchDraw();
   }, [auswahl]);
 
-  // Kategorie → Farbe Map
   const kategorienMap = new Map<string, Preiskategorie>(
     konfiguration.kategorien.map((k) => [k.id, k])
   );
+
+  const { breite: raumbreite, hoehe: raumhoehe } = konfiguration;
 
   function renderElement(el: SitzplanElement) {
     const istAusgewaehlt = auswahl?.typ === "element" && auswahl.id === el.id;
@@ -278,6 +289,8 @@ export default function SitzplanCanvas({
       belegte: belegteSitze,
       buchungAusgewaehlt: ausgewaehlteSitze,
       istBuchungsmodus,
+      raumbreite,
+      raumhoehe,
       onKlick: () => onAuswaehlen?.(istAusgewaehlt ? null : { typ: "element", id: el.id }),
       onDragEnd: (x: number, y: number) => onElementVerschieben?.(el.id, x, y),
       onSitzKlick: onSitzKlicken,
@@ -291,23 +304,28 @@ export default function SitzplanCanvas({
 
   return (
     <Stage
-      width={konfiguration.breite} height={konfiguration.hoehe}
+      width={raumbreite} height={raumhoehe}
       onClick={(e) => { if (e.target === e.target.getStage()) onAuswaehlen?.(null); }}
     >
       <Layer>
-        <Rect x={0} y={0} width={konfiguration.breite} height={konfiguration.hoehe} fill="#f8fafc" />
+        {/* Hintergrund */}
+        <Rect x={0} y={0} width={raumbreite} height={raumhoehe} fill="#f8fafc" />
         {/* Gitter */}
-        {Array.from({ length: Math.ceil(konfiguration.hoehe / 40) }, (_, i) => (
-          <Line key={`h${i}`} points={[0, i*40, konfiguration.breite, i*40]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
+        {Array.from({ length: Math.ceil(raumhoehe / 40) }, (_, i) => (
+          <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
         ))}
-        {Array.from({ length: Math.ceil(konfiguration.breite / 40) }, (_, i) => (
-          <Line key={`v${i}`} points={[i*40, 0, i*40, konfiguration.hoehe]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
+        {Array.from({ length: Math.ceil(raumbreite / 40) }, (_, i) => (
+          <Line key={`v${i}`} points={[i * 40, 0, i * 40, raumhoehe]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
         ))}
+        {/* Rahmen */}
+        <Rect x={0} y={0} width={raumbreite} height={raumhoehe} stroke="#cbd5e1" strokeWidth={2} fill="transparent" listening={false} />
         {/* Bühne */}
         <BuehneKomponente
           buehne={konfiguration.buehne}
           ausgewaehlt={auswahl?.typ === "buehne"}
           istBuchungsmodus={istBuchungsmodus}
+          raumbreite={raumbreite}
+          raumhoehe={raumhoehe}
           onKlick={() => onAuswaehlen?.(auswahl?.typ === "buehne" ? null : { typ: "buehne" })}
           onDragEnd={(x, y) => onBuehneVerschieben?.(x, y)}
           nodeRef={buehneRef}
@@ -316,21 +334,21 @@ export default function SitzplanCanvas({
         {konfiguration.elemente.map(renderElement)}
         {/* Transformer (nur Editor, nur für Bühne) */}
         {!istBuchungsmodus && (
-          <Transformer ref={trRef} rotateEnabled enabledAnchors={["top-left","top-right","bottom-left","bottom-right","middle-left","middle-right"]}
+          <Transformer
+            ref={trRef}
+            rotateEnabled
+            enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right"]}
             boundBoxFunc={(old, n) => (n.width < 80 || n.height < 20 ? old : n)}
             onTransformEnd={() => {
               const node = buehneRef.current;
               if (!node) return;
-              const sx = node.scaleX(), sy = node.scaleY();
-              node.scaleX(1); node.scaleY(1);
-              onBuehneVerschieben?.(node.x(), node.y());
-              // Wir schicken neue Maße als Custom-Event an den Editor
-              node.getStage()?.fire("buehne-transform", {
-                breite: Math.max(80, konfiguration.buehne.breite * sx),
-                hoehe:  Math.max(20, konfiguration.buehne.hoehe * sy),
-                x: node.x(), y: node.y(),
-                winkel: node.rotation(),
-              });
+              const sx = node.scaleX();
+              const sy = node.scaleY();
+              node.scaleX(1);
+              node.scaleY(1);
+              const neueBreite = Math.max(80, Math.round(konfiguration.buehne.breite * sx));
+              const neueHoehe = Math.max(20, Math.round(konfiguration.buehne.hoehe * sy));
+              onBuehneTransformiert?.(neueBreite, neueHoehe, node.x(), node.y(), node.rotation());
             }}
           />
         )}
