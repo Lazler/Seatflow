@@ -94,6 +94,31 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgew
   );
 }
 
+// ── Label chip — always upright, always readable ──────────────────────────────
+
+function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
+  x: number; y: number; text: string; winkel: number; kategoriefarbe: string;
+}) {
+  const W = Math.max(22, text.length * 8 + 12);
+  const H = 20;
+  return (
+    <Group x={x} y={y} rotation={-winkel} listening={false}>
+      <Rect
+        x={-W / 2} y={-H / 2} width={W} height={H}
+        fill="rgba(255,255,255,0.97)"
+        stroke={kategoriefarbe} strokeWidth={1.5}
+        cornerRadius={H / 2}
+        shadowColor="#0f172a" shadowBlur={6} shadowOpacity={0.12} shadowOffsetY={1}
+      />
+      <Text
+        x={-W / 2} y={-H / 2} width={W} height={H}
+        text={text} fill="#0f172a" fontSize={11} fontStyle="bold"
+        align="center" verticalAlign="middle"
+      />
+    </Group>
+  );
+}
+
 // ── Shared element props ──────────────────────────────────────────────────────
 
 type ElementProps<T> = {
@@ -108,7 +133,6 @@ type ElementProps<T> = {
 
 function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
-  const LH = SITZ_RADIUS * 2;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
       draggable={!istBuchungsmodus}
@@ -118,10 +142,8 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Row label left */}
-      <Text x={-24} y={0} offsetX={16} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-        width={32} height={LH} text={el.bezeichnung}
-        fill="#475569" fontSize={11} fontStyle="bold" verticalAlign="middle" align="right" listening={false} />
+      {/* Row label left — pill chip */}
+      <LabelChip x={-(SITZ_RADIUS + 22)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
         const sitzId = `${el.bezeichnung}-${i + 1}`;
         return (
@@ -138,10 +160,8 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
           />
         );
       })}
-      {/* Row label right */}
-      <Text x={breite + SITZ_RADIUS + 22} y={0} offsetX={16} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-        width={32} height={LH} text={el.bezeichnung}
-        fill="#475569" fontSize={11} fontStyle="bold" verticalAlign="middle" listening={false} />
+      {/* Row label right — pill chip */}
+      <LabelChip x={breite + SITZ_RADIUS + 22} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       {editorAusgewaehlt && (
         <Rect
           x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
@@ -161,7 +181,6 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
   const tischBreite = el.sitzeProTisch * TISCH_SITZ_ABSTAND;
   const gesamtBreite = tischreiheBreite(el);
   const sitzY = TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS;
-  const LW = 36; const LH = 16;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={gesamtBreite / 2}
       draggable={!istBuchungsmodus}
@@ -171,10 +190,8 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Element label */}
-      <Text x={-42 + LW / 2} y={0} offsetX={LW / 2} offsetY={LH / 2} rotation={-el.winkel}
-        width={LW} height={LH} text={el.bezeichnung}
-        fill="#475569" fontSize={11} fontStyle="bold" align="right" verticalAlign="middle" listening={false} />
+      {/* Element label — pill chip to the left */}
+      <LabelChip x={-28} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       {Array.from({ length: el.anzahlTische }, (_, ti) => {
         const tischX = ti * (tischBreite + el.tischAbstand);
         return (
@@ -309,6 +326,14 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   nodeRef: React.RefObject<Konva.Group | null>;
 }) {
+  // Compute the stage's visual (screen) width at the current rotation angle.
+  // The counter-rotated label must fit within this width to stay inside the shape.
+  const θ = buehne.winkel * Math.PI / 180;
+  const visW = Math.abs(Math.cos(θ)) * buehne.breite + Math.abs(Math.sin(θ)) * buehne.hoehe;
+  const visH = Math.abs(Math.sin(θ)) * buehne.breite + Math.abs(Math.cos(θ)) * buehne.hoehe;
+  const labelW = Math.max(50, Math.min(visW - 16, 240));
+  const labelH = Math.max(20, Math.min(visH - 8, 32));
+
   return (
     <Group ref={nodeRef} x={buehne.x} y={buehne.y} rotation={buehne.winkel}
       offsetX={buehne.breite / 2} offsetY={buehne.hoehe / 2}
@@ -333,14 +358,14 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
         shadowOpacity={0.32}
         shadowOffsetY={4}
       />
-      {/* Stage label — always upright */}
+      {/* Stage label — counter-rotated, bounded to visual footprint */}
       <Text
         x={buehne.breite / 2} y={buehne.hoehe / 2}
-        offsetX={buehne.breite / 2} offsetY={buehne.hoehe / 2}
+        offsetX={labelW / 2} offsetY={labelH / 2}
         rotation={-buehne.winkel}
-        width={buehne.breite} height={buehne.hoehe}
+        width={labelW} height={labelH}
         text={buehne.label}
-        fill="rgba(248,250,252,0.90)" fontSize={13} fontStyle="bold" letterSpacing={5}
+        fill="rgba(248,250,252,0.92)" fontSize={11} fontStyle="bold" letterSpacing={3}
         align="center" verticalAlign="middle" listening={false}
       />
     </Group>
