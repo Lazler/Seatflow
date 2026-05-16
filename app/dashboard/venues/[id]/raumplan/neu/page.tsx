@@ -30,7 +30,7 @@ export default async function NeuerRaumplan({
     .from("sitzplaene")
     .insert({
       venue_id: venueId,
-      name: `Raumplan – ${venue.name}`,
+      name: "Neuer Raumplan",
       konfiguration: LEERE_KONFIGURATION,
     })
     .select("id")

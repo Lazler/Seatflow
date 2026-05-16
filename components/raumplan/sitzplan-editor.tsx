@@ -13,7 +13,7 @@ import {
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2 } from "lucide-react";
+import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X } from "lucide-react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -36,6 +36,20 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
+  const [nameWert, setNameWert] = useState(planName);
+  const [nameEditModus, setNameEditModus] = useState(false);
+  const [nameLaedt, setNameLaedt] = useState(false);
+
+  async function nameSpeichern() {
+    const bereinigt = nameWert.trim();
+    if (!bereinigt || bereinigt === planName) { setNameWert(planName); setNameEditModus(false); return; }
+    setNameLaedt(true);
+    const supabase = createClient();
+    await supabase.from("sitzplaene").update({ name: bereinigt }).eq("id", planId);
+    setNameLaedt(false);
+    setNameEditModus(false);
+    router.refresh();
+  }
 
   const gesamtSitze = konfig.elemente.reduce((s, e) => s + elementSitzIds(e).length, 0);
 
@@ -174,7 +188,31 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </Button>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground truncate">{venueName}</p>
-          <p className="font-semibold text-sm truncate">{planName}</p>
+          {nameEditModus ? (
+            <div className="flex items-center gap-1 mt-0.5">
+              <input
+                autoFocus
+                value={nameWert}
+                onChange={(e) => setNameWert(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") nameSpeichern(); if (e.key === "Escape") { setNameWert(planName); setNameEditModus(false); } }}
+                className="h-6 flex-1 min-w-0 text-sm font-semibold bg-transparent border-b border-primary focus:outline-none px-0"
+              />
+              <button type="button" onClick={nameSpeichern} disabled={nameLaedt}
+                className="h-5 w-5 flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 shrink-0">
+                <Check className="h-3 w-3" />
+              </button>
+              <button type="button" onClick={() => { setNameWert(planName); setNameEditModus(false); }}
+                className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setNameEditModus(true)}
+              className="flex items-center gap-1.5 group hover:text-primary transition-colors">
+              <span className="font-semibold text-sm truncate max-w-[180px]">{nameWert}</span>
+              <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-muted-foreground hidden sm:inline">{konfig.breite} × {konfig.hoehe} px · {gesamtSitze} Plätze</span>

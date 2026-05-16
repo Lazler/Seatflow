@@ -174,18 +174,22 @@ export default function BuchungsSeiteClient({
 
   const alleKategorien = aktiverFloor.konfiguration.kategorien;
 
-  const floorSelector = mehrereEbenen && (
-    <div className="flex items-center gap-3">
-      <span className="text-sm font-medium text-foreground shrink-0">Ebene</span>
-      <select
-        value={aktiverFloorIdx}
-        onChange={(e) => setAktiverFloorIdx(Number(e.target.value))}
-        className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {floors.map((floor, idx) => (
-          <option key={floor.id} value={idx}>{floorLabel(floor, idx)}</option>
-        ))}
-      </select>
+  const etagenTabs = mehrereEbenen && (
+    <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
+      {floors.map((floor, idx) => (
+        <button
+          key={floor.id}
+          type="button"
+          onClick={() => setAktiverFloorIdx(idx)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium text-left transition-all whitespace-nowrap shadow-sm ${
+            idx === aktiverFloorIdx
+              ? "bg-background text-foreground shadow-md border border-border/80"
+              : "bg-background/75 text-muted-foreground hover:bg-background hover:text-foreground border border-transparent backdrop-blur-sm"
+          }`}
+        >
+          {floorLabel(floor, idx)}
+        </button>
+      ))}
     </div>
   );
 
@@ -261,9 +265,9 @@ export default function BuchungsSeiteClient({
       {/* ---- Desktop-Layout: 2/3 Canvas + 1/3 Sidebar ---- */}
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
-          {floorSelector}
           <Legende kategorien={alleKategorien} />
-          <div ref={desktopContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
+          <div ref={desktopContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden relative">
+            {etagenTabs}
             <SitzplanCanvas
               konfiguration={aktiverFloor.konfiguration}
               modus="buchung"
@@ -294,9 +298,9 @@ export default function BuchungsSeiteClient({
 
       {/* ---- Mobile-Layout: Canvas oben, Sticky-Bar unten ---- */}
       <div className="lg:hidden space-y-3">
-        {floorSelector}
         <Legende kategorien={alleKategorien} />
-        <div ref={mobileContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
+        <div ref={mobileContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden relative">
+          {etagenTabs}
           <SitzplanCanvas
             konfiguration={aktiverFloor.konfiguration}
             modus="buchung"
