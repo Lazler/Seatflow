@@ -66,8 +66,8 @@ export const SITZ_RADIUS = 13;
 export const TISCH_HOEHE = 18;
 export const TISCH_SITZ_ABSTAND = 32;
 export const TISCH_SEAT_GAP = 8;
-export const FARBE_BELEGT    = "#94a3b8";
-export const FARBE_AUSGEWAEHLT = "#22c55e";
+export const FARBE_BELEGT             = "#94a3b8";
+export const FARBE_AUSGEWAEHLT        = "#10b981";
 export const FARBE_ELEMENT_SELEKTIERT = "#f59e0b";
 
 // --- Hilfsfunktionen ---

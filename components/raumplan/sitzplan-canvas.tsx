@@ -23,17 +23,78 @@ import {
 
 export type Auswahl = { typ: "buehne" } | { typ: "element"; ids: string[] } | null;
 
-function sitzFarbe({ sitzId, kategoriefarbe, belegt, buchungAusgewaehlt, editorAusgewaehlt }: {
-  sitzId: string; kategoriefarbe: string; belegt: boolean; buchungAusgewaehlt: boolean; editorAusgewaehlt: boolean;
-}): { fill: string; opacity: number } {
-  void sitzId;
-  if (belegt)             return { fill: FARBE_BELEGT, opacity: 0.4 };
-  if (buchungAusgewaehlt) return { fill: FARBE_AUSGEWAEHLT, opacity: 1 };
-  if (editorAusgewaehlt)  return { fill: FARBE_ELEMENT_SELEKTIERT, opacity: 1 };
-  return { fill: kategoriefarbe, opacity: 1 };
+const DRAG_MARGIN = 40;
+
+// ── Seat component with smooth hover scale animation ──────────────────────────
+
+type SitzProps = {
+  x: number; y: number;
+  sitzId: string; nummer: number;
+  kategoriefarbe: string;
+  belegt: boolean; buchungAusgewaehlt: boolean; editorAusgewaehlt: boolean;
+  istBuchungsmodus: boolean; elementWinkel: number;
+  onSitzKlick?: (id: string) => void;
+};
+
+function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, onSitzKlick }: SitzProps) {
+  const istKlickbar = istBuchungsmodus && !belegt;
+
+  let fill = kategoriefarbe;
+  if (belegt)             fill = FARBE_BELEGT;
+  else if (buchungAusgewaehlt) fill = FARBE_AUSGEWAEHLT;
+  else if (editorAusgewaehlt)  fill = FARBE_ELEMENT_SELEKTIERT;
+
+  return (
+    <Group x={x} y={y}
+      onClick={istKlickbar ? () => onSitzKlick?.(sitzId) : undefined}
+      onTap={istKlickbar ? () => onSitzKlick?.(sitzId) : undefined}
+      onMouseEnter={(e) => {
+        if (istKlickbar) {
+          (e.currentTarget as unknown as Konva.Node).to({ scaleX: 1.15, scaleY: 1.15, duration: 0.1 });
+          e.target.getStage()!.container().style.cursor = "pointer";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (istKlickbar) {
+          (e.currentTarget as unknown as Konva.Node).to({ scaleX: 1, scaleY: 1, duration: 0.1 });
+          e.target.getStage()!.container().style.cursor = "default";
+        }
+      }}
+    >
+      {/* Emerald glow ring when selected */}
+      {buchungAusgewaehlt && (
+        <Circle radius={SITZ_RADIUS + 5} fill={FARBE_AUSGEWAEHLT} opacity={0.22} listening={false} />
+      )}
+      <Circle
+        radius={SITZ_RADIUS}
+        fill={fill}
+        stroke={belegt ? "transparent" : "rgba(255,255,255,0.6)"}
+        strokeWidth={1.5}
+        shadowColor={
+          belegt ? "transparent" :
+          buchungAusgewaehlt ? FARBE_AUSGEWAEHLT :
+          "#0f172a"
+        }
+        shadowBlur={buchungAusgewaehlt ? 10 : 4}
+        shadowOpacity={buchungAusgewaehlt ? 0.35 : 0.18}
+        shadowOffsetY={buchungAusgewaehlt ? 0 : 1}
+        opacity={belegt ? 0.5 : 1}
+      />
+      {!belegt && (
+        <Text
+          x={0} y={0} offsetX={SITZ_RADIUS} offsetY={SITZ_RADIUS}
+          rotation={-elementWinkel}
+          width={SITZ_RADIUS * 2} height={SITZ_RADIUS * 2}
+          text={String(nummer)}
+          fill="rgba(255,255,255,0.92)" fontSize={9} fontStyle="bold"
+          align="center" verticalAlign="middle" listening={false}
+        />
+      )}
+    </Group>
+  );
 }
 
-const DRAG_MARGIN = 40;
+// ── Shared element props ──────────────────────────────────────────────────────
 
 type ElementProps<T> = {
   el: T; kategoriefarbe: string; editorAusgewaehlt: boolean;
@@ -43,9 +104,11 @@ type ElementProps<T> = {
   onSitzKlick?: (sitzId: string) => void;
 };
 
+// ── Reihe ─────────────────────────────────────────────────────────────────────
+
 function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
-  const LH = SITZ_RADIUS * 2; // label height
+  const LH = SITZ_RADIUS * 2;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
       draggable={!istBuchungsmodus}
@@ -55,46 +118,49 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Reihen-Bezeichnung links — immer lesbar */}
-      <Text x={-21} y={0} offsetX={15} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-        width={30} height={LH} text={el.bezeichnung}
-        fill="#64748b" fontSize={12} fontStyle="bold" verticalAlign="middle" align="right" listening={false} />
+      {/* Row label left */}
+      <Text x={-24} y={0} offsetX={16} offsetY={SITZ_RADIUS} rotation={-el.winkel}
+        width={32} height={LH} text={el.bezeichnung}
+        fill="#475569" fontSize={11} fontStyle="bold" verticalAlign="middle" align="right" listening={false} />
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
         const sitzId = `${el.bezeichnung}-${i + 1}`;
-        const belegt = belegte.has(sitzId);
-        const ausgewaehlt = buchungAusgewaehlt.has(sitzId);
-        const { fill, opacity } = sitzFarbe({ sitzId, kategoriefarbe, belegt, buchungAusgewaehlt: ausgewaehlt, editorAusgewaehlt });
         return (
-          <Group key={sitzId} x={i * el.sitzAbstand} y={0}
-            onClick={istBuchungsmodus && !belegt ? () => onSitzKlick?.(sitzId) : undefined}
-            onTap={istBuchungsmodus && !belegt ? () => onSitzKlick?.(sitzId) : undefined}
-            onMouseEnter={(e) => { if (istBuchungsmodus && !belegt) e.target.getStage()!.container().style.cursor = "pointer"; }}
-            onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
-          >
-            <Circle radius={SITZ_RADIUS} fill={fill} opacity={opacity} />
-            {/* Sitznummer — immer aufrecht */}
-            <Text x={0} y={0} offsetX={SITZ_RADIUS} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-              width={SITZ_RADIUS * 2} height={SITZ_RADIUS * 2}
-              text={String(i + 1)} fill="white" fontSize={9}
-              align="center" verticalAlign="middle" listening={false} />
-          </Group>
+          <SitzKreis key={sitzId}
+            x={i * el.sitzAbstand} y={0}
+            sitzId={sitzId} nummer={i + 1}
+            kategoriefarbe={kategoriefarbe}
+            belegt={belegte.has(sitzId)}
+            buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+            editorAusgewaehlt={editorAusgewaehlt}
+            istBuchungsmodus={istBuchungsmodus}
+            elementWinkel={el.winkel}
+            onSitzKlick={onSitzKlick}
+          />
         );
       })}
-      {/* Reihen-Bezeichnung rechts — immer lesbar */}
-      <Text x={breite + SITZ_RADIUS + 21} y={0} offsetX={15} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-        width={30} height={LH} text={el.bezeichnung}
-        fill="#64748b" fontSize={12} fontStyle="bold" verticalAlign="middle" listening={false} />
-      {editorAusgewaehlt && <Rect x={-SITZ_RADIUS - 8} y={-SITZ_RADIUS - 6} width={breite + SITZ_RADIUS * 2 + 16} height={SITZ_RADIUS * 2 + 12} stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" cornerRadius={8} dash={[6, 3]} listening={false} />}
+      {/* Row label right */}
+      <Text x={breite + SITZ_RADIUS + 22} y={0} offsetX={16} offsetY={SITZ_RADIUS} rotation={-el.winkel}
+        width={32} height={LH} text={el.bezeichnung}
+        fill="#475569" fontSize={11} fontStyle="bold" verticalAlign="middle" listening={false} />
+      {editorAusgewaehlt && (
+        <Rect
+          x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
+          width={breite + SITZ_RADIUS * 2 + 20} height={SITZ_RADIUS * 2 + 16}
+          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
+          fill="rgba(245,158,11,0.04)" cornerRadius={10}
+          dash={[6, 4]} listening={false}
+        />
+      )}
     </Group>
   );
 }
+
+// ── Tischreihe ────────────────────────────────────────────────────────────────
 
 function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProTisch * TISCH_SITZ_ABSTAND;
   const gesamtBreite = tischreiheBreite(el);
   const sitzY = TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS;
-  const tischFarbe = kategoriefarbe + "55";
-  // Bezeichnung-Label: erscheint links, zentriert auf y=0, immer lesbar
   const LW = 36; const LH = 16;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={gesamtBreite / 2}
@@ -105,56 +171,76 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      {/* Element-Bezeichnung links — immer aufrecht */}
-      <Text x={-40 + LW / 2} y={0} offsetX={LW / 2} offsetY={LH / 2} rotation={-el.winkel}
+      {/* Element label */}
+      <Text x={-42 + LW / 2} y={0} offsetX={LW / 2} offsetY={LH / 2} rotation={-el.winkel}
         width={LW} height={LH} text={el.bezeichnung}
-        fill="#64748b" fontSize={11} fontStyle="bold" align="right" verticalAlign="middle" listening={false} />
+        fill="#475569" fontSize={11} fontStyle="bold" align="right" verticalAlign="middle" listening={false} />
       {Array.from({ length: el.anzahlTische }, (_, ti) => {
         const tischX = ti * (tischBreite + el.tischAbstand);
         return (
           <Group key={ti} x={tischX}>
-            <Rect x={0} y={-TISCH_HOEHE / 2} width={tischBreite} height={TISCH_HOEHE} fill={tischFarbe} cornerRadius={4}
-              stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe} strokeWidth={1.5} />
-            {/* Tischnummer — immer aufrecht */}
-            <Text x={tischBreite / 2} y={0} offsetX={tischBreite / 2} offsetY={TISCH_HOEHE / 2} rotation={-el.winkel}
+            {/* Premium table card */}
+            <Rect
+              x={0} y={-TISCH_HOEHE / 2}
               width={tischBreite} height={TISCH_HOEHE}
-              text={String(ti + 1)} fill="#1e40af" fontSize={10} fontStyle="bold"
-              align="center" verticalAlign="middle" listening={false} />
+              fill={kategoriefarbe + "28"}
+              stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
+              strokeWidth={1.5}
+              cornerRadius={6}
+              shadowColor={kategoriefarbe}
+              shadowBlur={8}
+              shadowOpacity={0.18}
+              shadowOffsetY={2}
+            />
+            {/* Table number — always upright */}
+            <Text
+              x={tischBreite / 2} y={0}
+              offsetX={tischBreite / 2} offsetY={TISCH_HOEHE / 2}
+              rotation={-el.winkel}
+              width={tischBreite} height={TISCH_HOEHE}
+              text={String(ti + 1)}
+              fill="#1e3a5f" fontSize={10} fontStyle="bold"
+              align="center" verticalAlign="middle" listening={false}
+            />
             {Array.from({ length: el.sitzeProTisch }, (_, si) => {
               const globalIndex = ti * el.sitzeProTisch + si;
               const sitzId = `${el.bezeichnung}-${globalIndex + 1}`;
-              const belegt = belegte.has(sitzId);
-              const ausgewaehlt = buchungAusgewaehlt.has(sitzId);
-              const { fill, opacity } = sitzFarbe({ sitzId, kategoriefarbe, belegt, buchungAusgewaehlt: ausgewaehlt, editorAusgewaehlt });
               return (
-                <Group key={si} x={si * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzY}
-                  onClick={istBuchungsmodus && !belegt ? () => onSitzKlick?.(sitzId) : undefined}
-                  onTap={istBuchungsmodus && !belegt ? () => onSitzKlick?.(sitzId) : undefined}
-                  onMouseEnter={(e) => { if (istBuchungsmodus && !belegt) e.target.getStage()!.container().style.cursor = "pointer"; }}
-                  onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
-                >
-                  <Circle radius={SITZ_RADIUS} fill={fill} opacity={opacity} />
-                  {/* Sitznummer — immer aufrecht */}
-                  <Text x={0} y={0} offsetX={SITZ_RADIUS} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-                    width={SITZ_RADIUS * 2} height={SITZ_RADIUS * 2}
-                    text={String(globalIndex + 1)} fill="white" fontSize={9}
-                    align="center" verticalAlign="middle" listening={false} />
-                </Group>
+                <SitzKreis key={si}
+                  x={si * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzY}
+                  sitzId={sitzId} nummer={globalIndex + 1}
+                  kategoriefarbe={kategoriefarbe}
+                  belegt={belegte.has(sitzId)}
+                  buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+                  editorAusgewaehlt={editorAusgewaehlt}
+                  istBuchungsmodus={istBuchungsmodus}
+                  elementWinkel={el.winkel}
+                  onSitzKlick={onSitzKlick}
+                />
               );
             })}
           </Group>
         );
       })}
-      {editorAusgewaehlt && <Rect x={-8} y={-TISCH_HOEHE / 2 - 8} width={gesamtBreite + 16} height={TISCH_HOEHE + TISCH_SEAT_GAP + SITZ_RADIUS * 2 + 16} stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" cornerRadius={8} dash={[6, 3]} listening={false} />}
+      {editorAusgewaehlt && (
+        <Rect
+          x={-10} y={-TISCH_HOEHE / 2 - 10}
+          width={gesamtBreite + 20} height={TISCH_HOEHE + TISCH_SEAT_GAP + SITZ_RADIUS * 2 + 20}
+          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
+          fill="rgba(245,158,11,0.04)" cornerRadius={10}
+          dash={[6, 4]} listening={false}
+        />
+      )}
     </Group>
   );
 }
 
+// ── Rundtisch ─────────────────────────────────────────────────────────────────
+
 function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<RundtischElement>) {
   const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
-  const tischFarbe = kategoriefarbe + "55";
   const r = sitzAbstand + SITZ_RADIUS + 8;
-  const labelD = el.tischRadius * 2; // diameter for label bounding box
+  const labelD = el.tischRadius * 2;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel}
       draggable={!istBuchungsmodus}
@@ -164,38 +250,58 @@ function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, b
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      <Circle radius={el.tischRadius} fill={tischFarbe} stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe} strokeWidth={1.5} />
-      {/* Tisch-Bezeichnung — immer aufrecht zentriert auf Tischmitte */}
-      <Text x={0} y={0} offsetX={el.tischRadius} offsetY={el.tischRadius} rotation={-el.winkel}
+      {/* Premium round table */}
+      <Circle
+        radius={el.tischRadius}
+        fill={kategoriefarbe + "22"}
+        stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
+        strokeWidth={2}
+        shadowColor="#0f172a"
+        shadowBlur={10}
+        shadowOpacity={0.12}
+        shadowOffsetY={2}
+      />
+      {/* Table label — always upright */}
+      <Text
+        x={0} y={0}
+        offsetX={el.tischRadius} offsetY={el.tischRadius}
+        rotation={-el.winkel}
         width={labelD} height={labelD}
-        text={el.bezeichnung} fill="#1e40af" fontSize={11} fontStyle="bold"
-        align="center" verticalAlign="middle" listening={false} />
+        text={el.bezeichnung}
+        fill="#1e3a5f" fontSize={12} fontStyle="bold"
+        align="center" verticalAlign="middle" listening={false}
+      />
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
         const winkelRad = (2 * Math.PI * i) / el.anzahlSitze - Math.PI / 2;
         const sitzId = `${el.bezeichnung}-${i + 1}`;
-        const belegt = belegte.has(sitzId);
-        const ausgewaehlt = buchungAusgewaehlt.has(sitzId);
-        const { fill, opacity } = sitzFarbe({ sitzId, kategoriefarbe, belegt, buchungAusgewaehlt: ausgewaehlt, editorAusgewaehlt });
         return (
-          <Group key={i} x={Math.cos(winkelRad) * sitzAbstand} y={Math.sin(winkelRad) * sitzAbstand}
-            onClick={istBuchungsmodus && !belegt ? () => onSitzKlick?.(sitzId) : undefined}
-            onTap={istBuchungsmodus && !belegt ? () => onSitzKlick?.(sitzId) : undefined}
-            onMouseEnter={(e) => { if (istBuchungsmodus && !belegt) e.target.getStage()!.container().style.cursor = "pointer"; }}
-            onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
-          >
-            <Circle radius={SITZ_RADIUS} fill={fill} opacity={opacity} />
-            {/* Sitznummer — immer aufrecht, unabhängig von Tischwinkel */}
-            <Text x={0} y={0} offsetX={SITZ_RADIUS} offsetY={SITZ_RADIUS} rotation={-el.winkel}
-              width={SITZ_RADIUS * 2} height={SITZ_RADIUS * 2}
-              text={String(i + 1)} fill="white" fontSize={9}
-              align="center" verticalAlign="middle" listening={false} />
-          </Group>
+          <SitzKreis key={i}
+            x={Math.cos(winkelRad) * sitzAbstand}
+            y={Math.sin(winkelRad) * sitzAbstand}
+            sitzId={sitzId} nummer={i + 1}
+            kategoriefarbe={kategoriefarbe}
+            belegt={belegte.has(sitzId)}
+            buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+            editorAusgewaehlt={editorAusgewaehlt}
+            istBuchungsmodus={istBuchungsmodus}
+            elementWinkel={el.winkel}
+            onSitzKlick={onSitzKlick}
+          />
         );
       })}
-      {editorAusgewaehlt && <Circle radius={sitzAbstand + SITZ_RADIUS + 6} stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={2} fill="transparent" dash={[6, 3]} listening={false} />}
+      {editorAusgewaehlt && (
+        <Circle
+          radius={sitzAbstand + SITZ_RADIUS + 8}
+          stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
+          fill="rgba(245,158,11,0.04)"
+          dash={[6, 4]} listening={false}
+        />
+      )}
     </Group>
   );
 }
+
+// ── Bühne ─────────────────────────────────────────────────────────────────────
 
 function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, nodeRef }: {
   buehne: Buehne; ausgewaehlt: boolean; istBuchungsmodus: boolean;
@@ -213,18 +319,35 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
-      <Rect width={buehne.breite} height={buehne.hoehe} fill="#1e293b" cornerRadius={6}
-        stroke={ausgewaehlt ? FARBE_ELEMENT_SELEKTIERT : "transparent"} strokeWidth={2} />
-      {/* Bühnen-Label — immer aufrecht */}
-      <Text x={buehne.breite / 2} y={buehne.hoehe / 2}
+      {/* Premium gradient stage */}
+      <Rect
+        width={buehne.breite} height={buehne.hoehe}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{ x: 0, y: buehne.hoehe }}
+        fillLinearGradientColorStops={[0, "#334155", 1, "#0f172a"]}
+        cornerRadius={8}
+        stroke={ausgewaehlt ? FARBE_ELEMENT_SELEKTIERT : "rgba(255,255,255,0.10)"}
+        strokeWidth={ausgewaehlt ? 2 : 1}
+        shadowColor="#000000"
+        shadowBlur={20}
+        shadowOpacity={0.32}
+        shadowOffsetY={4}
+      />
+      {/* Stage label — always upright */}
+      <Text
+        x={buehne.breite / 2} y={buehne.hoehe / 2}
         offsetX={buehne.breite / 2} offsetY={buehne.hoehe / 2}
         rotation={-buehne.winkel}
         width={buehne.breite} height={buehne.hoehe}
-        text={buehne.label} fill="#f8fafc" fontSize={14} fontStyle="bold" letterSpacing={4}
-        align="center" verticalAlign="middle" listening={false} />
+        text={buehne.label}
+        fill="rgba(248,250,252,0.90)" fontSize={13} fontStyle="bold" letterSpacing={5}
+        align="center" verticalAlign="middle" listening={false}
+      />
     </Group>
   );
 }
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
 
 export type CanvasModus = "editor" | "buchung";
 
@@ -253,7 +376,6 @@ export default function SitzplanCanvas({
   const istBuchungsmodus = modus === "buchung";
   const scale = Math.min(1, renderScale);
 
-  // Shift key tracking (ref, no re-render)
   const shiftHeldRef = useRef(false);
   useEffect(() => {
     const down = (e: KeyboardEvent) => { if (e.key === "Shift") shiftHeldRef.current = true; };
@@ -263,7 +385,6 @@ export default function SitzplanCanvas({
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
   }, []);
 
-  // Rubber band selection state + refs
   const [selectRect, setSelectRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const isSelectingRef = useRef(false);
   const selectStartRef = useRef({ x: 0, y: 0 });
@@ -372,27 +493,33 @@ export default function SitzplanCanvas({
       }}
     >
       <Layer>
-        <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe} fill="#f8fafc" />
+        {/* Background */}
+        <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe} fill="#f5f7fc" />
+        {/* Subtle grid */}
         {Array.from({ length: Math.ceil(raumhoehe / 40) }, (_, i) => (
-          <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
+          <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e4e9f2" strokeWidth={0.75} listening={false} />
         ))}
         {Array.from({ length: Math.ceil(raumbreite / 40) }, (_, i) => (
-          <Line key={`v${i}`} points={[i * 40, 0, i * 40, raumhoehe]} stroke="#e2e8f0" strokeWidth={1} listening={false} />
+          <Line key={`v${i}`} points={[i * 40, 0, i * 40, raumhoehe]} stroke="#e4e9f2" strokeWidth={0.75} listening={false} />
         ))}
-        <Rect x={0} y={0} width={raumbreite} height={raumhoehe} stroke="#cbd5e1" strokeWidth={2} fill="transparent" listening={false} />
+        {/* Canvas border */}
+        <Rect x={0} y={0} width={raumbreite} height={raumhoehe} stroke="#c8d3e0" strokeWidth={1.5} fill="transparent" listening={false} />
+        {/* Stage / Bühne */}
         <BuehneKomponente
           buehne={konfiguration.buehne} ausgewaehlt={auswahl?.typ === "buehne"}
           istBuchungsmodus={istBuchungsmodus} raumbreite={raumbreite} raumhoehe={raumhoehe}
           onKlick={() => onAuswaehlen?.(auswahl?.typ === "buehne" ? null : { typ: "buehne" })}
           onDragEnd={(x, y) => onBuehneVerschieben?.(x, y)} nodeRef={buehneRef}
         />
+        {/* Seat elements */}
         {konfiguration.elemente.map(renderElement)}
+        {/* Rubber band selection rect */}
         {selectRect && (
           <Rect
             x={selectRect.x} y={selectRect.y} width={selectRect.w} height={selectRect.h}
-            fill={FARBE_ELEMENT_SELEKTIERT + "18"}
-            stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1}
-            dash={[5, 3]} listening={false}
+            fill={FARBE_ELEMENT_SELEKTIERT + "14"}
+            stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
+            cornerRadius={4} dash={[6, 4]} listening={false}
           />
         )}
         {!istBuchungsmodus && (
