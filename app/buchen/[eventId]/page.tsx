@@ -135,6 +135,9 @@ export default async function BuchungsSeite({
         {floors.length > 0 ? (
           <BuchungsSeiteClient
             eventId={event.id}
+            eventTitel={event.titel}
+            eventDatum={event.datum}
+            venueName={venue?.name}
             floors={floors}
             belegteSitzIds={belegteSitzIds}
             serviceGebuehrCent={event.service_gebuehr_cent ?? 50}
