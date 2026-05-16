@@ -5,6 +5,8 @@ import Link from "next/link";
 import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";
 
+type EtageRaw = { id: string; name: string; sitzplan_id: string };
+
 export default async function BuchungsSeite({
   params,
 }: {
@@ -16,7 +18,7 @@ export default async function BuchungsSeite({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, cancel_url, venues(name, adresse)"
+      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, etagen, cancel_url, venues(name, adresse)"
     )
     .eq("id", eventId)
     .eq("status", "veroeffentlicht")
@@ -24,30 +26,50 @@ export default async function BuchungsSeite({
 
   if (!event) notFound();
 
-  let konfigurationRaw: unknown = null;
-  const sitzplanId: string | null = event.sitzplan_id ?? null;
-
-  if (sitzplanId) {
-    const { data: plan } = await supabase
-      .from("sitzplaene")
-      .select("konfiguration")
-      .eq("id", sitzplanId)
-      .single();
-    konfigurationRaw = plan?.konfiguration ?? null;
-  }
-
-  const { data: belegteTickets } = await supabase
-    .from("tickets")
-    .select("sitz_id")
-    .eq("event_id", eventId);
-
-  const belegteSitzIds = (belegteTickets ?? []).map((t) => t.sitz_id);
-
+  const cancelUrl = event.cancel_url ?? null;
   const venue = event.venues && !Array.isArray(event.venues)
     ? (event.venues as unknown as { name: string; adresse?: string })
     : null;
 
-  const cancelUrl = event.cancel_url ?? null;
+  // Resolve which floors to show
+  const etagen = (event.etagen as EtageRaw[] | null)?.filter((e) => e.sitzplan_id) ?? null;
+  const sitzplanIds: string[] = etagen
+    ? etagen.map((e) => e.sitzplan_id)
+    : event.sitzplan_id
+      ? [event.sitzplan_id]
+      : [];
+
+  // Load all sitzplaene in parallel
+  const [sitzplaeneResults, belegteTicketsResult] = await Promise.all([
+    Promise.all(
+      sitzplanIds.map((id) =>
+        supabase.from("sitzplaene").select("id, konfiguration").eq("id", id).single()
+      )
+    ),
+    supabase.from("tickets").select("sitz_id").eq("event_id", eventId),
+  ]);
+
+  const belegteSitzIds = (belegteTicketsResult.data ?? []).map((t) => t.sitz_id);
+
+  // Build floor data
+  const floors = sitzplanIds
+    .map((id, i) => {
+      const plan = sitzplaeneResults[i]?.data;
+      if (!plan) return null;
+      const etageName = etagen ? etagen[i]?.name : null;
+      return {
+        id: etagen ? etagen[i].id : id,
+        name: etageName ?? null,
+        sitzplanId: id,
+        konfiguration: migrierteKonfiguration(plan.konfiguration),
+      };
+    })
+    .filter(Boolean) as {
+      id: string;
+      name: string | null;
+      sitzplanId: string;
+      konfiguration: ReturnType<typeof migrierteKonfiguration>;
+    }[];
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -109,11 +131,10 @@ export default async function BuchungsSeite({
         </div>
 
         {/* Sitzplan + Checkout */}
-        {konfigurationRaw && sitzplanId ? (
+        {floors.length > 0 ? (
           <BuchungsSeiteClient
             eventId={event.id}
-            sitzplanId={sitzplanId}
-            konfiguration={migrierteKonfiguration(konfigurationRaw)}
+            floors={floors}
             belegteSitzIds={belegteSitzIds}
             serviceGebuehrCent={event.service_gebuehr_cent ?? 50}
           />

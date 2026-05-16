@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users } from "lucide-react";
 import EventStatusAktion from "./event-status-aktion";
-import SitzplanZuweisung from "./sitzplan-zuweisung";
+import SitzplanZuweisung, { type Etage } from "./sitzplan-zuweisung";
 import EventWeiterleitungen from "./event-weiterleitungen";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -195,6 +195,7 @@ export default async function EventDetail({
           <SitzplanZuweisung
             eventId={event.id}
             aktuellerSitzplanId={event.sitzplan_id ?? null}
+            aktuelleEtagen={(event.etagen as Etage[] | null) ?? null}
             sitzplaene={sitzplaene ?? []}
           />
 

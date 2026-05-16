@@ -5,59 +5,147 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Map } from "lucide-react";
+import { Map, Plus, Trash2, GripVertical } from "lucide-react";
 
 type Sitzplan = { id: string; name: string };
+
+export type Etage = {
+  id: string;
+  name: string;
+  sitzplan_id: string;
+};
+
+function etageVonSitzplanId(sitzplanId: string | null): Etage[] {
+  if (!sitzplanId) return [];
+  return [{ id: crypto.randomUUID(), name: "Hauptebene", sitzplan_id: sitzplanId }];
+}
 
 export default function SitzplanZuweisung({
   eventId,
   aktuellerSitzplanId,
+  aktuelleEtagen,
   sitzplaene,
 }: {
   eventId: string;
   aktuellerSitzplanId: string | null;
+  aktuelleEtagen: Etage[] | null;
   sitzplaene: Sitzplan[];
 }) {
   const router = useRouter();
-  const [ausgewaehlt, setAusgewaehlt] = useState(aktuellerSitzplanId ?? "");
   const [laedt, setLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
+
+  const initialEtagen: Etage[] = aktuelleEtagen?.length
+    ? aktuelleEtagen
+    : etageVonSitzplanId(aktuellerSitzplanId);
+
+  const [etagen, setEtagen] = useState<Etage[]>(initialEtagen);
+
+  function etageHinzufuegen() {
+    setEtagen((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name: `Ebene ${prev.length + 1}`, sitzplan_id: "" },
+    ]);
+    setGespeichert(false);
+  }
+
+  function etageEntfernen(id: string) {
+    setEtagen((prev) => prev.filter((e) => e.id !== id));
+    setGespeichert(false);
+  }
+
+  function etageAktualisieren(id: string, delta: Partial<Etage>) {
+    setEtagen((prev) => prev.map((e) => (e.id === id ? { ...e, ...delta } : e)));
+    setGespeichert(false);
+  }
 
   async function speichern() {
     setLaedt(true);
     setGespeichert(false);
     const supabase = createClient();
+
+    const gueltigeEtagen = etagen.filter((e) => e.sitzplan_id);
+    const ersteSitzplanId = gueltigeEtagen[0]?.sitzplan_id ?? null;
+
     await supabase
       .from("events")
-      .update({ sitzplan_id: ausgewaehlt || null })
+      .update({
+        etagen: gueltigeEtagen.length > 0 ? gueltigeEtagen : null,
+        sitzplan_id: ersteSitzplanId,
+      })
       .eq("id", eventId);
+
     setLaedt(false);
     setGespeichert(true);
     router.refresh();
   }
 
-  if (sitzplaene.length === 0) {
-    return null;
-  }
+  if (sitzplaene.length === 0) return null;
+
+  const mehrereEbenen = etagen.length > 1;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
-          <Map className="h-4 w-4" /> Sitzplan
+          <Map className="h-4 w-4" />
+          {mehrereEbenen ? "Sitzpläne / Ebenen" : "Sitzplan"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <select
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          value={ausgewaehlt}
-          onChange={(e) => { setAusgewaehlt(e.target.value); setGespeichert(false); }}
+        {etagen.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Noch keine Ebene konfiguriert.</p>
+        ) : (
+          <div className="space-y-2">
+            {etagen.map((etage, idx) => (
+              <div key={etage.id} className="flex items-start gap-2 group">
+                {mehrereEbenen && (
+                  <div className="flex flex-col items-center pt-2 text-muted-foreground/40">
+                    <GripVertical className="h-4 w-4" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-1.5">
+                  {mehrereEbenen && (
+                    <input
+                      value={etage.name}
+                      onChange={(e) => etageAktualisieren(etage.id, { name: e.target.value })}
+                      placeholder={`Ebene ${idx + 1}`}
+                      className="h-7 w-full text-xs rounded-md border border-input bg-transparent px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  )}
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={etage.sitzplan_id}
+                    onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
+                  >
+                    <option value="">— Kein Sitzplan —</option>
+                    {sitzplaene.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {mehrereEbenen && (
+                  <button
+                    type="button"
+                    onClick={() => etageEntfernen(etage.id)}
+                    className="mt-2 h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={etageHinzufuegen}
+          className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border border-dashed border-border text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
         >
-          <option value="">— Kein Sitzplan —</option>
-          {sitzplaene.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+          <Plus className="h-3.5 w-3.5" /> Ebene hinzufügen
+        </button>
+
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={speichern} disabled={laedt}>
             {laedt ? "Wird gespeichert…" : "Speichern"}

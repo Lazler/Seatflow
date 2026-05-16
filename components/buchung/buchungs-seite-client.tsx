@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { X, Loader2, ChevronUp, ChevronDown, Layers } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze } from "@/types/sitzplan";
 
@@ -21,25 +21,34 @@ const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canv
   ),
 });
 
-type Props = {
-  eventId: string;
+export type Floor = {
+  id: string;
+  name: string | null;
   sitzplanId: string;
   konfiguration: SitzplanKonfiguration;
+};
+
+type Props = {
+  eventId: string;
+  floors: Floor[];
   belegteSitzIds: string[];
   serviceGebuehrCent: number;
 };
 
 type AusgewaehlterSitz = {
   sitzId: string;
+  floorId: string;
   kategorie: Preiskategorie;
 };
 
 export default function BuchungsSeiteClient({
   eventId,
-  konfiguration,
+  floors,
   belegteSitzIds,
   serviceGebuehrCent,
 }: Props) {
+  const mehrereEbenen = floors.length > 1;
+  const [aktiverFloorIdx, setAktiverFloorIdx] = useState(0);
   const [ausgewaehlt, setAusgewaehlt] = useState<AusgewaehlterSitz[]>([]);
   const [belegte, setBelegte] = useState<Set<string>>(new Set(belegteSitzIds));
   const [name, setName] = useState("");
@@ -47,11 +56,12 @@ export default function BuchungsSeiteClient({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
-  // Canvas-Skalierung: passt sich an Container an, aber nie über 1:1
   const desktopContainerRef = useRef<HTMLDivElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const [desktopRenderScale, setDesktopRenderScale] = useState(1);
   const [mobileRenderScale, setMobileRenderScale] = useState(1);
+
+  const aktiverFloor = floors[aktiverFloorIdx] ?? floors[0];
 
   useEffect(() => {
     const makeUpdater = (
@@ -59,7 +69,7 @@ export default function BuchungsSeiteClient({
       setter: (v: number) => void,
     ) => () => {
       if (!ref.current) return;
-      setter(Math.min(1, ref.current.offsetWidth / konfiguration.breite));
+      setter(Math.min(1, ref.current.offsetWidth / aktiverFloor.konfiguration.breite));
     };
     const updateDesktop = makeUpdater(desktopContainerRef, setDesktopRenderScale);
     const updateMobile  = makeUpdater(mobileContainerRef,  setMobileRenderScale);
@@ -69,14 +79,7 @@ export default function BuchungsSeiteClient({
     if (desktopContainerRef.current) rod.observe(desktopContainerRef.current);
     if (mobileContainerRef.current)  rom.observe(mobileContainerRef.current);
     return () => { rod.disconnect(); rom.disconnect(); };
-  }, [konfiguration.breite]);
-
-  const kategorienMap = new Map<string, Preiskategorie>(
-    konfiguration.kategorien.map((k) => [k.id, k])
-  );
-  const sitzKategorie = new Map<string, string>(
-    alleSitze(konfiguration).map(({ sitzId, kategorieId }) => [sitzId, kategorieId])
-  );
+  }, [aktiverFloor.konfiguration.breite]);
 
   // Realtime: Sitze live sperren
   useEffect(() => {
@@ -96,20 +99,36 @@ export default function BuchungsSeiteClient({
     return () => { supabase.removeChannel(channel); };
   }, [eventId]);
 
-  const ausgewaehlteIds = new Set(ausgewaehlt.map((s) => s.sitzId));
+  // Per-floor seat → category maps
+  const floorMaps = floors.map((floor) => ({
+    id: floor.id,
+    kategorienMap: new Map<string, Preiskategorie>(
+      floor.konfiguration.kategorien.map((k) => [k.id, k])
+    ),
+    sitzKategorie: new Map<string, string>(
+      alleSitze(floor.konfiguration).map(({ sitzId, kategorieId }) => [sitzId, kategorieId])
+    ),
+  }));
+
+  const aktiverFloorMap = floorMaps[aktiverFloorIdx];
+
+  const ausgewaehlteIdsAktiverFloor = new Set(
+    ausgewaehlt.filter((s) => s.floorId === aktiverFloor.id).map((s) => s.sitzId)
+  );
 
   const onSitzKlicken = useCallback(
     (sitzId: string) => {
+      const floorId = aktiverFloor.id;
       setAusgewaehlt((prev) => {
-        const istDrin = prev.some((s) => s.sitzId === sitzId);
-        if (istDrin) return prev.filter((s) => s.sitzId !== sitzId);
-        const katId = sitzKategorie.get(sitzId) ?? konfiguration.kategorien[0]?.id ?? "";
-        const kat = kategorienMap.get(katId);
+        const istDrin = prev.some((s) => s.sitzId === sitzId && s.floorId === floorId);
+        if (istDrin) return prev.filter((s) => !(s.sitzId === sitzId && s.floorId === floorId));
+        const katId = aktiverFloorMap.sitzKategorie.get(sitzId) ?? aktiverFloor.konfiguration.kategorien[0]?.id ?? "";
+        const kat = aktiverFloorMap.kategorienMap.get(katId);
         if (!kat) return prev;
-        return [...prev, { sitzId, kategorie: kat }];
+        return [...prev, { sitzId, floorId, kategorie: kat }];
       });
     },
-    [sitzKategorie, kategorienMap, konfiguration.kategorien]
+    [aktiverFloor, aktiverFloorMap]
   );
 
   const gesamtPreisCent =
@@ -150,6 +169,11 @@ export default function BuchungsSeiteClient({
     window.location.href = data.url;
   }
 
+  const floorLabel = (floor: Floor, idx: number) =>
+    floor.name ?? (floors.length === 1 ? "Sitzplan" : `Ebene ${idx + 1}`);
+
+  const alleKategorien = aktiverFloor.konfiguration.kategorien;
+
   const formularInhalt = (
     <form onSubmit={buchen} className="space-y-3">
       <div className="space-y-1.5">
@@ -178,22 +202,29 @@ export default function BuchungsSeiteClient({
 
   const sitzlisteInhalt = ausgewaehlt.length > 0 && (
     <div className="space-y-1 mb-3">
-      {ausgewaehlt.map((a) => (
-        <div key={a.sitzId} className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.kategorie.farbe }} />
-            <span className="font-medium">{a.sitzId}</span>
-            <span className="text-muted-foreground text-xs">{a.kategorie.name}</span>
+      {ausgewaehlt.map((a) => {
+        const floorIdx = floors.findIndex((f) => f.id === a.floorId);
+        const floor = floors[floorIdx];
+        return (
+          <div key={`${a.floorId}-${a.sitzId}`} className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.kategorie.farbe }} />
+              <span className="font-medium">{a.sitzId}</span>
+              <span className="text-muted-foreground text-xs">
+                {a.kategorie.name}
+                {mehrereEbenen && floor && <span className="ml-1 opacity-60">· {floorLabel(floor, floorIdx)}</span>}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{(a.kategorie.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
+              <button type="button" onClick={() => onSitzKlicken(a.sitzId)}
+                className="text-muted-foreground hover:text-foreground p-0.5">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm">{(a.kategorie.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
-            <button type="button" onClick={() => onSitzKlicken(a.sitzId)}
-              className="text-muted-foreground hover:text-foreground p-0.5">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
       <div className="border-t border-border pt-2 space-y-0.5 text-sm">
         {serviceGebuehrCent > 0 && (
           <div className="flex justify-between text-muted-foreground">
@@ -209,19 +240,40 @@ export default function BuchungsSeiteClient({
     </div>
   );
 
+  const floorTabs = mehrereEbenen && (
+    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg self-start">
+      <Layers className="h-3.5 w-3.5 text-muted-foreground ml-1 shrink-0" />
+      {floors.map((floor, idx) => (
+        <button
+          key={floor.id}
+          type="button"
+          onClick={() => setAktiverFloorIdx(idx)}
+          className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+            idx === aktiverFloorIdx
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {floorLabel(floor, idx)}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <>
       {/* ---- Desktop-Layout: 2/3 Canvas + 1/3 Sidebar ---- */}
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
-          <Legende kategorien={konfiguration.kategorien} />
+          {floorTabs}
+          <Legende kategorien={alleKategorien} />
           <div ref={desktopContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
             <SitzplanCanvas
-              konfiguration={konfiguration}
+              konfiguration={aktiverFloor.konfiguration}
               modus="buchung"
               renderScale={desktopRenderScale}
               belegteSitze={belegte}
-              ausgewaehlteSitze={ausgewaehlteIds}
+              ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
               onSitzKlicken={onSitzKlicken}
             />
           </div>
@@ -246,21 +298,21 @@ export default function BuchungsSeiteClient({
 
       {/* ---- Mobile-Layout: Canvas oben, Sticky-Bar unten ---- */}
       <div className="lg:hidden space-y-3">
-        <Legende kategorien={konfiguration.kategorien} />
+        {floorTabs}
+        <Legende kategorien={alleKategorien} />
         <div ref={mobileContainerRef} className="w-full rounded-xl border border-border shadow-sm overflow-hidden">
           <SitzplanCanvas
-            konfiguration={konfiguration}
+            konfiguration={aktiverFloor.konfiguration}
             modus="buchung"
             renderScale={mobileRenderScale}
             belegteSitze={belegte}
-            ausgewaehlteSitze={ausgewaehlteIds}
+            ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
             onSitzKlicken={onSitzKlicken}
           />
         </div>
 
         {/* Sticky Bottom Sheet */}
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border shadow-xl">
-          {/* Auswahl-Zusammenfassung + Toggle */}
           <button
             type="button"
             className="w-full flex items-center justify-between px-4 py-3"
@@ -290,7 +342,6 @@ export default function BuchungsSeiteClient({
             </div>
           </button>
 
-          {/* Drawer-Inhalt */}
           {drawerOffen && (
             <div className="px-4 pb-4 space-y-3 border-t border-border pt-3 max-h-[60vh] overflow-y-auto">
               {sitzlisteInhalt}
@@ -298,23 +349,16 @@ export default function BuchungsSeiteClient({
             </div>
           )}
 
-          {/* Wenn Drawer zu: Direkt-Button */}
           {!drawerOffen && ausgewaehlt.length > 0 && (
             <div className="px-4 pb-4">
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={() => setDrawerOffen(true)}
-              >
+              <Button className="w-full" size="lg" onClick={() => setDrawerOffen(true)}>
                 Zur Kasse
               </Button>
             </div>
           )}
 
-          {/* Safe area für iPhone */}
           <div className="h-safe-bottom" />
         </div>
-        {/* Platzhalter damit Content nicht hinter Sticky-Bar verschwindet */}
         <div className="h-28" />
       </div>
     </>
