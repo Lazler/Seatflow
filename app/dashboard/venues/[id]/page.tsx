@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Plus, Map } from "lucide-react";
 import VenueBearbeiten from "./venue-bearbeiten";
+import SitzplanListe from "./sitzplan-liste";
 
 export default async function VenueDetail({
   params,
@@ -80,34 +81,7 @@ export default async function VenueDetail({
               </Button>
             </CardHeader>
             <CardContent>
-              {(sitzplaene ?? []).length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Noch kein Raumplan angelegt.
-                  </p>
-                  <Button size="sm" asChild>
-                    <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
-                      <Plus className="h-4 w-4 mr-1" /> Ersten Raumplan erstellen
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {sitzplaene?.map((plan) => (
-                    <div
-                      key={plan.id}
-                      className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                    >
-                      <span className="text-sm font-medium">{plan.name}</span>
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link href={`/dashboard/venues/${id}/raumplan/${plan.id}`}>
-                          Bearbeiten
-                        </Link>
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <SitzplanListe venueId={id} plaene={sitzplaene ?? []} />
             </CardContent>
           </Card>
         </div>

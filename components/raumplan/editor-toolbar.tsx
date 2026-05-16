@@ -26,6 +26,8 @@ const RAUM_PRESETS = [
   { label: "XL", breite: 1400, hoehe: 900  },
 ];
 
+const NO_SPIN = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+
 function ZahlInput({ label, value, min, max, schritt = 10, onChange, einheit }: {
   label: string; value: number; min?: number; max?: number; schritt?: number;
   onChange: (v: number) => void; einheit?: string;
@@ -40,7 +42,7 @@ function ZahlInput({ label, value, min, max, schritt = 10, onChange, einheit }: 
         </Button>
         <Input type="number" value={value} min={min} max={max}
           onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) onChange(Math.min(max ?? 9999, Math.max(min ?? 0, v))); }}
-          className="h-6 text-xs text-center px-1" />
+          className={`h-6 text-xs text-center px-0 flex-1 min-w-0 ${NO_SPIN}`} />
         <Button size="icon" variant="outline" className="h-6 w-6 shrink-0"
           onClick={() => onChange(Math.min(max ?? 9999, value + schritt))} disabled={max !== undefined && value >= max}>
           <Plus className="h-3 w-3" />

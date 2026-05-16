@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronUp, ChevronDown, ArrowRight, ReceiptText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, ArrowRight, ReceiptText, Plus } from "lucide-react";
 
 type Buchung = {
   id: string;
@@ -105,6 +106,11 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
             {bezahlt.length} bezahlt · {euro(gesamtCent)} Umsatz
           </p>
         </div>
+        <Button asChild size="sm">
+          <Link href="/dashboard/buchungen/neu">
+            <Plus className="h-4 w-4 mr-1.5" /> Manuell anlegen
+          </Link>
+        </Button>
       </div>
 
       {/* Controls */}
