@@ -33,10 +33,11 @@ type SitzProps = {
   kategoriefarbe: string;
   belegt: boolean; buchungAusgewaehlt: boolean; editorAusgewaehlt: boolean;
   istBuchungsmodus: boolean; elementWinkel: number;
+  nummerAusblenden: boolean;
   onSitzKlick?: (id: string) => void;
 };
 
-function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, onSitzKlick }: SitzProps) {
+function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, onSitzKlick }: SitzProps) {
   const istKlickbar = istBuchungsmodus && !belegt;
 
   let fill = kategoriefarbe;
@@ -80,7 +81,7 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgew
         shadowOffsetY={buchungAusgewaehlt ? 0 : 1}
         opacity={belegt ? 0.5 : 1}
       />
-      {!belegt && (
+      {!belegt && !nummerAusblenden && (
         <Text
           x={0} y={0} offsetX={SITZ_RADIUS} offsetY={SITZ_RADIUS}
           rotation={-elementWinkel}
@@ -125,13 +126,14 @@ type ElementProps<T> = {
   el: T; kategoriefarbe: string; editorAusgewaehlt: boolean;
   belegte: Set<string>; buchungAusgewaehlt: Set<string>;
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
+  nummerAusblenden: boolean;
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   onSitzKlick?: (sitzId: string) => void;
 };
 
 // ── Reihe ─────────────────────────────────────────────────────────────────────
 
-function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
+function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
@@ -156,6 +158,7 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
             editorAusgewaehlt={editorAusgewaehlt}
             istBuchungsmodus={istBuchungsmodus}
             elementWinkel={el.winkel}
+            nummerAusblenden={nummerAusblenden}
             onSitzKlick={onSitzKlick}
           />
         );
@@ -175,7 +178,7 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
 
 // ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
-function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
+function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
   const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
   const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
@@ -221,7 +224,7 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
             kategoriefarbe={kategoriefarbe}
             belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
             editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
-            elementWinkel={el.winkel} onSitzKlick={onSitzKlick}
+            elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
           />
         );
       })}
@@ -235,7 +238,7 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
             kategoriefarbe={kategoriefarbe}
             belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
             editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
-            elementWinkel={el.winkel} onSitzKlick={onSitzKlick}
+            elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
           />
         );
       })}
@@ -254,7 +257,7 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
 
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
-function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<RundtischElement>) {
+function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick }: ElementProps<RundtischElement>) {
   const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
@@ -302,6 +305,7 @@ function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, b
             editorAusgewaehlt={editorAusgewaehlt}
             istBuchungsmodus={istBuchungsmodus}
             elementWinkel={el.winkel}
+            nummerAusblenden={nummerAusblenden}
             onSitzKlick={onSitzKlick}
           />
         );
@@ -439,6 +443,7 @@ export default function SitzplanCanvas({
       istBuchungsmodus,
       raumbreite,
       raumhoehe,
+      nummerAusblenden: el.nummerAusblenden ?? false,
       onKlick: () => {
         const shift = shiftHeldRef.current;
         const currentIds = auswahl?.typ === "element" ? auswahl.ids : [];

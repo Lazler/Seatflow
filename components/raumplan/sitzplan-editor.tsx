@@ -144,6 +144,9 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       ? konfig.elemente.find((e) => e.id === auswahl.ids[0]) ?? null
       : null;
   const auswahlIds = auswahl?.typ === "element" ? auswahl.ids : [];
+  const alleBezeichnungen = ausgewaehltesElement
+    ? konfig.elemente.filter((e) => e.id !== ausgewaehltesElement.id).map((e) => e.bezeichnung)
+    : [];
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -232,6 +235,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             <ElementEigenschaftenPanel
               el={ausgewaehltesElement}
               kategorien={konfig.kategorien}
+              alleBezeichnungen={alleBezeichnungen}
               onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
               onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
               onSchliessen={() => setAuswahl(null)}

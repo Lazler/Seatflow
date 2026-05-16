@@ -21,6 +21,7 @@ type BasisElement = {
   y: number;
   winkel: number;
   kategorie_id: string;
+  nummerAusblenden?: boolean;
 };
 
 export type ReiheElement = BasisElement & {

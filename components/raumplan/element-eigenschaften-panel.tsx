@@ -77,17 +77,19 @@ function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
 type Props = {
   el: SitzplanElement;
   kategorien: Preiskategorie[];
+  alleBezeichnungen: string[];
   onChange: (delta: Partial<SitzplanElement>) => void;
   onLoeschen: () => void;
   onSchliessen: () => void;
   onDuplizieren: () => void;
 };
 
-export default function ElementEigenschaftenPanel({ el, kategorien, onChange, onLoeschen, onSchliessen, onDuplizieren }: Props) {
+export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichnungen, onChange, onLoeschen, onSchliessen, onDuplizieren }: Props) {
   const { icon: Icon, label: typLabel } = TYP_META[el.typ];
   const [loeschen, setLoeschen] = useState(false);
   const sitzAnzahl = elementSitzIds(el).length;
   const aktiveKat = kategorien.find((k) => k.id === el.kategorie_id);
+  const isDuplikat = alleBezeichnungen.includes(el.bezeichnung);
 
   useEffect(() => { setLoeschen(false); }, [el.id]);
 
@@ -129,13 +131,18 @@ export default function ElementEigenschaftenPanel({ el, kategorien, onChange, on
 
         {/* Bezeichnung */}
         <SectionLabel>Bezeichnung</SectionLabel>
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-2 space-y-1">
           <input
             value={el.bezeichnung} maxLength={4}
             onChange={(e) => onChange({ bezeichnung: e.target.value.toUpperCase().slice(0, 4) } as Partial<SitzplanElement>)}
-            className="h-9 w-full text-center text-base font-bold tracking-widest rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            className={`h-9 w-full text-center text-base font-bold tracking-widest rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring ${isDuplikat ? "border-destructive focus:ring-destructive/40" : "border-input"}`}
             placeholder="A"
           />
+          {isDuplikat && (
+            <p className="text-[11px] text-destructive font-medium text-center">
+              Bezeichnung bereits vergeben
+            </p>
+          )}
         </div>
 
         <Divider />
@@ -165,6 +172,13 @@ export default function ElementEigenschaftenPanel({ el, kategorien, onChange, on
           <Stepper label="Radius" value={el.tischRadius} min={20} max={120} einheit="px"
             onChange={(v) => onChange({ tischRadius: v } as Partial<SitzplanElement>)} />
         </>)}
+
+        <Divider />
+
+        {/* Anzeige */}
+        <SectionLabel>Anzeige</SectionLabel>
+        <ToggleRow label="Sitznummern anzeigen" value={!(el.nummerAusblenden ?? false)}
+          onChange={(v) => onChange({ nummerAusblenden: !v } as Partial<SitzplanElement>)} />
 
         <Divider />
 
