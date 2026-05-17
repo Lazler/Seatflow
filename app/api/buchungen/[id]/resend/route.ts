@@ -31,7 +31,7 @@ export async function POST(
   // Verify organizer owns this event
   const { data: event } = await supabase
     .from("events")
-    .select("id, veranstalter_id, titel, datum, ticket_design, ticket_template_id, venues(name)")
+    .select("id, veranstalter_id, titel, datum, ticket_design, ticket_template_id, sprachen, venues(name)")
     .eq("id", buchung.event_id)
     .single();
 
@@ -62,6 +62,7 @@ export async function POST(
     : undefined;
 
   const ticketTyp = buchung.ticket_typ as { name: string } | null;
+  const sprache = ((event.sprachen as string[] | null)?.[0] ?? "de") as "de" | "en" | "hu";
 
   await sendTicketMail({
     to: buchung.gaest_email,
@@ -79,6 +80,7 @@ export async function POST(
     gesamtCent: buchung.gesamt_cent,
     ticketTypName: ticketTyp?.name,
     design,
+    sprache,
   });
 
   return NextResponse.json({ ok: true });

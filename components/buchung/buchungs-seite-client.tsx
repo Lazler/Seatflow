@@ -37,6 +37,7 @@ type Props = {
   belegteSitzIds: string[];
   serviceGebuehrCent: number;
   ticketTypen?: TicketTyp[];
+  displayLang?: "de" | "en" | "hu";
 };
 
 type AusgewaehlterSitz = {
@@ -135,8 +136,73 @@ function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange }: {
 /* ─── Main ─────────────────────────────────────────────────────────────────── */
 export default function BuchungsSeiteClient({
   eventId, eventTitel, eventDatum, venueName,
-  floors, belegteSitzIds, serviceGebuehrCent, ticketTypen = [],
+  floors, belegteSitzIds, serviceGebuehrCent, ticketTypen = [], displayLang,
 }: Props) {
+  const uiStrings = {
+    de: {
+      auswaehlen: "Plätze auswählen",
+      weiter: "Weiter zur Bestellung",
+      schritt1: "Platzauswahl",
+      schritt2: "Bestellung & Zahlung",
+      gesamtpreis: "Gesamtpreis",
+      servicegebuehr: "Servicegebühr",
+      mwst: "inkl. MwSt.",
+      zahlungspflichtig: "Zahlungspflichtig bestellen",
+      agb: "Ich akzeptiere die AGB und Datenschutzerklärung...",
+      name: "Name",
+      email: "E-Mail",
+      namePlaceholder: "Vor- und Nachname",
+      emailPlaceholder: "E-Mail-Adresse",
+      keinSitzplan: "Kein Sitzplan zugewiesen.",
+      belegtPlaetze: "Belegte Plätze",
+      freiePlaetze: "Freie Plätze",
+      ausgewaehlt: "ausgewählt",
+      ticketTyp: "Ticket-Typ",
+      preis: "Preis",
+    },
+    en: {
+      auswaehlen: "Select seats",
+      weiter: "Continue to order",
+      schritt1: "Seat selection",
+      schritt2: "Order & Payment",
+      gesamtpreis: "Total price",
+      servicegebuehr: "Service fee",
+      mwst: "incl. VAT",
+      zahlungspflichtig: "Order with obligation to pay",
+      agb: "I accept the terms and conditions and privacy policy...",
+      name: "Name",
+      email: "Email",
+      namePlaceholder: "First and last name",
+      emailPlaceholder: "Email address",
+      keinSitzplan: "No seating plan assigned.",
+      belegtPlaetze: "Occupied seats",
+      freiePlaetze: "Available seats",
+      ausgewaehlt: "selected",
+      ticketTyp: "Ticket type",
+      preis: "Price",
+    },
+    hu: {
+      auswaehlen: "Helyek kiválasztása",
+      weiter: "Tovább a rendeléshez",
+      schritt1: "Hely kiválasztása",
+      schritt2: "Rendelés és fizetés",
+      gesamtpreis: "Végösszeg",
+      servicegebuehr: "Kezelési díj",
+      mwst: "ÁFÁ-val együtt",
+      zahlungspflichtig: "Fizetési kötelezettséggel rendelés",
+      agb: "Elfogadom az általános szerződési feltételeket...",
+      name: "Név",
+      email: "E-mail",
+      namePlaceholder: "Keresztnév és vezetéknév",
+      emailPlaceholder: "E-mail-cím",
+      keinSitzplan: "Nincs hozzárendelt ülésrend.",
+      belegtPlaetze: "Foglalt helyek",
+      freiePlaetze: "Szabad helyek",
+      ausgewaehlt: "kiválasztva",
+      ticketTyp: "Jegytípus",
+      preis: "Ár",
+    },
+  }[displayLang ?? "de"];
   const mehrereEbenen = floors.length > 1;
   const hatTypen = ticketTypen.length > 0;
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, EyeOff, XCircle, Loader2 } from "lucide-react";
+import { useT } from "@/components/i18n-provider";
 
 type Status = "entwurf" | "veroeffentlicht" | "abgesagt" | "beendet";
 
@@ -18,6 +19,7 @@ export default function EventStatusAktion({
   status: string;
   bezahlteAnzahl?: number;
 }) {
+  const t = useT();
   const router = useRouter();
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -31,8 +33,10 @@ export default function EventStatusAktion({
       const anzahl = bezahlteAnzahl ?? 0;
       const bestaetigung = confirm(
         anzahl > 0
-          ? `Event absagen? ${anzahl} bezahlte Buchung${anzahl !== 1 ? "en" : ""} werden automatisch erstattet und alle Käufer per E-Mail benachrichtigt.`
-          : "Event absagen? Diese Aktion kann nicht rückgängig gemacht werden."
+          ? t.events.absageBestaetigung
+              .replace("{n}", String(anzahl))
+              .replace("{s}", anzahl !== 1 ? "en" : "")
+          : t.events.absageBestaetigungLeer
       );
       if (!bestaetigung) { setLaedt(false); return; }
 
@@ -44,7 +48,7 @@ export default function EventStatusAktion({
         router.refresh();
       } else {
         const json = await res.json().catch(() => ({}));
-        setFehler(json.error ?? "Absage fehlgeschlagen");
+        setFehler(json.error ?? t.events.absageFehler);
       }
       return;
     }
@@ -56,17 +60,17 @@ export default function EventStatusAktion({
       .eq("id", eventId);
 
     setLaedt(false);
-    if (error) { setFehler("Status konnte nicht geändert werden."); return; }
+    if (error) { setFehler(t.events.statusFehler); return; }
     router.refresh();
   }
 
   const aktionenMap: Record<Status, { label: string; naechsterStatus: Status; icon: React.ElementType; variant: "default" | "outline" | "destructive" }[]> = {
     entwurf: [
-      { label: "Veröffentlichen", naechsterStatus: "veroeffentlicht", icon: Globe, variant: "default" },
+      { label: t.events.veroeffentlichen, naechsterStatus: "veroeffentlicht", icon: Globe, variant: "default" },
     ],
     veroeffentlicht: [
-      { label: "Auf Entwurf zurück", naechsterStatus: "entwurf", icon: EyeOff, variant: "outline" },
-      { label: "Absagen", naechsterStatus: "abgesagt", icon: XCircle, variant: "destructive" },
+      { label: t.events.aufEntwurfZurueck, naechsterStatus: "entwurf", icon: EyeOff, variant: "outline" },
+      { label: t.events.absagen, naechsterStatus: "abgesagt", icon: XCircle, variant: "destructive" },
     ],
     abgesagt: [],
     beendet: [],
@@ -78,14 +82,14 @@ export default function EventStatusAktion({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Aktionen</CardTitle>
+        <CardTitle className="text-sm">{t.events.aktionen}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {absageergebnis ? (
           <div className="text-xs text-muted-foreground space-y-0.5">
-            <p className="font-medium text-foreground">Event abgesagt.</p>
-            <p>{absageergebnis.refunded} von {absageergebnis.total} Buchungen erstattet.</p>
-            <p>{absageergebnis.notified} Käufer benachrichtigt.</p>
+            <p className="font-medium text-foreground">{t.events.eventAbgesagt}</p>
+            <p>{t.events.vonErstattet.replace("{refunded}", String(absageergebnis.refunded)).replace("{total}", String(absageergebnis.total))}</p>
+            <p>{t.events.kaeuferBenachrichtigt.replace("{n}", String(absageergebnis.notified))}</p>
           </div>
         ) : (
           aktionen.map((aktion) => (

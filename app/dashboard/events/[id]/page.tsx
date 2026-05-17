@@ -4,15 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users, Settings } from "lucide-react";
 import EventStatusAktion from "./event-status-aktion";
-import SitzplanZuweisung, { type Etage } from "./sitzplan-zuweisung";
-import EventWeiterleitungen from "./event-weiterleitungen";
-import TicketTypen from "./ticket-typen";
-import TicketTemplateSelector from "./ticket-template-selector";
-import EventSprachen from "./event-sprachen";
-import type { TicketTyp } from "@/types/ticket-typ";
-import type { TicketDesign } from "@/types/ticket-design";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -39,7 +32,7 @@ export default async function EventDetail({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: event }, { data: buchungen }, { data: templates }] = await Promise.all([
+  const [{ data: event }, { data: buchungen }] = await Promise.all([
     supabase
       .from("events")
       .select("*, venues(id, name, adresse)")
@@ -52,24 +45,11 @@ export default async function EventDetail({
       .eq("event_id", id)
       .order("erstellt_am", { ascending: false })
       .limit(50),
-    supabase
-      .from("ticket_templates")
-      .select("id, name, design")
-      .eq("veranstalter_id", user!.id)
-      .order("erstellt_am", { ascending: false }),
   ]);
 
   if (!event) notFound();
 
   const venue = event.venues as { id: string; name: string; adresse: string | null } | null;
-
-  const { data: sitzplaene } = venue
-    ? await supabase
-        .from("sitzplaene")
-        .select("id, name")
-        .eq("venue_id", venue.id)
-        .order("erstellt_am", { ascending: false })
-    : { data: [] };
 
   const buchungsUrl = `/buchen/${event.id}`;
   const bezahlteBuchungen = (buchungen ?? []).filter((b) => b.status === "bezahlt");
@@ -201,68 +181,31 @@ export default async function EventDetail({
           {/* Aktionen */}
           <EventStatusAktion eventId={event.id} status={event.status} bezahlteAnzahl={bezahlteBuchungen.length} />
 
-          {/* Sitzplan zuweisen */}
-          <SitzplanZuweisung
-            eventId={event.id}
-            aktuellerSitzplanId={event.sitzplan_id ?? null}
-            aktuelleEtagen={(event.etagen as Etage[] | null) ?? null}
-            sitzplaene={sitzplaene ?? []}
-          />
-
-          {/* Ticket-Template */}
-          <TicketTemplateSelector
-            eventId={event.id}
-            templates={(templates ?? []) as { id: string; name: string; design: TicketDesign }[]}
-            initialTemplateId={(event.ticket_template_id as string | null) ?? null}
-          />
-
-          {/* Ticket-Typen */}
-          <TicketTypen
-            eventId={event.id}
-            initialTypen={(event.ticket_typen as TicketTyp[] | null) ?? []}
-          />
-
-          {/* Sprachen */}
-          <EventSprachen
-            eventId={event.id}
-            initialSprachen={(event.sprachen as string[] | null) ?? ["de"]}
-            initialTranslations={(event.translations as Record<string, { titel: string; beschreibung: string }> | null) ?? {}}
-            deTitel={event.titel}
-            deBeschreibung={event.beschreibung ?? null}
-          />
-
-          {/* Weiterleitungs-URLs */}
-          <EventWeiterleitungen
-            eventId={event.id}
-            initialSuccessUrl={event.success_url ?? null}
-            initialCancelUrl={event.cancel_url ?? null}
-          />
-
-          {/* Buchungslink */}
-          {event.status === "veroeffentlicht" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Buchungslink</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-xs text-muted-foreground break-all font-mono bg-muted rounded px-2 py-1">
-                  {buchungsUrl}
-                </p>
+          {/* Einstellungen */}
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Einstellungen</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <Button size="sm" variant="outline" className="w-full" asChild>
+                <Link href={`/dashboard/events/${event.id}/einstellungen`}>
+                  <Settings className="h-3.5 w-3.5 mr-1.5" /> Event konfigurieren
+                </Link>
+              </Button>
+              {event.status === "veroeffentlicht" && (
                 <Button size="sm" variant="outline" className="w-full" asChild>
                   <Link href={buchungsUrl} target="_blank">
-                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                    Buchungsseite öffnen
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Buchungsseite öffnen
                   </Link>
                 </Button>
+              )}
+              {event.status === "veroeffentlicht" && (
                 <Button size="sm" variant="outline" className="w-full" asChild>
                   <Link href={`/scan/${event.id}`} target="_blank">
-                    <Ticket className="h-3.5 w-3.5 mr-1.5" />
-                    Ticket-Scanner öffnen
+                    <Ticket className="h-3.5 w-3.5 mr-1.5" /> Ticket-Scanner öffnen
                   </Link>
                 </Button>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
 
           {/* Event-Info */}
           <Card>

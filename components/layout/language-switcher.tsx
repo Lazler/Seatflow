@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n";
 import { useLocale } from "@/components/i18n-provider";
@@ -10,6 +10,19 @@ export function LanguageSwitcher() {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  function handleOpen() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        bottom: window.innerHeight - rect.top + 4,
+        left: rect.left,
+      });
+    }
+    setOpen((v) => !v);
+  }
 
   async function changeLanguage(lang: Locale) {
     setOpen(false);
@@ -24,8 +37,9 @@ export function LanguageSwitcher() {
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleOpen}
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
       >
         <span className="text-base leading-none">{LOCALE_FLAGS[locale]}</span>
@@ -33,8 +47,11 @@ export function LanguageSwitcher() {
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full left-0 mb-1 z-20 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[140px]">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-50 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[140px]"
+            style={dropdownStyle}
+          >
             {LOCALES.map((lang) => (
               <button
                 key={lang}

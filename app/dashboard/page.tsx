@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getServerDict } from "@/lib/i18n/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,12 +7,6 @@ import Link from "next/link";
 import { EuroIcon, Ticket, TrendingUp, CalendarCheck, Plus, ArrowRight, Clock } from "lucide-react";
 import { migrierteKonfiguration, elementSitzIds } from "@/types/sitzplan";
 
-const STATUS_LABEL: Record<string, string> = {
-  entwurf: "Entwurf",
-  veroeffentlicht: "Live",
-  abgesagt: "Abgesagt",
-  beendet: "Beendet",
-};
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   entwurf: "secondary",
   veroeffentlicht: "default",
@@ -23,18 +18,27 @@ function euro(cent: number) {
   return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 }
 
-function zeitVor(iso: string) {
+function zeitVor(iso: string, t: import("@/lib/i18n").Dict["time"]) {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "gerade eben";
-  if (min < 60) return `vor ${min} Min.`;
+  if (min < 1) return t.geradeEben;
+  if (min < 60) return t.vorMin.replace("{min}", String(min));
   const h = Math.floor(min / 60);
-  if (h < 24) return `vor ${h} Std.`;
-  return `vor ${Math.floor(h / 24)} Tagen`;
+  if (h < 24) return t.vorStd.replace("{h}", String(h));
+  const d = Math.floor(h / 24);
+  return (d === 1 ? t.vorTagen : t.vorTagen_pl).replace("{d}", String(d));
 }
 
 export default async function Dashboard() {
-  const supabase = await createClient();
+  const [supabase, t] = await Promise.all([createClient(), getServerDict()]);
+
+  const STATUS_LABEL: Record<string, string> = {
+    entwurf: t.status.entwurf,
+    veroeffentlicht: t.status.live,
+    abgesagt: t.status.abgesagt,
+    beendet: t.status.beendet,
+  };
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -89,8 +93,8 @@ export default async function Dashboard() {
 
   // ── Per-event lookups ─────────────────────────────────────
   const ticketsProEvent = new Map<string, number>();
-  for (const t of tickets) {
-    ticketsProEvent.set(t.event_id, (ticketsProEvent.get(t.event_id) ?? 0) + 1);
+  for (const tk of tickets) {
+    ticketsProEvent.set(tk.event_id, (ticketsProEvent.get(tk.event_id) ?? 0) + 1);
   }
 
   const einnahmenProEvent = new Map<string, number>();
@@ -123,14 +127,14 @@ export default async function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{profil?.name ?? "Dashboard"}</h1>
+          <h1 className="text-2xl font-bold">{profil?.name ?? t.dashboard.title}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
         <Button asChild size="sm">
           <Link href="/dashboard/events/neu">
-            <Plus className="h-4 w-4 mr-1.5" /> Neues Event
+            <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard.neuesEvent}
           </Link>
         </Button>
       </div>
@@ -141,14 +145,14 @@ export default async function Dashboard() {
           <CardContent className="pt-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Einnahmen</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.dashboard.einnahmen}</p>
                 <p className="text-2xl font-bold mt-1">{euro(gesamteinnahmenCent)}</p>
               </div>
               <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
                 <EuroIcon className="h-4 w-4 text-emerald-600" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">{bezahlt.length} bezahlte Buchungen</p>
+            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.bezahlteBuchungen.replace("{n}", String(bezahlt.length))}</p>
           </CardContent>
         </Card>
 
@@ -156,14 +160,14 @@ export default async function Dashboard() {
           <CardContent className="pt-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tickets</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.analytics.tickets}</p>
                 <p className="text-2xl font-bold mt-1">{gesamtTickets}</p>
               </div>
               <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                 <Ticket className="h-4 w-4 text-blue-600" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">verkaufte Plätze gesamt</p>
+            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.ticketsGesamt}</p>
           </CardContent>
         </Card>
 
@@ -171,14 +175,14 @@ export default async function Dashboard() {
           <CardContent className="pt-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Heute</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.dashboard.heute}</p>
                 <p className="text-2xl font-bold mt-1">{buchungenHeute}</p>
               </div>
               <div className="h-9 w-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
                 <TrendingUp className="h-4 w-4 text-violet-600" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">neue Buchungen heute</p>
+            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.neueBuchungenHeute}</p>
           </CardContent>
         </Card>
 
@@ -186,14 +190,14 @@ export default async function Dashboard() {
           <CardContent className="pt-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Live Events</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.dashboard.liveEvents}</p>
                 <p className="text-2xl font-bold mt-1">{aktiveEvents.length}</p>
               </div>
               <div className="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
                 <CalendarCheck className="h-4 w-4 text-amber-600" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">veröffentlicht &amp; bevorstehend</p>
+            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.veroeffentlichtBevorstehend}</p>
           </CardContent>
         </Card>
       </div>
@@ -205,13 +209,13 @@ export default async function Dashboard() {
             <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <Ticket className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="font-semibold mb-1">Noch keine Events</p>
+            <p className="font-semibold mb-1">{t.dashboard.nochKeineEvents}</p>
             <p className="text-sm text-muted-foreground mb-5">
-              Erstelle dein erstes Event und fange an Tickets zu verkaufen.
+              {t.dashboard.erstelleErstesEvent}
             </p>
             <Button asChild>
               <Link href="/dashboard/events/neu">
-                <Plus className="h-4 w-4 mr-1.5" /> Erstes Event erstellen
+                <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard.erstesEventErstellen}
               </Link>
             </Button>
           </CardContent>
@@ -222,9 +226,9 @@ export default async function Dashboard() {
       {eventsTabelle.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">Auslastung &amp; Umsatz</h2>
+            <h2 className="text-base font-semibold">{t.dashboard.auslastungUmsatz}</h2>
             <Button variant="ghost" size="sm" className="text-xs" asChild>
-              <Link href="/dashboard/events">Alle Events <ArrowRight className="h-3.5 w-3.5 ml-1" /></Link>
+              <Link href="/dashboard/events">{t.dashboard.alleEvents} <ArrowRight className="h-3.5 w-3.5 ml-1" /></Link>
             </Button>
           </div>
           <div className="space-y-2">
@@ -258,7 +262,7 @@ export default async function Dashboard() {
                             <div className="space-y-1">
                               <div className="flex items-center justify-between text-xs">
                                 <span className="text-muted-foreground">
-                                  {sold} / {kapazitaet} Plätze
+                                  {t.dashboard.plaetze.replace("{sold}", String(sold)).replace("{total}", String(kapazitaet))}
                                 </span>
                                 <span className={`font-semibold ${pct! >= 90 ? "text-red-600" : pct! >= 60 ? "text-amber-600" : "text-muted-foreground"}`}>
                                   {pct}%
@@ -274,7 +278,7 @@ export default async function Dashboard() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-xs text-muted-foreground">{sold} Tickets verkauft</p>
+                            <p className="text-xs text-muted-foreground">{t.dashboard.ticketsVerkauft.replace("{n}", String(sold))}</p>
                           )}
                         </div>
                         <div className="text-right shrink-0 space-y-1">
@@ -299,7 +303,7 @@ export default async function Dashboard() {
       {/* ── Letzte Buchungen ── */}
       {recentBuchungen.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold mb-3">Letzte Buchungen</h2>
+          <h2 className="text-base font-semibold mb-3">{t.dashboard.letzteBuchungen}</h2>
           <Card>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
@@ -317,11 +321,11 @@ export default async function Dashboard() {
                         variant={b.status === "bezahlt" ? "default" : "secondary"}
                         className="text-[10px] px-1.5 py-0 hidden sm:inline-flex"
                       >
-                        {b.status === "bezahlt" ? "Bezahlt" : b.status === "ausstehend" ? "Ausstehend" : b.status}
+                        {b.status === "bezahlt" ? t.status.bezahlt : b.status === "ausstehend" ? t.status.ausstehend : b.status}
                       </Badge>
                       <span className="text-xs text-muted-foreground flex items-center gap-1 hidden sm:flex">
                         <Clock className="h-3 w-3" />
-                        {zeitVor(b.erstellt_am)}
+                        {zeitVor(b.erstellt_am, t.time)}
                       </span>
                     </div>
                   </div>

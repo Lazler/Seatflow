@@ -195,6 +195,7 @@ export default async function BuchungsSeite({
             belegteSitzIds={belegteSitzIds}
             serviceGebuehrCent={event.service_gebuehr_cent ?? 50}
             ticketTypen={((event.ticket_typen as TicketTyp[] | null) ?? []).filter((t) => t.aktiv)}
+            displayLang={displayLang}
           />
         ) : (
           <div className="rounded-xl border border-border bg-background p-12 text-center text-muted-foreground text-sm">
