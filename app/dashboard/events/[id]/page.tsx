@@ -198,7 +198,7 @@ export default async function EventDetail({
         {/* Seitenleiste */}
         <div className="space-y-4">
           {/* Aktionen */}
-          <EventStatusAktion eventId={event.id} status={event.status} />
+          <EventStatusAktion eventId={event.id} status={event.status} bezahlteAnzahl={bezahlteBuchungen.length} />
 
           {/* Sitzplan zuweisen */}
           <SitzplanZuweisung

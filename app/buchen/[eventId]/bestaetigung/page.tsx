@@ -1,30 +1,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { notFound } from "next/navigation";
-import { CheckCircle, Calendar, MapPin, Ticket } from "lucide-react";
+import { CheckCircle, Calendar, MapPin, Ticket, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import QRCode from "qrcode";
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function BestaetigungsSeite({
   params,
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; buchung_id?: string }>;
 }) {
   const { eventId } = await params;
-  const { session_id } = await searchParams;
+  const { session_id, buchung_id: buchungIdParam } = await searchParams;
 
-  if (!session_id) notFound();
+  if (!session_id && !buchungIdParam) notFound();
 
-  let buchungId: string | null = null;
-  try {
-    const session = await stripe.checkout.sessions.retrieve(session_id);
-    if (session.payment_status !== "paid") notFound();
-    buchungId = session.metadata?.buchung_id ?? null;
-  } catch {
-    notFound();
+  let buchungId: string | null = buchungIdParam ?? null;
+
+  // Resolve from Stripe session if no direct buchung_id
+  if (!buchungId && session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session.payment_status !== "paid") notFound();
+      buchungId = session.metadata?.buchung_id ?? null;
+    } catch {
+      notFound();
+    }
   }
 
   if (!buchungId) notFound();
@@ -34,7 +39,7 @@ export default async function BestaetigungsSeite({
   const [{ data: buchung }, { data: ev }] = await Promise.all([
     supabase
       .from("buchungen")
-      .select("id, gaest_name, gesamt_cent")
+      .select("id, gaest_name, gaest_email, gesamt_cent, status, rechnung_nummer")
       .eq("id", buchungId)
       .single(),
     supabase
@@ -48,7 +53,7 @@ export default async function BestaetigungsSeite({
 
   const { data: tickets } = await supabase
     .from("tickets")
-    .select("sitzplatz_id")
+    .select("sitzplatz_id, sitzplatz_bezeichnung")
     .eq("buchung_id", buchungId);
 
   const qrDataUrl = await QRCode.toDataURL(buchungId, { width: 240, margin: 1 });
@@ -56,6 +61,13 @@ export default async function BestaetigungsSeite({
   const venue = ev.venues && !Array.isArray(ev.venues)
     ? (ev.venues as unknown as { name: string; adresse?: string })
     : null;
+
+  const datumFormatiert = new Date(ev.datum).toLocaleDateString("de-DE", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+  const isPaid = buchung.status === "bezahlt";
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -69,14 +81,20 @@ export default async function BestaetigungsSeite({
       </nav>
 
       <div className="max-w-lg mx-auto px-4 py-8 sm:py-12 space-y-6">
+        {/* Status header */}
         <div className="text-center space-y-2">
-          <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-          <h1 className="text-xl sm:text-2xl font-bold">Zahlung bestätigt!</h1>
+          <CheckCircle className={`h-12 w-12 mx-auto ${isPaid ? "text-green-500" : "text-muted-foreground"}`} />
+          <h1 className="text-xl sm:text-2xl font-bold">
+            {isPaid ? "Zahlung bestätigt!" : "Buchung erfasst"}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Deine Tickets wurden per E-Mail verschickt, {buchung.gaest_name}.
+            {isPaid
+              ? `Deine Tickets wurden per E-Mail an ${buchung.gaest_email} verschickt.`
+              : "Die Zahlung wird noch verarbeitet. Deine Tickets erhältst du per E-Mail."}
           </p>
         </div>
 
+        {/* Event card */}
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
@@ -84,10 +102,7 @@ export default async function BestaetigungsSeite({
               <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                 <span className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 shrink-0" />
-                  {new Date(ev.datum).toLocaleDateString("de-DE", {
-                    weekday: "long", day: "numeric", month: "long", year: "numeric",
-                    hour: "2-digit", minute: "2-digit",
-                  })}
+                  {datumFormatiert}
                 </span>
                 {venue && (
                   <span className="flex items-center gap-2">
@@ -95,15 +110,18 @@ export default async function BestaetigungsSeite({
                     {venue.name}{venue.adresse ? `, ${venue.adresse}` : ""}
                   </span>
                 )}
-                <span className="flex items-center gap-2">
-                  <Ticket className="h-4 w-4 shrink-0" />
-                  {tickets?.map((t) => t.sitzplatz_id).join(", ")}
-                </span>
+                {tickets && tickets.length > 0 && (
+                  <span className="flex items-start gap-2">
+                    <Ticket className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{tickets.map((t) => t.sitzplatz_bezeichnung || t.sitzplatz_id).join(", ")}</span>
+                  </span>
+                )}
               </div>
             </div>
 
+            {/* QR code */}
             <div className="border-t border-border pt-4 flex flex-col items-center gap-3">
-              <p className="text-xs text-muted-foreground">QR-Code beim Einlass vorzeigen:</p>
+              <p className="text-xs text-muted-foreground">QR-Code für den Einlass (auch im PDF-Anhang):</p>
               <Image
                 src={qrDataUrl}
                 alt="Ticket QR-Code"
@@ -114,12 +132,34 @@ export default async function BestaetigungsSeite({
               <p className="text-xs text-muted-foreground font-mono">{buchungId}</p>
             </div>
 
+            {/* Total */}
             <div className="border-t border-border pt-3 flex justify-between text-sm font-semibold">
               <span>Gesamt bezahlt</span>
               <span>{(buchung.gesamt_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
             </div>
+
+            {buchung.rechnung_nummer && (
+              <div className="text-xs text-muted-foreground flex items-center justify-between pt-1">
+                <span>Rechnung {buchung.rechnung_nummer}</span>
+                <a
+                  href={`/api/tickets/pdf?buchungId=${buchungId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Download className="h-3.5 w-3.5" /> Tickets & Rechnung herunterladen
+                </a>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Bei Fragen wende dich an den Veranstalter. ·{" "}
+          <Link href="/agb" className="underline hover:text-foreground">AGB</Link>
+          {" · "}
+          <Link href="/datenschutz" className="underline hover:text-foreground">Datenschutz</Link>
+        </p>
       </div>
     </div>
   );

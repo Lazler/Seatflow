@@ -33,6 +33,10 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  const paymentIntent = typeof session.payment_intent === "string"
+    ? session.payment_intent
+    : session.payment_intent?.id ?? null;
+
   // Assign invoice number + mark as paid atomically
   const { data: buchung } = await admin
     .from("buchungen")
@@ -40,6 +44,7 @@ export async function POST(req: NextRequest) {
       status: "bezahlt",
       rechnung_nummer: `RE-${Date.now()}`,
       rechnung_datum: new Date().toISOString(),
+      ...(paymentIntent ? { stripe_payment_intent: paymentIntent } : {}),
     })
     .eq("id", buchungId)
     .select("id, gaest_name, gaest_email, gesamt_cent, rechnung_nummer, rechnung_datum")

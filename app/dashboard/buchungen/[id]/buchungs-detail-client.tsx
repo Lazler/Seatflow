@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download, RotateCcw } from "lucide-react";
 
 type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
 
@@ -17,6 +17,7 @@ type Buchung = {
   id: string; gaest_name: string; gaest_email: string;
   gesamt_cent: number; status: string; erstellt_am: string;
   event_id: string; notiz: string | null; ticket_typ: TicketTypInfo | null;
+  stripe_payment_intent: string | null;
 };
 type TicketRow = { id: string; sitzplatz_id: string; sitzplatz_bezeichnung: string; preis_cent: number };
 type Kommentar = { id: string; text: string; erstellt_am: string };
@@ -69,6 +70,8 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
   const [status, setStatus] = useState(buchung.status);
   const [notiz, setNotiz] = useState(buchung.notiz ?? "");
   const [speichertEdit, setSpeichertEdit] = useState(false);
+  const [erstattetLaden, setErstattetLaden] = useState(false);
+  const [erstattungFehler, setErstattungFehler] = useState<string | null>(null);
 
   const [kommentare, setKommentare] = useState<Kommentar[]>(initialKommentare);
   const [neuerKommentar, setNeuerKommentar] = useState("");
@@ -78,6 +81,24 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
   useEffect(() => {
     kommentarEndeRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [kommentare]);
+
+  async function erstatten() {
+    if (!confirm(`Buchung von ${buchung.gaest_name} über ${euro(buchung.gesamt_cent)} vollständig erstatten?`)) return;
+    setErstattetLaden(true);
+    setErstattungFehler(null);
+    const res = await fetch(`/api/buchungen/${buchung.id}/erstatten`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setErstattungFehler(json.error ?? "Erstattung fehlgeschlagen");
+    }
+    setErstattetLaden(false);
+  }
 
   async function editSpeichern() {
     setSpeichertEdit(true);
@@ -138,12 +159,21 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           </p>
         </div>
         {!editModus ? (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button size="sm" variant="outline" asChild>
               <a href={`/api/tickets/pdf?buchungId=${buchung.id}`} target="_blank" rel="noopener noreferrer">
                 <Download className="h-3.5 w-3.5 mr-1.5" /> PDF
               </a>
             </Button>
+            {buchung.status === "bezahlt" && (
+              <Button size="sm" variant="outline" onClick={erstatten} disabled={erstattetLaden}
+                className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                {erstattetLaden
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+                Erstatten
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={() => setEditModus(true)}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Bearbeiten
             </Button>
@@ -160,6 +190,12 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           </div>
         )}
       </div>
+
+      {erstattungFehler && (
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+          {erstattungFehler}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Left: booking info */}
