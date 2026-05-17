@@ -350,6 +350,7 @@ export default function BuchungsSeiteClient({
           };
         }),
         name, email,
+        sprache: displayLang ?? "de",
       }),
     });
     const data = await res.json() as { url?: string; error?: string };
@@ -623,7 +624,7 @@ export default function BuchungsSeiteClient({
             >
               {laedt
                 ? <><Loader2 className="h-5 w-5 animate-spin" /> Weiterleitung…</>
-                : <><Lock className="h-4 w-4" /> Zahlungspflichtig bestellen</>}
+                : <><Lock className="h-4 w-4" /> {uiStrings.zahlungspflichtig}</>}
             </button>
 
             <div className="flex items-center justify-center gap-4">
@@ -717,7 +718,7 @@ export default function BuchungsSeiteClient({
                 <div className="px-4 pb-4">
                   <button type="button" onClick={weiter}
                     className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">
-                    Weiter zur Bestellung →
+                    {uiStrings.weiter} →
                   </button>
                 </div>
               )}

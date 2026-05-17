@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
   const session = event.data.object as Stripe.Checkout.Session;
   const buchungId = session.metadata?.buchung_id;
   const eventId = session.metadata?.event_id;
+  const sprache = (session.metadata?.sprache ?? "de") as "de" | "en" | "hu";
 
   if (!buchungId || !eventId) {
     return NextResponse.json({ error: "Fehlende Metadaten" }, { status: 400 });
@@ -104,6 +105,7 @@ export async function POST(req: NextRequest) {
     gesamtCent: buchung.gesamt_cent,
     ticketTypName: ticketTyp?.name,
     design,
+    sprache,
   });
 
   return NextResponse.json({ received: true });

@@ -26,6 +26,7 @@ const CheckoutSchema = z.object({
   sitzplaetze: z.array(SitzplatzSchema).min(1).max(20),
   name: z.string().min(1).max(200).trim(),
   email: z.string().email().max(300),
+  sprache: z.enum(["de", "en", "hu"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Ungültige Eingabe", details: parsed.error.flatten() }, { status: 400 });
   }
-  const { eventId, sitzplaetze, name, email } = parsed.data;
+  const { eventId, sitzplaetze, name, email, sprache } = parsed.data;
 
   const supabase = await createClient();
 
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
     mode: "payment",
     line_items: lineItems,
     customer_email: email,
-    metadata: { buchung_id: buchung.id, event_id: eventId },
+    metadata: { buchung_id: buchung.id, event_id: eventId, sprache: sprache ?? "de" },
     success_url: successUrl,
     cancel_url: cancelUrl,
     payment_method_types: ["card", "sepa_debit", "sofort"],
