@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { sendTicketMail } from "@/lib/email";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
@@ -31,28 +31,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fehlende Metadaten" }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data: buchung } = await supabase
+  // Assign invoice number + mark as paid atomically
+  const { data: buchung } = await admin
     .from("buchungen")
-    .update({ status: "bezahlt" })
+    .update({
+      status: "bezahlt",
+      rechnung_nummer: `RE-${Date.now()}`,
+      rechnung_datum: new Date().toISOString(),
+    })
     .eq("id", buchungId)
-    .select("id, gaest_name, gaest_email, gesamt_cent")
+    .select("id, gaest_name, gaest_email, gesamt_cent, rechnung_nummer, rechnung_datum")
     .single();
 
   if (!buchung) return NextResponse.json({ received: true });
 
   const [{ data: tickets }, { data: ev }, { data: buchungDetail }] = await Promise.all([
-    supabase
+    admin
       .from("tickets")
       .select("sitzplatz_id, sitzplatz_bezeichnung, preis_cent, qr_code")
       .eq("buchung_id", buchungId),
-    supabase
+    admin
       .from("events")
       .select("titel, datum, ticket_design, ticket_template_id, venues(name)")
       .eq("id", eventId)
       .single(),
-    supabase
+    admin
       .from("buchungen")
       .select("ticket_typ")
       .eq("id", buchungId)
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest) {
   // Resolve template design
   let design: TicketDesign = (ev.ticket_design as TicketDesign | null) ?? DEFAULT_TICKET_DESIGN;
   if (ev.ticket_template_id) {
-    const { data: tmpl } = await supabase
+    const { data: tmpl } = await admin
       .from("ticket_templates")
       .select("design")
       .eq("id", ev.ticket_template_id)
