@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/components/i18n-provider";
+import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +13,9 @@ import { ArrowLeft, Info } from "lucide-react";
 import Link from "next/link";
 
 type Venue = { id: string; name: string };
+type LangContent = { titel: string; beschreibung: string };
+
+const ADDITIONAL_LOCALES: Locale[] = ["en", "hu"];
 
 export default function NeuesEventFormular({
   venues,
@@ -20,9 +25,8 @@ export default function NeuesEventFormular({
   vorausgewaehlteVenueId?: string;
 }) {
   const router = useRouter();
+  const t = useT();
 
-  const [titel, setTitel] = useState("");
-  const [beschreibung, setBeschreibung] = useState("");
   const [venueId, setVenueId] = useState(vorausgewaehlteVenueId ?? "");
   const [datum, setDatum] = useState("");
   const [einlassDatum, setEinlassDatum] = useState("");
@@ -31,20 +35,51 @@ export default function NeuesEventFormular({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
 
+  // Multilingual content
+  const [zusatzSprachen, setZusatzSprachen] = useState<Locale[]>([]);
+  const [aktiveSprache, setAktiveSprache] = useState<Locale>("de");
+  const [deContent, setDeContent] = useState<LangContent>({ titel: "", beschreibung: "" });
+  const [translations, setTranslations] = useState<Partial<Record<Locale, LangContent>>>({});
+
+  const alleSprachen: Locale[] = ["de", ...zusatzSprachen];
+
+  function toggleSprache(lang: Locale) {
+    setZusatzSprachen((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    );
+    // Remove content if language deactivated
+    setTranslations((prev) => {
+      const next = { ...prev };
+      if (translations[lang]) delete next[lang];
+      return next;
+    });
+    if (aktiveSprache === lang) setAktiveSprache("de");
+  }
+
+  function setContent(lang: Locale, field: keyof LangContent, value: string) {
+    if (lang === "de") {
+      setDeContent((prev) => ({ ...prev, [field]: value }));
+    } else {
+      setTranslations((prev) => ({
+        ...prev,
+        [lang]: { ...((prev[lang] as LangContent) ?? { titel: "", beschreibung: "" }), [field]: value },
+      }));
+    }
+  }
+
+  function getContent(lang: Locale): LangContent {
+    if (lang === "de") return deContent;
+    return (translations[lang] as LangContent) ?? { titel: "", beschreibung: "" };
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFehler(null);
     setLaedt(true);
 
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push("/anmelden");
-      return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/anmelden"); return; }
 
     const preisInCent = Math.round(parseFloat(preisEuro.replace(",", ".")) * 100);
     if (isNaN(preisInCent) || preisInCent < 0) {
@@ -53,18 +88,27 @@ export default function NeuesEventFormular({
       return;
     }
 
+    // Build translations object (only include langs with a title)
+    const translationsClean: Record<string, { titel: string; beschreibung: string }> = {};
+    for (const lang of zusatzSprachen) {
+      const c = getContent(lang);
+      if (c.titel.trim()) translationsClean[lang] = { titel: c.titel.trim(), beschreibung: c.beschreibung.trim() };
+    }
+
     const { data, error } = await supabase
       .from("events")
       .insert({
         veranstalter_id: user.id,
         venue_id: venueId || null,
-        titel,
-        beschreibung: beschreibung || null,
+        titel: deContent.titel,
+        beschreibung: deContent.beschreibung || null,
         datum: new Date(datum).toISOString(),
         einlass_datum: einlassDatum ? new Date(einlassDatum).toISOString() : null,
         ticket_preis_cent: preisInCent,
         max_tickets: maxTickets ? parseInt(maxTickets) : null,
         status: "entwurf",
+        sprachen: alleSprachen,
+        translations: translationsClean,
       })
       .select("id")
       .single();
@@ -78,17 +122,17 @@ export default function NeuesEventFormular({
     router.push(`/dashboard/events/${data.id}`);
   }
 
+  const content = getContent(aktiveSprache);
+
   return (
     <div className="space-y-6 max-w-lg">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/events">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <Link href="/dashboard/events"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Neues Event</h1>
-          <p className="text-muted-foreground text-sm">Veranstaltung anlegen</p>
+          <h1 className="text-2xl font-bold">{t.eventForm.neuesEvent}</h1>
+          <p className="text-muted-foreground text-sm">{t.eventForm.subtitle}</p>
         </div>
       </div>
 
@@ -96,127 +140,150 @@ export default function NeuesEventFormular({
         <div className="flex items-start gap-3 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
           <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
           <p>
-            Du hast noch kein Venue angelegt.{" "}
-            <Link href="/dashboard/venues/neu" className="text-primary hover:underline">
-              Venue zuerst anlegen
-            </Link>{" "}
-            um es hier auswählen zu können.
+            {t.eventForm.keinVenue}{" "}
+            <Link href="/dashboard/venues/neu" className="text-primary hover:underline">{t.eventForm.venuAnlegen}</Link>{" "}
+            {t.eventForm.umAuszuwaehlen}
           </p>
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Event-Details</CardTitle>
-          <CardDescription>
-            Das Event wird als Entwurf gespeichert — du kannst es danach veröffentlichen.
-          </CardDescription>
+          <CardTitle className="text-base">{t.eventForm.eventDetails}</CardTitle>
+          <CardDescription>{t.eventForm.entwurfHinweis}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Language selection */}
             <div className="space-y-2">
-              <Label htmlFor="titel">Titel *</Label>
+              <Label className="text-sm">{t.eventForm.sprachenLabel}</Label>
+              <p className="text-xs text-muted-foreground">{t.eventForm.sprachenHinweis}</p>
+              <div className="flex gap-3 flex-wrap">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/40 text-sm">
+                  <span>🇩🇪</span>
+                  <span className="font-medium">Deutsch</span>
+                  <span className="text-xs text-muted-foreground">(aktiv)</span>
+                </div>
+                {ADDITIONAL_LOCALES.map((lang) => {
+                  const active = zusatzSprachen.includes(lang);
+                  return (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => toggleSprache(lang)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border hover:border-primary/50 text-muted-foreground"
+                      }`}
+                    >
+                      <span>{lang === "en" ? "🇬🇧" : "🇭🇺"}</span>
+                      {LOCALE_LABELS[lang]}
+                      {active ? " ✓" : " +"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Language tabs for content fields */}
+            {alleSprachen.length > 1 && (
+              <div className="flex gap-0.5 border-b border-border">
+                {alleSprachen.map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setAktiveSprache(lang)}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors relative ${
+                      aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {lang === "de" ? "🇩🇪" : lang === "en" ? "🇬🇧" : "🇭🇺"} {LOCALE_LABELS[lang]}
+                    {aktiveSprache === lang && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {alleSprachen.length > 1 && (
+              <p className="text-xs text-muted-foreground -mt-2">
+                {t.eventForm.uebersetzungTabHinweis.replace("{lang}", LOCALE_LABELS[aktiveSprache])}
+              </p>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="titel">{t.eventForm.titelLabel}</Label>
               <Input
                 id="titel"
-                placeholder="z.B. Kabarettabend mit Max Müller"
-                value={titel}
-                onChange={(e) => setTitel(e.target.value)}
-                required
+                placeholder={aktiveSprache === "de" ? t.eventForm.titelPlaceholder : ""}
+                value={content.titel}
+                onChange={(e) => setContent(aktiveSprache, "titel", e.target.value)}
+                required={aktiveSprache === "de"}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="beschreibung">Beschreibung</Label>
+              <Label htmlFor="beschreibung">{t.eventForm.beschreibungLabel}</Label>
               <textarea
                 id="beschreibung"
                 className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Kurzbeschreibung der Veranstaltung (wird auf der Buchungsseite angezeigt)"
-                value={beschreibung}
-                onChange={(e) => setBeschreibung(e.target.value)}
+                placeholder={aktiveSprache === "de" ? t.eventForm.beschreibungPlaceholder : ""}
+                value={content.beschreibung}
+                onChange={(e) => setContent(aktiveSprache, "beschreibung", e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="venue">Venue</Label>
+              <Label htmlFor="venue">{t.eventForm.venueLabel}</Label>
               <select
                 id="venue"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={venueId}
                 onChange={(e) => setVenueId(e.target.value)}
               >
-                <option value="">— Kein Venue zugeordnet —</option>
-                {venues.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
+                <option value="">{t.eventForm.keinVenueOption}</option>
+                {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="datum">Datum & Uhrzeit *</Label>
-                <Input
-                  id="datum"
-                  type="datetime-local"
-                  value={datum}
-                  onChange={(e) => setDatum(e.target.value)}
-                  required
-                />
+                <Label htmlFor="datum">{t.eventForm.datumLabel}</Label>
+                <Input id="datum" type="datetime-local" value={datum} onChange={(e) => setDatum(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="einlass">Einlass</Label>
-                <Input
-                  id="einlass"
-                  type="datetime-local"
-                  value={einlassDatum}
-                  onChange={(e) => setEinlassDatum(e.target.value)}
-                />
+                <Label htmlFor="einlass">{t.eventForm.einlassLabel}</Label>
+                <Input id="einlass" type="datetime-local" value={einlassDatum} onChange={(e) => setEinlassDatum(e.target.value)} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="preis">Ticketpreis (€) *</Label>
+                <Label htmlFor="preis">{t.eventForm.preisLabel}</Label>
                 <Input
-                  id="preis"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="z.B. 18,00"
-                  value={preisEuro}
-                  onChange={(e) => setPreisEuro(e.target.value)}
-                  required
+                  id="preis" type="text" inputMode="decimal"
+                  placeholder={t.eventForm.preisPlaceholder}
+                  value={preisEuro} onChange={(e) => setPreisEuro(e.target.value)} required
                 />
-                <p className="text-xs text-muted-foreground">
-                  + €0,50 Servicegebühr pro Ticket
-                </p>
+                <p className="text-xs text-muted-foreground">{t.eventForm.preisHinweis}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxTickets">Max. Tickets</Label>
+                <Label htmlFor="maxTickets">{t.eventForm.maxLabel}</Label>
                 <Input
-                  id="maxTickets"
-                  type="number"
-                  min="1"
-                  placeholder="z.B. 120"
-                  value={maxTickets}
-                  onChange={(e) => setMaxTickets(e.target.value)}
+                  id="maxTickets" type="number" min="1"
+                  placeholder={t.eventForm.maxPlaceholder}
+                  value={maxTickets} onChange={(e) => setMaxTickets(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Leer = unbegrenzt
-                </p>
+                <p className="text-xs text-muted-foreground">{t.eventForm.maxHinweis}</p>
               </div>
             </div>
 
             {fehler && <p className="text-sm text-destructive">{fehler}</p>}
 
-            <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={laedt}>
-                {laedt ? "Wird gespeichert..." : "Event anlegen"}
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/events">Abbrechen</Link>
-              </Button>
-            </div>
+            <Button type="submit" className="w-full" disabled={laedt}>
+              {laedt ? t.eventForm.speichert : t.eventForm.anlegen}
+            </Button>
           </form>
         </CardContent>
       </Card>

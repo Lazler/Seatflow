@@ -4,12 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download, RotateCcw } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download, RotateCcw, RefreshCw } from "lucide-react";
 
 type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
 
@@ -24,9 +25,6 @@ type Kommentar = { id: string; text: string; erstellt_am: string };
 type EventInfo = { id: string; titel: string; datum: string; serviceGebuehrCent: number };
 
 const STATUS_OPTIONEN = ["ausstehend", "bezahlt", "storniert", "erstattet"] as const;
-const STATUS_LABEL: Record<string, string> = {
-  bezahlt: "Bezahlt", ausstehend: "Ausstehend", storniert: "Storniert", erstattet: "Erstattet",
-};
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
 };
@@ -63,6 +61,7 @@ type Props = {
 };
 
 export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare }: Props) {
+  const t = useT();
   const router = useRouter();
   const [editModus, setEditModus] = useState(false);
   const [name, setName] = useState(buchung.gaest_name);
@@ -72,6 +71,8 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
   const [speichertEdit, setSpeichertEdit] = useState(false);
   const [erstattetLaden, setErstattetLaden] = useState(false);
   const [erstattungFehler, setErstattungFehler] = useState<string | null>(null);
+  const [resendLaden, setResendLaden] = useState(false);
+  const [resendErfolg, setResendErfolg] = useState(false);
 
   const [kommentare, setKommentare] = useState<Kommentar[]>(initialKommentare);
   const [neuerKommentar, setNeuerKommentar] = useState("");
@@ -81,6 +82,17 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
   useEffect(() => {
     kommentarEndeRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [kommentare]);
+
+  async function ticketsErneutSenden() {
+    setResendLaden(true);
+    setResendErfolg(false);
+    const res = await fetch(`/api/buchungen/${buchung.id}/resend`, { method: "POST" });
+    setResendLaden(false);
+    if (res.ok) {
+      setResendErfolg(true);
+      setTimeout(() => setResendErfolg(false), 4000);
+    }
+  }
 
   async function erstatten() {
     if (!confirm(`Buchung von ${buchung.gaest_name} über ${euro(buchung.gesamt_cent)} vollständig erstatten?`)) return;
@@ -137,7 +149,11 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
     setSendetKommentar(false);
   }
 
-  const ticketsSumme = tickets.reduce((s, t) => s + t.preis_cent, 0);
+  const STATUS_LABEL: Record<string, string> = {
+    bezahlt: t.status.bezahlt, ausstehend: t.status.ausstehend, storniert: t.status.storniert, erstattet: t.status.erstattet,
+  };
+
+  const ticketsSumme = tickets.reduce((s, tk) => s + tk.preis_cent, 0);
   const serviceGebuehr = tickets.length * event.serviceGebuehrCent;
 
   return (
@@ -162,30 +178,44 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           <div className="flex gap-2 flex-wrap justify-end">
             <Button size="sm" variant="outline" asChild>
               <a href={`/api/tickets/pdf?buchungId=${buchung.id}`} target="_blank" rel="noopener noreferrer">
-                <Download className="h-3.5 w-3.5 mr-1.5" /> PDF
+                <Download className="h-3.5 w-3.5 mr-1.5" /> {t.common.pdf}
               </a>
             </Button>
+            {buchung.status === "bezahlt" && (
+              <Button
+                size="sm"
+                variant={resendErfolg ? "default" : "outline"}
+                onClick={ticketsErneutSenden}
+                disabled={resendLaden}
+                title="Tickets per E-Mail erneut senden"
+              >
+                {resendLaden
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+                {resendErfolg ? t.buchungen.ticketsGesendet : t.buchungen.ticketsNeuSenden}
+              </Button>
+            )}
             {buchung.status === "bezahlt" && (
               <Button size="sm" variant="outline" onClick={erstatten} disabled={erstattetLaden}
                 className="text-destructive border-destructive/30 hover:bg-destructive/10">
                 {erstattetLaden
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                   : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
-                Erstatten
+                {t.common.erstatten}
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={() => setEditModus(true)}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Bearbeiten
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> {t.common.bearbeiten}
             </Button>
           </div>
         ) : (
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={editAbbrechen} disabled={speichertEdit}>
-              <X className="h-3.5 w-3.5 mr-1" /> Abbrechen
+              <X className="h-3.5 w-3.5 mr-1" /> {t.common.abbrechen}
             </Button>
             <Button size="sm" onClick={editSpeichern} disabled={speichertEdit}>
               {speichertEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
-              Speichern
+              {t.common.speichern}
             </Button>
           </div>
         )}
@@ -203,28 +233,28 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           {/* Gast */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Gast</CardTitle>
+              <CardTitle className="text-sm">{t.buchungen.gastKarte}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {editModus ? (
                 <>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Name</Label>
+                    <Label className="text-xs">{t.buchungen.name}</Label>
                     <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">E-Mail</Label>
+                    <Label className="text-xs">{t.buchungen.eMail}</Label>
                     <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-8 text-sm" />
                   </div>
                 </>
               ) : (
                 <>
                   <div>
-                    <p className="text-xs text-muted-foreground">Name</p>
+                    <p className="text-xs text-muted-foreground">{t.buchungen.name}</p>
                     <p className="text-sm font-medium mt-0.5">{buchung.gaest_name}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">E-Mail</p>
+                    <p className="text-xs text-muted-foreground">{t.buchungen.eMail}</p>
                     <a href={`mailto:${buchung.gaest_email}`}
                       className="text-sm font-medium text-primary hover:underline mt-0.5 block">
                       {buchung.gaest_email}
@@ -232,7 +262,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                   </div>
                   {buchung.ticket_typ && (
                     <div>
-                      <p className="text-xs text-muted-foreground">Ticket-Typ</p>
+                      <p className="text-xs text-muted-foreground">{t.buchungen.ticketTyp}</p>
                       <p className="text-sm font-medium mt-0.5">{buchung.ticket_typ.name}</p>
                       {buchung.ticket_typ.extra_felder && Object.keys(buchung.ticket_typ.extra_felder).length > 0 && (
                         <div className="mt-1.5 space-y-0.5">
@@ -253,7 +283,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           {/* Event */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Event</CardTitle>
+              <CardTitle className="text-sm">{t.buchungen.eventKarte}</CardTitle>
             </CardHeader>
             <CardContent>
               <Link href={`/dashboard/events/${event.id}`}
@@ -268,12 +298,12 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Ticket className="h-4 w-4" /> Tickets ({tickets.length})
+                <Ticket className="h-4 w-4" /> {t.buchungen.ticketsKarte.replace("{n}", String(tickets.length))}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
               {tickets.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Keine Tickets erfasst.</p>
+                <p className="text-sm text-muted-foreground">{t.buchungen.keineTickets}</p>
               ) : (
                 <div className="divide-y divide-border">
                   {tickets.map((t) => (
@@ -292,12 +322,12 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                   <div className="pt-2.5 space-y-1">
                     {event.serviceGebuehrCent > 0 && (
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Servicegebühr ({tickets.length}×)</span>
+                        <span>{t.buchungen.servicegebuehr.replace("{n}", String(tickets.length))}</span>
                         <span>{euro(serviceGebuehr)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm font-semibold pt-1 border-t border-border mt-1">
-                      <span>Gesamt</span>
+                      <span>{t.common.gesamt}</span>
                       <span>{euro(buchung.gesamt_cent)}</span>
                     </div>
                   </div>
@@ -309,13 +339,13 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           {/* Status + Notiz */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Status &amp; Notiz</CardTitle>
+              <CardTitle className="text-sm">{t.buchungen.statusNotiz}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {editModus ? (
                 <>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Status</Label>
+                    <Label className="text-xs">{t.buchungen.colStatus}</Label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
@@ -327,11 +357,11 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Interne Notiz</Label>
+                    <Label className="text-xs">{t.buchungen.interneNotiz}</Label>
                     <textarea
                       value={notiz}
                       onChange={(e) => setNotiz(e.target.value)}
-                      placeholder="Notiz für interne Zwecke…"
+                      placeholder={t.buchungen.notizPlaceholder}
                       rows={3}
                       className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                     />
@@ -340,7 +370,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
               ) : (
                 <>
                   <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="text-xs text-muted-foreground">{t.buchungen.colStatus}</p>
                     <Badge variant={STATUS_VARIANT[buchung.status] ?? "secondary"} className="mt-1">
                       {STATUS_LABEL[buchung.status] ?? buchung.status}
                     </Badge>
@@ -354,7 +384,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                   {!buchung.notiz && !editModus && (
                     <button type="button" onClick={() => setEditModus(true)}
                       className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      + Notiz hinzufügen
+                      {t.buchungen.notizHinzu}
                     </button>
                   )}
                 </>
@@ -368,14 +398,14 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
           <Card className="flex flex-col h-full">
             <CardHeader className="pb-3 shrink-0">
               <CardTitle className="text-sm">
-                Kommentare {kommentare.length > 0 && <span className="text-muted-foreground font-normal">({kommentare.length})</span>}
+                {t.buchungen.kommentare} {kommentare.length > 0 && <span className="text-muted-foreground font-normal">({kommentare.length})</span>}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col flex-1 gap-3 min-h-0 px-4 pb-4">
               {/* Comment list */}
               <div className="flex-1 overflow-y-auto space-y-3 max-h-[400px] lg:max-h-[500px] pr-1">
                 {kommentare.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Noch keine Kommentare.</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">{t.buchungen.nochKeineKommentare}</p>
                 ) : (
                   kommentare.map((k) => (
                     <div key={k.id} className="rounded-lg bg-muted/50 px-3 py-2.5 space-y-1">
@@ -395,7 +425,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); kommentarSenden(); }
                   }}
-                  placeholder="Kommentar schreiben… (Enter zum Senden)"
+                  placeholder={t.buchungen.kommentarPlaceholder}
                   rows={2}
                   className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                 />

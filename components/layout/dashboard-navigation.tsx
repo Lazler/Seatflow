@@ -6,20 +6,23 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Calendar, MapPin, LogOut, ReceiptText, Tag, Ticket, BarChart2 } from "lucide-react";
-
-const NAVIGATION = [
-  { href: "/dashboard",                     label: "Übersicht",        icon: LayoutDashboard, exakt: true  },
-  { href: "/dashboard/buchungen",           label: "Buchungen",        icon: ReceiptText,     exakt: false },
-  { href: "/dashboard/events",              label: "Events",           icon: Calendar,        exakt: false },
-  { href: "/dashboard/analytics",          label: "Analytics",        icon: BarChart2,       exakt: false },
-  { href: "/dashboard/venues",              label: "Venues",           icon: MapPin,          exakt: false },
-  { href: "/dashboard/gutscheine",          label: "Gutscheine",       icon: Tag,             exakt: false },
-  { href: "/dashboard/ticket-templates",    label: "Ticket-Templates", icon: Ticket,          exakt: false },
-];
+import { useT } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 export function DashboardNavigation() {
   const pfad = usePathname();
   const router = useRouter();
+  const t = useT();
+
+  const NAVIGATION = [
+    { href: "/dashboard",                  label: t.nav.uebersicht,       icon: LayoutDashboard, exakt: true  },
+    { href: "/dashboard/buchungen",        label: t.nav.buchungen,        icon: ReceiptText,     exakt: false },
+    { href: "/dashboard/events",           label: t.nav.events,           icon: Calendar,        exakt: false },
+    { href: "/dashboard/analytics",        label: t.nav.analytics,        icon: BarChart2,       exakt: false },
+    { href: "/dashboard/venues",           label: t.nav.venues,           icon: MapPin,          exakt: false },
+    { href: "/dashboard/gutscheine",       label: t.nav.gutscheine,       icon: Tag,             exakt: false },
+    { href: "/dashboard/ticket-templates", label: t.nav.ticketTemplates,  icon: Ticket,          exakt: false },
+  ];
 
   async function abmelden() {
     const supabase = createClient();
@@ -60,7 +63,8 @@ export function DashboardNavigation() {
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-border">
+      <div className="px-3 pb-2 border-t border-border pt-3 space-y-1">
+        <LanguageSwitcher />
         <Button
           variant="ghost"
           size="sm"
@@ -68,7 +72,7 @@ export function DashboardNavigation() {
           onClick={abmelden}
         >
           <LogOut className="h-4 w-4 mr-3" />
-          Abmelden
+          {t.nav.abmelden}
         </Button>
       </div>
     </aside>

@@ -10,6 +10,7 @@ import SitzplanZuweisung, { type Etage } from "./sitzplan-zuweisung";
 import EventWeiterleitungen from "./event-weiterleitungen";
 import TicketTypen from "./ticket-typen";
 import TicketTemplateSelector from "./ticket-template-selector";
+import EventSprachen from "./event-sprachen";
 import type { TicketTyp } from "@/types/ticket-typ";
 import type { TicketDesign } from "@/types/ticket-design";
 
@@ -219,6 +220,15 @@ export default async function EventDetail({
           <TicketTypen
             eventId={event.id}
             initialTypen={(event.ticket_typen as TicketTyp[] | null) ?? []}
+          />
+
+          {/* Sprachen */}
+          <EventSprachen
+            eventId={event.id}
+            initialSprachen={(event.sprachen as string[] | null) ?? ["de"]}
+            initialTranslations={(event.translations as Record<string, { titel: string; beschreibung: string }> | null) ?? {}}
+            deTitel={event.titel}
+            deBeschreibung={event.beschreibung ?? null}
           />
 
           {/* Weiterleitungs-URLs */}

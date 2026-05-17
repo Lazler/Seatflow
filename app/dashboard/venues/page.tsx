@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { MapPin, Plus } from "lucide-react";
+import { getServerDict } from "@/lib/i18n/server";
 
 export default async function VenuesSeite() {
+  const t = await getServerDict();
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,12 +22,12 @@ export default async function VenuesSeite() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Venues</h1>
-          <p className="text-muted-foreground">Deine Veranstaltungsorte verwalten</p>
+          <h1 className="text-2xl font-bold">{t.venues.title}</h1>
+          <p className="text-muted-foreground">{t.venues.subtitle}</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/venues/neu">
-            <Plus className="h-4 w-4 mr-1" /> Neues Venue
+            <Plus className="h-4 w-4 mr-1" /> {t.venues.neuesVenue}
           </Link>
         </Button>
       </div>
@@ -34,13 +36,13 @@ export default async function VenuesSeite() {
         <Card className="border-dashed">
           <CardContent className="py-16 text-center">
             <MapPin className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="font-medium mb-1">Noch keine Venues</p>
+            <p className="font-medium mb-1">{t.venues.nochKeineVenues}</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Lege deinen ersten Veranstaltungsort an.
+              {t.venues.ersteVenue}
             </p>
             <Button asChild>
               <Link href="/dashboard/venues/neu">
-                <Plus className="h-4 w-4 mr-1" /> Venue anlegen
+                <Plus className="h-4 w-4 mr-1" /> {t.venues.venueAnlegen}
               </Link>
             </Button>
           </CardContent>
@@ -59,7 +61,7 @@ export default async function VenuesSeite() {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href={`/dashboard/venues/${venue.id}`}>Verwalten</Link>
+                  <Link href={`/dashboard/venues/${venue.id}`}>{t.venues.verwalten}</Link>
                 </Button>
               </CardContent>
             </Card>

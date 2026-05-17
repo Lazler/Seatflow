@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ArrowRight, ReceiptText, Plus } from "lucide-react";
+import { useT } from "@/components/i18n-provider";
 
 type Buchung = {
   id: string;
@@ -22,9 +23,6 @@ type Event = { id: string; titel: string };
 
 type SortKey = "datum_desc" | "datum_asc" | "betrag_desc" | "betrag_asc";
 
-const STATUS_LABEL: Record<string, string> = {
-  bezahlt: "Bezahlt", ausstehend: "Ausstehend", storniert: "Storniert", erstattet: "Erstattet",
-};
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
 };
@@ -50,6 +48,7 @@ function kurzId(id: string) {
 }
 
 export default function BuchungenListe({ buchungen, events }: { buchungen: Buchung[]; events: Event[] }) {
+  const t = useT();
   const [suche, setSuche] = useState("");
   const [statusFilter, setStatusFilter] = useState("alle");
   const [sortierung, setSortierung] = useState<SortKey>("datum_desc");
@@ -82,18 +81,22 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
   const bezahlt   = buchungen.filter((b) => b.status === "bezahlt");
   const gesamtCent = bezahlt.reduce((s, b) => s + b.gesamt_cent, 0);
 
+  const STATUS_LABEL: Record<string, string> = {
+    bezahlt: t.status.bezahlt, ausstehend: t.status.ausstehend, storniert: t.status.storniert, erstattet: t.status.erstattet,
+  };
+
   const FILTER_TABS = [
-    { key: "alle",       label: "Alle",        count: buchungen.length },
-    { key: "bezahlt",    label: "Bezahlt",     count: buchungen.filter(b => b.status === "bezahlt").length },
-    { key: "ausstehend", label: "Ausstehend",  count: buchungen.filter(b => b.status === "ausstehend").length },
-    { key: "storniert",  label: "Storniert",   count: buchungen.filter(b => b.status === "storniert").length },
+    { key: "alle",       label: t.common.alle,             count: buchungen.length },
+    { key: "bezahlt",    label: t.status.bezahlt,          count: buchungen.filter(b => b.status === "bezahlt").length },
+    { key: "ausstehend", label: t.status.ausstehend,       count: buchungen.filter(b => b.status === "ausstehend").length },
+    { key: "storniert",  label: t.status.storniert,        count: buchungen.filter(b => b.status === "storniert").length },
   ];
 
   const SORT_OPTIONS: { key: SortKey; label: string; icon?: React.ReactNode }[] = [
-    { key: "datum_desc",  label: "Datum ↓" },
-    { key: "datum_asc",   label: "Datum ↑" },
-    { key: "betrag_desc", label: "Betrag ↓" },
-    { key: "betrag_asc",  label: "Betrag ↑" },
+    { key: "datum_desc",  label: t.buchungen.datumDesc },
+    { key: "datum_asc",   label: t.buchungen.datumAsc },
+    { key: "betrag_desc", label: t.buchungen.betragDesc },
+    { key: "betrag_asc",  label: t.buchungen.betragAsc },
   ];
 
   return (
@@ -101,14 +104,14 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Buchungen</h1>
+          <h1 className="text-2xl font-bold">{t.buchungen.title}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {bezahlt.length} bezahlt · {euro(gesamtCent)} Umsatz
+            {bezahlt.length} {t.status.bezahlt.toLowerCase()} · {euro(gesamtCent)} Umsatz
           </p>
         </div>
         <Button asChild size="sm">
           <Link href="/dashboard/buchungen/neu">
-            <Plus className="h-4 w-4 mr-1.5" /> Manuell anlegen
+            <Plus className="h-4 w-4 mr-1.5" /> {t.buchungen.manuellanlagen}
           </Link>
         </Button>
       </div>
@@ -118,7 +121,7 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Name, E-Mail, ID oder Event suchen…"
+            placeholder={t.buchungen.suchePlaceholder}
             value={suche}
             onChange={(e) => setSuche(e.target.value)}
             className="pl-9 h-9"
@@ -167,24 +170,24 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
       {buchungen.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center text-muted-foreground">
           <ReceiptText className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-foreground">Noch keine Buchungen</p>
-          <p className="text-sm mt-1">Buchungen erscheinen hier, sobald Tickets verkauft wurden.</p>
+          <p className="font-medium text-foreground">{t.buchungen.nochKeineBuchungen}</p>
+          <p className="text-sm mt-1">{t.buchungen.buchungenErscheinen}</p>
         </div>
       ) : gefiltert.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
-          <p className="text-sm">Keine Ergebnisse für „{suche}" mit diesem Filter.</p>
+          <p className="text-sm">{t.buchungen.keineErgebnisse.replace("{term}", suche)}</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Gast</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">Event</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Betrag</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">Datum</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.buchungen.colId}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.buchungen.colGast}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">{t.buchungen.colEvent}</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.buchungen.colBetrag}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{t.buchungen.colStatus}</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">{t.buchungen.colDatum}</th>
                 <th className="w-10" />
               </tr>
             </thead>
@@ -221,7 +224,7 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
             </tbody>
           </table>
           <div className="px-4 py-2.5 border-t border-border bg-muted/20 text-xs text-muted-foreground">
-            {gefiltert.length} Buchung{gefiltert.length !== 1 ? "en" : ""}
+            {gefiltert.length} {t.buchungen.title}
             {gefiltert.length !== buchungen.length && ` von ${buchungen.length}`}
           </div>
         </div>

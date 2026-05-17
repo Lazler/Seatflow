@@ -1,25 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { Calendar, MapPin, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, ArrowLeft, Globe } from "lucide-react";
 import Link from "next/link";
 import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";
 import type { TicketTyp } from "@/types/ticket-typ";
+import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
 type EtageRaw = { id: string; name: string; sitzplan_id: string };
 
+function isLocale(v: string): v is Locale {
+  return ["de", "en", "hu"].includes(v);
+}
+
 export default async function BuchungsSeite({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
-  const { eventId } = await params;
+  const [{ eventId }, sp] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
 
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, etagen, ticket_typen, cancel_url, venues(name, adresse)"
+      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, etagen, ticket_typen, cancel_url, sprachen, translations, venues(name, adresse)"
     )
     .eq("id", eventId)
     .eq("status", "veroeffentlicht")
@@ -27,12 +34,31 @@ export default async function BuchungsSeite({
 
   if (!event) notFound();
 
+  const eventSprachen = (event.sprachen as string[] | null) ?? ["de"];
+  const eventTranslations = (event.translations as Record<string, { titel: string; beschreibung: string }> | null) ?? {};
+
+  // Determine display language
+  const requestedLang = sp.lang && isLocale(sp.lang) ? sp.lang : null;
+  const displayLang: Locale =
+    requestedLang && eventSprachen.includes(requestedLang)
+      ? requestedLang
+      : (eventSprachen[0] as Locale) ?? "de";
+
+  // Resolve localized content
+  const localizedTitel =
+    displayLang === "de"
+      ? event.titel
+      : (eventTranslations[displayLang]?.titel || event.titel);
+  const localizedBeschreibung =
+    displayLang === "de"
+      ? event.beschreibung
+      : (eventTranslations[displayLang]?.beschreibung || event.beschreibung);
+
   const cancelUrl = event.cancel_url ?? null;
   const venue = event.venues && !Array.isArray(event.venues)
     ? (event.venues as unknown as { name: string; adresse?: string })
     : null;
 
-  // Resolve which floors to show
   const etagen = (event.etagen as EtageRaw[] | null)?.filter((e) => e.sitzplan_id) ?? null;
   const sitzplanIds: string[] = etagen
     ? etagen.map((e) => e.sitzplan_id)
@@ -40,7 +66,6 @@ export default async function BuchungsSeite({
       ? [event.sitzplan_id]
       : [];
 
-  // Load all sitzplaene in parallel
   const [sitzplaeneResults, belegteTicketsResult] = await Promise.all([
     Promise.all(
       sitzplanIds.map((id) =>
@@ -52,7 +77,6 @@ export default async function BuchungsSeite({
 
   const belegteSitzIds = (belegteTicketsResult.data ?? []).map((t) => t.sitzplatz_id);
 
-  // Build floor data
   const floors = sitzplanIds
     .map((id, i) => {
       const plan = sitzplaeneResults[i]?.data;
@@ -71,6 +95,8 @@ export default async function BuchungsSeite({
       sitzplanId: string;
       konfiguration: ReturnType<typeof migrierteKonfiguration>;
     }[];
+
+  const hasMultipleLangs = eventSprachen.length > 1;
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -94,30 +120,57 @@ export default async function BuchungsSeite({
               <ArrowLeft className="h-4 w-4" />
             </Link>
           )}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="w-6 h-6 bg-primary rounded flex items-center justify-center shrink-0">
               <span className="text-primary-foreground font-bold text-[10px]">SF</span>
             </div>
-            <span className="font-semibold text-sm truncate">{event.titel}</span>
+            <span className="font-semibold text-sm truncate">{localizedTitel}</span>
           </div>
+
+          {/* Language switcher */}
+          {hasMultipleLangs && (
+            <div className="flex items-center gap-1 shrink-0">
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              {eventSprachen.map((lang) => {
+                const flag = lang === "de" ? "🇩🇪" : lang === "en" ? "🇬🇧" : "🇭🇺";
+                const isActive = lang === displayLang;
+                return (
+                  <Link
+                    key={lang}
+                    href={`/buchen/${eventId}?lang=${lang}`}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {flag} {LOCALE_LABELS[lang as Locale]}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </nav>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
         {/* Event-Header */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold mb-1.5">{event.titel}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-1.5">{localizedTitel}</h1>
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4 shrink-0" />
-              {new Date(event.datum).toLocaleDateString("de-DE", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {new Date(event.datum).toLocaleDateString(
+                displayLang === "de" ? "de-DE" : displayLang === "hu" ? "hu-HU" : "en-GB",
+                {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }
+              )}
             </span>
             {venue && (
               <span className="flex items-center gap-1.5">
@@ -126,8 +179,8 @@ export default async function BuchungsSeite({
               </span>
             )}
           </div>
-          {event.beschreibung && (
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{event.beschreibung}</p>
+          {localizedBeschreibung && (
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{localizedBeschreibung}</p>
           )}
         </div>
 
@@ -135,7 +188,7 @@ export default async function BuchungsSeite({
         {floors.length > 0 ? (
           <BuchungsSeiteClient
             eventId={event.id}
-            eventTitel={event.titel}
+            eventTitel={localizedTitel}
             eventDatum={event.datum}
             venueName={venue?.name}
             floors={floors}
@@ -145,7 +198,11 @@ export default async function BuchungsSeite({
           />
         ) : (
           <div className="rounded-xl border border-border bg-background p-12 text-center text-muted-foreground text-sm">
-            Für dieses Event wurde noch kein Sitzplan zugewiesen.
+            {displayLang === "en"
+              ? "No seating plan has been assigned to this event yet."
+              : displayLang === "hu"
+              ? "Ehhez a rendezvényhez még nincs hozzárendelve ülésrend."
+              : "Für dieses Event wurde noch kein Sitzplan zugewiesen."}
           </div>
         )}
       </div>
