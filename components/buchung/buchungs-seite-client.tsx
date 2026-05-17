@@ -24,6 +24,7 @@ const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canv
 export type Floor = {
   id: string;
   name: string | null;
+  translations?: Record<string, { name: string }> | null;
   sitzplanId: string;
   konfiguration: SitzplanKonfiguration;
 };
@@ -81,13 +82,16 @@ function FloorPicker({ floors, aktiv, onWechseln, floorLabel }: {
 }
 
 /* ─── Per-seat type selector ───────────────────────────────────────────────── */
-function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange }: {
+function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange, displayLang }: {
   sitz: AusgewaehlterSitz;
   ticketTypen: TicketTyp[];
   onTypChange: (typId: string | null) => void;
   onFeldChange: (label: string, value: string) => void;
+  displayLang?: "de" | "en" | "hu";
 }) {
   const gewaehlterTyp = ticketTypen.find((t) => t.id === sitz.ticketTypId) ?? null;
+  const tn = (t: TicketTyp) => (displayLang && displayLang !== "de" ? t.translations?.[displayLang]?.name || t.name : t.name);
+  const normalpreis = displayLang === "en" ? "Standard price" : displayLang === "hu" ? "Normál ár" : "Normalpreis";
 
   return (
     <div className="space-y-1.5">
@@ -96,10 +100,10 @@ function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange }: {
         onChange={(e) => onTypChange(e.target.value || null)}
         className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
-        <option value="">Normalpreis</option>
+        <option value="">{normalpreis}</option>
         {ticketTypen.map((t) => (
           <option key={t.id} value={t.id}>
-            {t.name} — {t.preis_regel.typ === "basis" ? "Normalpreis" : regelLabel(t.preis_regel)}
+            {tn(t)} — {t.preis_regel.typ === "basis" ? normalpreis : regelLabel(t.preis_regel)}
           </option>
         ))}
       </select>
@@ -159,6 +163,8 @@ export default function BuchungsSeiteClient({
       ausgewaehlt: "ausgewählt",
       ticketTyp: "Ticket-Typ",
       preis: "Preis",
+      sitzplan: "Sitzplan",
+      ebene: "Ebene",
     },
     en: {
       auswaehlen: "Select seats",
@@ -180,6 +186,8 @@ export default function BuchungsSeiteClient({
       ausgewaehlt: "selected",
       ticketTyp: "Ticket type",
       preis: "Price",
+      sitzplan: "Seating plan",
+      ebene: "Floor",
     },
     hu: {
       auswaehlen: "Helyek kiválasztása",
@@ -201,10 +209,25 @@ export default function BuchungsSeiteClient({
       ausgewaehlt: "kiválasztva",
       ticketTyp: "Jegytípus",
       preis: "Ár",
+      sitzplan: "Ülésrend",
+      ebene: "Szint",
     },
   }[displayLang ?? "de"];
   const mehrereEbenen = floors.length > 1;
   const hatTypen = ticketTypen.length > 0;
+
+  function typName(typ: TicketTyp) {
+    if (displayLang && displayLang !== "de") {
+      return typ.translations?.[displayLang]?.name || typ.name;
+    }
+    return typ.name;
+  }
+  function typBeschreibung(typ: TicketTyp) {
+    if (displayLang && displayLang !== "de") {
+      return typ.translations?.[displayLang]?.beschreibung || typ.beschreibung;
+    }
+    return typ.beschreibung;
+  }
 
   const [aktiverFloorIdx, setAktiverFloorIdx] = useState(0);
   const [fading, setFading] = useState(false);
@@ -231,8 +254,13 @@ export default function BuchungsSeiteClient({
     setTimeout(() => { setAktiverFloorIdx(idx); setFading(false); }, 140);
   }
 
-  const floorLabel = (floor: Floor, idx: number) =>
-    floor.name ?? (floors.length === 1 ? "Sitzplan" : `Ebene ${idx + 1}`);
+  const floorLabel = (floor: Floor, idx: number) => {
+    const translatedName = displayLang && displayLang !== "de"
+      ? floor.translations?.[displayLang]?.name
+      : null;
+    const baseName = translatedName || floor.name;
+    return baseName ?? (floors.length === 1 ? uiStrings.sitzplan ?? "Sitzplan" : `${uiStrings.ebene ?? "Ebene"} ${idx + 1}`);
+  };
 
   useEffect(() => {
     const makeUpdater = (ref: React.RefObject<HTMLDivElement | null>, setter: (v: number) => void) => () => {
@@ -311,7 +339,7 @@ export default function BuchungsSeiteClient({
       if (!typ) continue;
       for (const feld of typ.pflichtfelder.filter((f) => f.pflicht)) {
         if (!s.extraFelder[feld.label]?.trim()) {
-          return `Pflichtfeld „${feld.label}" für ${s.sitzId} (${typ.name}) fehlt.`;
+          return `Pflichtfeld „${feld.label}" für ${s.sitzId} (${typName(typ)}) fehlt.`;
         }
       }
     }
@@ -345,8 +373,8 @@ export default function BuchungsSeiteClient({
             kategorieId: s.kategorie.id,
             preisCent: sitzPreis(s),
             kategorieName: s.kategorie.name,
-            bezeichnung: typ ? `${typ.name} · ${s.sitzId}` : `${s.kategorie.name} · ${s.sitzId}`,
-            ticketTyp: typ ? { id: typ.id, name: typ.name, extra_felder: s.extraFelder } : null,
+            bezeichnung: typ ? `${typName(typ)} · ${s.sitzId}` : `${s.kategorie.name} · ${s.sitzId}`,
+            ticketTyp: typ ? { id: typ.id, name: typName(typ), extra_felder: s.extraFelder } : null,
           };
         }),
         name, email,
@@ -402,7 +430,8 @@ export default function BuchungsSeiteClient({
                 {hatTypen && (
                   <SitzTypSelector sitz={s} ticketTypen={ticketTypen}
                     onTypChange={(id) => updateSitzTyp(s.sitzId, id)}
-                    onFeldChange={(label, val) => updateSitzFeld(s.sitzId, label, val)} />
+                    onFeldChange={(label, val) => updateSitzFeld(s.sitzId, label, val)}
+                    displayLang={displayLang} />
                 )}
               </div>
             );
@@ -499,7 +528,7 @@ export default function BuchungsSeiteClient({
                       <span className="font-medium text-sm font-mono">{s.sitzId}</span>
                       {typ && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                          {typ.name}
+                          {typName(typ)}
                         </span>
                       )}
                     </div>

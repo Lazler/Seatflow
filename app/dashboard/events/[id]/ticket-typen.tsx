@@ -12,6 +12,9 @@ import { Plus, Trash2, ChevronDown, ChevronUp, Tickets, GripVertical, X } from "
 import type { TicketTyp, PflichtFeld, PreisRegel } from "@/types/ticket-typ";
 import { regelLabel } from "@/types/ticket-typ";
 
+type Lang = "de" | "en" | "hu";
+const FLAG: Record<Lang, string> = { de: "🇩🇪", en: "🇬🇧", hu: "🇭🇺" };
+
 const NEUER_TYP = (): TicketTyp => ({
   id: crypto.randomUUID(),
   name: "",
@@ -147,12 +150,33 @@ function PflichtFeldEditor({ feld, onChange, onDelete }: {
   );
 }
 
-function TypEditor({ typ, onChange, onDelete }: {
+function TypEditor({ typ, onChange, onDelete, zusatzSprachen = [] }: {
   typ: TicketTyp;
   onChange: (t: Partial<TicketTyp>) => void;
   onDelete: () => void;
+  zusatzSprachen?: Lang[];
 }) {
   const [offen, setOffen] = useState(!typ.name);
+  const [aktiveSprache, setAktiveSprache] = useState<Lang>("de");
+  const alleSprachen: Lang[] = ["de", ...zusatzSprachen];
+  const hatMehrSprachen = zusatzSprachen.length > 0;
+
+  function getName(lang: Lang) {
+    if (lang === "de") return typ.name;
+    return typ.translations?.[lang]?.name ?? "";
+  }
+  function getBeschreibung(lang: Lang) {
+    if (lang === "de") return typ.beschreibung ?? "";
+    return typ.translations?.[lang]?.beschreibung ?? "";
+  }
+  function setName(lang: Lang, value: string) {
+    if (lang === "de") { onChange({ name: value }); return; }
+    onChange({ translations: { ...typ.translations, [lang]: { ...typ.translations?.[lang], name: value } } });
+  }
+  function setBeschreibung(lang: Lang, value: string) {
+    if (lang === "de") { onChange({ beschreibung: value }); return; }
+    onChange({ translations: { ...typ.translations, [lang]: { ...typ.translations?.[lang], beschreibung: value } } });
+  }
 
   return (
     <div className={`rounded-xl border transition-colors ${typ.aktiv ? "border-border" : "border-border/50 opacity-60"}`}>
@@ -180,14 +204,37 @@ function TypEditor({ typ, onChange, onDelete }: {
 
       {offen && (
         <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+          {/* Language tabs for name/description */}
+          {hatMehrSprachen && (
+            <div className="flex gap-0.5 border-b border-border -mx-3 px-3">
+              {alleSprachen.map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => setAktiveSprache(lang)}
+                  className={`px-2.5 py-1 text-xs font-medium transition-colors relative ${
+                    aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {FLAG[lang]} {lang.toUpperCase()}
+                  {aktiveSprache === lang && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Name *</Label>
+              <Label className="text-xs">
+                Name {aktiveSprache !== "de" ? `(${FLAG[aktiveSprache]} ${aktiveSprache.toUpperCase()})` : "*"}
+              </Label>
               <Input
-                value={typ.name}
-                onChange={(e) => onChange({ name: e.target.value })}
-                placeholder="z.B. Schülerticket, Seniorenticket"
+                value={getName(aktiveSprache)}
+                onChange={(e) => setName(aktiveSprache, e.target.value)}
+                placeholder={aktiveSprache === "de" ? "z.B. Schülerticket, Seniorenticket" : `Name auf ${aktiveSprache === "en" ? "Englisch" : "Ungarisch"}`}
                 className="h-8 text-sm"
+                required={aktiveSprache === "de"}
               />
             </div>
             <div className="space-y-1">
@@ -202,11 +249,13 @@ function TypEditor({ typ, onChange, onDelete }: {
             </div>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Kurzbeschreibung (optional, sichtbar für Kunden)</Label>
+            <Label className="text-xs">
+              Kurzbeschreibung {aktiveSprache !== "de" ? `(${FLAG[aktiveSprache]} ${aktiveSprache.toUpperCase()})` : "(optional, sichtbar für Kunden)"}
+            </Label>
             <Input
-              value={typ.beschreibung ?? ""}
-              onChange={(e) => onChange({ beschreibung: e.target.value })}
-              placeholder="z.B. Nur mit gültigem Schülerausweis"
+              value={getBeschreibung(aktiveSprache)}
+              onChange={(e) => setBeschreibung(aktiveSprache, e.target.value)}
+              placeholder={aktiveSprache === "de" ? "z.B. Nur mit gültigem Schülerausweis" : `Beschreibung auf ${aktiveSprache === "en" ? "Englisch" : "Ungarisch"}`}
               className="h-8 text-sm"
             />
           </div>
@@ -252,7 +301,10 @@ function TypEditor({ typ, onChange, onDelete }: {
   );
 }
 
-export default function TicketTypen({ eventId, initialTypen }: { eventId: string; initialTypen: TicketTyp[] }) {
+export default function TicketTypen({ eventId, initialTypen, eventSprachen = ["de"] }: { eventId: string; initialTypen: TicketTyp[]; eventSprachen?: string[] }) {
+  const zusatzSprachen = (eventSprachen.filter((l) => l !== "de") as Lang[]).filter((l) =>
+    ["en", "hu"].includes(l)
+  );
   const [typen, setTypen] = useState<TicketTyp[]>(initialTypen);
   const [isPending, startTransition] = useTransition();
   const [gespeichert, setGespeichert] = useState(false);
@@ -297,6 +349,7 @@ export default function TicketTypen({ eventId, initialTypen }: { eventId: string
                 typ={typ}
                 onChange={(patch) => updateTyp(typ.id, patch)}
                 onDelete={() => setTypen((prev) => prev.filter((t) => t.id !== typ.id))}
+                zusatzSprachen={zusatzSprachen}
               />
             ))}
           </div>

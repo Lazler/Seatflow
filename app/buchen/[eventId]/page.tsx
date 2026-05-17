@@ -85,6 +85,7 @@ export default async function BuchungsSeite({
       return {
         id: etagen ? etagen[i].id : id,
         name: etageName ?? null,
+        translations: (etagen?.[i] as { translations?: Record<string, { name: string }> } | undefined)?.translations ?? null,
         sitzplanId: id,
         konfiguration: migrierteKonfiguration(plan.konfiguration),
       };

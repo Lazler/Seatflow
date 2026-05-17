@@ -73,10 +73,12 @@ export default async function EventEinstellungen({
             aktuellerSitzplanId={event.sitzplan_id ?? null}
             aktuelleEtagen={(event.etagen as Etage[] | null) ?? null}
             sitzplaene={sitzplaene ?? []}
+            eventSprachen={(event.sprachen as string[] | null) ?? ["de"]}
           />
           <TicketTypen
             eventId={event.id}
             initialTypen={(event.ticket_typen as TicketTyp[] | null) ?? []}
+            eventSprachen={(event.sprachen as string[] | null) ?? ["de"]}
           />
         </div>
 

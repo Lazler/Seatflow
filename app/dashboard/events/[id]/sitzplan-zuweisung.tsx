@@ -8,12 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Map, Plus, Trash2 } from "lucide-react";
 
 type Sitzplan = { id: string; name: string };
+type Lang = "de" | "en" | "hu";
 
 export type Etage = {
   id: string;
   name: string;
   sitzplan_id: string;
+  translations?: Partial<Record<"en" | "hu", { name: string }>>;
 };
+
+const FLAG: Record<Lang, string> = { de: "🇩🇪", en: "🇬🇧", hu: "🇭🇺" };
 
 function etageVonSitzplanId(sitzplanId: string | null): Etage[] {
   if (!sitzplanId) return [];
@@ -25,21 +29,29 @@ export default function SitzplanZuweisung({
   aktuellerSitzplanId,
   aktuelleEtagen,
   sitzplaene,
+  eventSprachen = ["de"],
 }: {
   eventId: string;
   aktuellerSitzplanId: string | null;
   aktuelleEtagen: Etage[] | null;
   sitzplaene: Sitzplan[];
+  eventSprachen?: string[];
 }) {
   const router = useRouter();
   const [laedt, setLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
+  const [aktiveSprache, setAktiveSprache] = useState<Lang>("de");
 
   const initialEtagen: Etage[] = aktuelleEtagen?.length
     ? aktuelleEtagen
     : etageVonSitzplanId(aktuellerSitzplanId);
 
   const [etagen, setEtagen] = useState<Etage[]>(initialEtagen);
+
+  const zusatzSprachen = (eventSprachen.filter((l) => l !== "de") as Lang[]).filter((l) =>
+    ["en", "hu"].includes(l)
+  );
+  const hatMehrSprachen = zusatzSprachen.length > 0;
 
   function etageHinzufuegen() {
     setEtagen((prev) => [
@@ -57,6 +69,26 @@ export default function SitzplanZuweisung({
   function etageAktualisieren(id: string, delta: Partial<Etage>) {
     setEtagen((prev) => prev.map((e) => (e.id === id ? { ...e, ...delta } : e)));
     setGespeichert(false);
+  }
+
+  function setEtageName(id: string, lang: Lang, value: string) {
+    if (lang === "de") {
+      etageAktualisieren(id, { name: value });
+    } else {
+      setEtagen((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, translations: { ...e.translations, [lang]: { name: value } } }
+            : e
+        )
+      );
+      setGespeichert(false);
+    }
+  }
+
+  function getEtageName(etage: Etage, lang: Lang): string {
+    if (lang === "de") return etage.name;
+    return etage.translations?.[lang]?.name ?? "";
   }
 
   async function speichern() {
@@ -83,6 +115,7 @@ export default function SitzplanZuweisung({
   if (sitzplaene.length === 0) return null;
 
   const mehrereEbenen = etagen.length > 1;
+  const alleSprachen: Lang[] = ["de", ...zusatzSprachen];
 
   return (
     <Card>
@@ -93,6 +126,27 @@ export default function SitzplanZuweisung({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Language tabs for floor names */}
+        {hatMehrSprachen && (
+          <div className="flex gap-0.5 border-b border-border mb-1">
+            {alleSprachen.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setAktiveSprache(lang)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors relative ${
+                  aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {FLAG[lang]} {lang.toUpperCase()}
+                {aktiveSprache === lang && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {etagen.length === 0 ? (
           <p className="text-xs text-muted-foreground">Noch keine Ebene konfiguriert.</p>
         ) : (
@@ -101,9 +155,13 @@ export default function SitzplanZuweisung({
               <div key={etage.id} className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <input
-                    value={etage.name}
-                    onChange={(e) => etageAktualisieren(etage.id, { name: e.target.value })}
-                    placeholder={`Ebene ${idx + 1}`}
+                    value={getEtageName(etage, aktiveSprache)}
+                    onChange={(e) => setEtageName(etage.id, aktiveSprache, e.target.value)}
+                    placeholder={
+                      aktiveSprache === "de"
+                        ? `Ebene ${idx + 1}`
+                        : `Name auf ${aktiveSprache === "en" ? "Englisch" : "Ungarisch"}`
+                    }
                     className="h-7 flex-1 text-xs rounded-md border border-input bg-transparent px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
                   {mehrereEbenen && (
@@ -116,19 +174,19 @@ export default function SitzplanZuweisung({
                     </button>
                   )}
                 </div>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={etage.sitzplan_id}
-                  onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
-                >
-                  <option value="">— Kein Sitzplan —</option>
-                  {sitzplaene.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-                {mehrereEbenen && idx < etagen.length - 1 && (
-                  <div className="h-px bg-border mt-1" />
+                {aktiveSprache === "de" && (
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={etage.sitzplan_id}
+                    onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
+                  >
+                    <option value="">— Kein Sitzplan —</option>
+                    {sitzplaene.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
                 )}
+                {mehrereEbenen && idx < etagen.length - 1 && <div className="h-px bg-border mt-1" />}
               </div>
             ))}
           </div>

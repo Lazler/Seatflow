@@ -18,6 +18,7 @@ export type TicketTyp = {
   id: string;
   name: string;
   beschreibung?: string;
+  translations?: Partial<Record<"en" | "hu", { name: string; beschreibung?: string }>>;
   preis_regel: PreisRegel;
   pflichtfelder: PflichtFeld[];
   max_pro_buchung?: number;
