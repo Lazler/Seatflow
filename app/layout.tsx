@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { AuthHashRedirect } from "@/components/auth-hash-redirect";
 
@@ -11,6 +11,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="de" className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}>
       <head>
         <link rel="alternate" hrefLang="de" href="https://seatflow.app/" />
         <link rel="alternate" hrefLang="en" href="https://seatflow.app/en" />

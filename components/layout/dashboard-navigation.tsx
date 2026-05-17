@@ -36,8 +36,19 @@ export function DashboardNavigation() {
     <aside className="w-60 shrink-0 border-r border-border bg-card h-screen sticky top-0 flex flex-col">
       <div className="h-16 flex items-center px-4 border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xs">SF</span>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4 h-4 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 9a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v2a2 2 0 0 0 0 4v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a2 2 0 0 0 0-4V9z" />
+              <line x1="9" y1="8" x2="9" y2="16" strokeDasharray="2 2" />
+            </svg>
           </div>
           <span className="font-semibold">SeatFlow</span>
         </div>

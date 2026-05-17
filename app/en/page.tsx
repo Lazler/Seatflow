@@ -144,7 +144,7 @@ const EN: LandingContent = {
     rechner: {
       heading: "What will I actually pay?",
       ticketsLabel: "Tickets per month",
-      breakevenHint: (n: number) => `Pro pays for itself from ${n} tickets/month`,
+      breakevenHint: "Pro pays for itself from {n} tickets/month",
       upgradeBtn: "Try Pro",
       currency: "€",
     },

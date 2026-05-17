@@ -144,7 +144,7 @@ const HU: LandingContent = {
     rechner: {
       heading: "Mennyit fizetek valójában?",
       ticketsLabel: "Jegy havonta",
-      breakevenHint: (n: number) => `A Pro ${n} jegy/hótól éri meg`,
+      breakevenHint: "A Pro {n} jegy/hótól éri meg",
       upgradeBtn: "Pro kipróbálása",
       currency: "€",
     },

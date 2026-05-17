@@ -144,7 +144,7 @@ const DE: LandingContent = {
     rechner: {
       heading: "Was zahle ich wirklich?",
       ticketsLabel: "Tickets pro Monat",
-      breakevenHint: (n: number) => `Pro rechnet sich ab ${n} Tickets/Monat`,
+      breakevenHint: "Pro rechnet sich ab {n} Tickets/Monat",
       upgradeBtn: "Pro ausprobieren",
       currency: "€",
     },

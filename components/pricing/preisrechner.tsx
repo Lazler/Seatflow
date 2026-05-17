@@ -8,7 +8,7 @@ type Props = {
   labels: {
     heading: string;
     ticketsLabel: string;
-    breakevenHint: (n: number) => string;
+    breakevenHint: string;
     upgradeBtn: string;
     currency: string;
   };
@@ -79,7 +79,7 @@ export default function Preisrechner({ labels, registerPath }: Props) {
         </p>
       ) : (
         <p className="text-sm text-muted-foreground text-center">
-          {labels.breakevenHint(breakeven)}
+          {labels.breakevenHint.replace("{n}", String(breakeven))}
         </p>
       )}
 

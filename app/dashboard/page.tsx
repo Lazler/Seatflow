@@ -204,18 +204,43 @@ export default async function Dashboard() {
 
       {/* ── Keine Daten: Onboarding ── */}
       {!hatDaten && (alleEvents ?? []).length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="py-14 text-center">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Ticket className="h-6 w-6 text-muted-foreground" />
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Ticket className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base">{t.dashboard.nochKeineEvents}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">{t.dashboard.erstelleErstesEvent}</p>
+              </div>
             </div>
-            <p className="font-semibold mb-1">{t.dashboard.nochKeineEvents}</p>
-            <p className="text-sm text-muted-foreground mb-5">
-              {t.dashboard.erstelleErstesEvent}
-            </p>
-            <Button asChild>
-              <Link href="/dashboard/events/neu">
-                <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard.erstesEventErstellen}
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="space-y-2 mb-5">
+              {[
+                { num: "1", label: t.nav.venues, href: "/dashboard/venues", desc: "Bühne, Saal oder Location anlegen" },
+                { num: "2", label: t.nav.events, href: "/dashboard/events/neu", desc: "Event erstellen und konfigurieren" },
+                { num: "3", label: t.dashboard.neuesEvent, href: "/dashboard/events", desc: "Buchungslink an Ihr Publikum teilen" },
+              ].map((step) => (
+                <Link
+                  key={step.num}
+                  href={step.href}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:border-primary/30 hover:bg-primary/[0.02] transition-colors group"
+                >
+                  <span className="w-6 h-6 rounded-full border-2 border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors">
+                    {step.num}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-none">{step.desc}</p>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </Link>
+              ))}
+            </div>
+            <Button asChild size="sm">
+              <Link href="/dashboard/venues">
+                <Plus className="h-4 w-4 mr-1.5" /> Venue anlegen
               </Link>
             </Button>
           </CardContent>
