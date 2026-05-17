@@ -7,6 +7,7 @@ export const dict = {
     venues: "Helyszínek",
     gutscheine: "Kuponok",
     ticketTemplates: "Jegysablonok",
+    abo: "Előfizetés",
     abmelden: "Kijelentkezés",
   },
   common: {

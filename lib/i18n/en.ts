@@ -7,6 +7,7 @@ export const dict = {
     venues: "Venues",
     gutscheine: "Vouchers",
     ticketTemplates: "Ticket Templates",
+    abo: "Subscription",
     abmelden: "Sign Out",
   },
   common: {

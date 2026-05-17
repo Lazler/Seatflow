@@ -77,10 +77,6 @@ export default function NeuesEventFormular({
     setFehler(null);
     setLaedt(true);
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/anmelden"); return; }
-
     const preisInCent = Math.round(parseFloat(preisEuro.replace(",", ".")) * 100);
     if (isNaN(preisInCent) || preisInCent < 0) {
       setFehler("Ungültiger Ticketpreis.");
@@ -88,17 +84,16 @@ export default function NeuesEventFormular({
       return;
     }
 
-    // Build translations object (only include langs with a title)
     const translationsClean: Record<string, { titel: string; beschreibung: string }> = {};
     for (const lang of zusatzSprachen) {
       const c = getContent(lang);
       if (c.titel.trim()) translationsClean[lang] = { titel: c.titel.trim(), beschreibung: c.beschreibung.trim() };
     }
 
-    const { data, error } = await supabase
-      .from("events")
-      .insert({
-        veranstalter_id: user.id,
+    const res = await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         venue_id: venueId || null,
         titel: deContent.titel,
         beschreibung: deContent.beschreibung || null,
@@ -106,20 +101,20 @@ export default function NeuesEventFormular({
         einlass_datum: einlassDatum ? new Date(einlassDatum).toISOString() : null,
         ticket_preis_cent: preisInCent,
         max_tickets: maxTickets ? parseInt(maxTickets) : null,
-        status: "entwurf",
         sprachen: alleSprachen,
         translations: translationsClean,
-      })
-      .select("id")
-      .single();
+      }),
+    });
 
-    if (error) {
-      setFehler("Event konnte nicht gespeichert werden.");
+    const json = await res.json();
+
+    if (!res.ok) {
+      setFehler(json.error ?? "Event konnte nicht gespeichert werden.");
       setLaedt(false);
       return;
     }
 
-    router.push(`/dashboard/events/${data.id}`);
+    router.push(`/dashboard/events/${json.id}`);
   }
 
   const content = getContent(aktiveSprache);

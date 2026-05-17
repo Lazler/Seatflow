@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { sendTicketMail } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { effectivePlan } from "@/lib/plan";
 import type Stripe from "stripe";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
@@ -19,11 +20,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ungültige Webhook-Signatur" }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+
+  // ── Subscription lifecycle ────────────────────────────────────────────────
+  if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
+    const sub = event.data.object as Stripe.Subscription;
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+    const periodEnd = (sub as unknown as { current_period_end: number }).current_period_end;
+    const aboBis = new Date(periodEnd * 1000).toISOString();
+    const isActive = sub.status === "active" || sub.status === "trialing";
+
+    await admin
+      .from("veranstalter_profile")
+      .update({
+        plan: isActive ? "pro" : "free",
+        abo_bis: isActive ? aboBis : null,
+        stripe_subscription_id: sub.id,
+      })
+      .eq("stripe_customer_id", customerId);
+
+    return NextResponse.json({ received: true });
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as Stripe.Subscription;
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+
+    await admin
+      .from("veranstalter_profile")
+      .update({ plan: "free", abo_bis: null, stripe_subscription_id: null })
+      .eq("stripe_customer_id", customerId);
+
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Ticket purchase ───────────────────────────────────────────────────────
   if (event.type !== "checkout.session.completed") {
     return NextResponse.json({ received: true });
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
+
+  // Subscription checkout — already handled above via subscription events
+  if (session.mode === "subscription") {
+    return NextResponse.json({ received: true });
+  }
+
   const buchungId = session.metadata?.buchung_id;
   const eventId = session.metadata?.event_id;
   const sprache = (session.metadata?.sprache ?? "de") as "de" | "en" | "hu";
@@ -32,13 +74,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fehlende Metadaten" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-
   const paymentIntent = typeof session.payment_intent === "string"
     ? session.payment_intent
     : session.payment_intent?.id ?? null;
 
-  // Assign invoice number + mark as paid atomically
   const { data: buchung } = await admin
     .from("buchungen")
     .update({
@@ -60,7 +99,7 @@ export async function POST(req: NextRequest) {
       .eq("buchung_id", buchungId),
     admin
       .from("events")
-      .select("titel, datum, ticket_design, ticket_template_id, venues(name)")
+      .select("titel, datum, ticket_design, ticket_template_id, veranstalter_id, venues(name)")
       .eq("id", eventId)
       .single(),
     admin
@@ -72,7 +111,14 @@ export async function POST(req: NextRequest) {
 
   if (!ev || !tickets?.length) return NextResponse.json({ received: true });
 
-  // Resolve template design
+  // Check organizer plan for email branding
+  const { data: profil } = await admin
+    .from("veranstalter_profile")
+    .select("plan, abo_bis")
+    .eq("id", ev.veranstalter_id)
+    .single();
+  const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
+
   let design: TicketDesign = (ev.ticket_design as TicketDesign | null) ?? DEFAULT_TICKET_DESIGN;
   if (ev.ticket_template_id) {
     const { data: tmpl } = await admin
@@ -106,6 +152,7 @@ export async function POST(req: NextRequest) {
     ticketTypName: ticketTyp?.name,
     design,
     sprache,
+    poweredBySeatflow: plan === "free",
   });
 
   return NextResponse.json({ received: true });

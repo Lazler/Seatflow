@@ -7,6 +7,7 @@ import { preisNachRegel } from "@/types/ticket-typ";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import type { TicketTyp, PreisRegel } from "@/types/ticket-typ";
 import { rateLimit } from "@/lib/rate-limit";
+import { PLAN_SERVICE_FEE_CENT, effectivePlan } from "@/lib/plan";
 
 const SitzplatzSchema = z.object({
   sitzId: z.string().min(1).max(100),
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   // Load event with sitzplan data for server-side price calculation
   const { data: event } = await supabase
     .from("events")
-    .select("id, titel, datum, service_gebuehr_cent, status, success_url, cancel_url, sitzplan_id, etagen, ticket_typen")
+    .select("id, titel, datum, status, success_url, cancel_url, sitzplan_id, etagen, ticket_typen, veranstalter_id")
     .eq("id", eventId)
     .eq("status", "veroeffentlicht")
     .single();
@@ -57,6 +58,16 @@ export async function POST(req: NextRequest) {
   if (!event) {
     return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   }
+
+  // Determine service fee from organizer's plan
+  const admin = createAdminClient();
+  const { data: profil } = await admin
+    .from("veranstalter_profile")
+    .select("plan, abo_bis")
+    .eq("id", event.veranstalter_id)
+    .single();
+  const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
+  const serviceGebuehrCent = PLAN_SERVICE_FEE_CENT[plan];
 
   // ─── Server-side price calculation ────────────────────────────────────────
   // Load all sitzplaene to build a server-authoritative category price map
@@ -94,12 +105,10 @@ export async function POST(req: NextRequest) {
     return { ...p, preisCent, kategorieName: kategorie?.name ?? p.kategorieName };
   });
 
-  const serviceGebuehrCent: number = event.service_gebuehr_cent ?? 50;
   const gesamtCent = validatedSitzplaetze.reduce((s, p) => s + p.preisCent, 0) +
     validatedSitzplaetze.length * serviceGebuehrCent;
 
   // ─── Create booking via admin client (bypasses RLS — writes are server-only) ──
-  const admin = createAdminClient();
   const firstTicketTyp = validatedSitzplaetze.find((p) => p.ticketTyp)?.ticketTyp ?? null;
 
   const { data: buchung, error: buchungsFehler } = await admin

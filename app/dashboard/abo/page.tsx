@@ -1,0 +1,189 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { effectivePlan, type Plan } from "@/lib/plan";
+import { Button } from "@/components/ui/button";
+import { Check, Zap, Crown } from "lucide-react";
+
+type ProfilData = {
+  plan: string;
+  abo_bis: string | null;
+  stripe_subscription_id: string | null;
+};
+
+const MONTHLY_EUR = 29;
+const ANNUAL_EUR = 249;
+
+export default function AboPage() {
+  const [profil, setProfil] = useState<ProfilData | null>(null);
+  const [laedt, setLaedt] = useState(true);
+  const [aktionLaedt, setAktionLaedt] = useState(false);
+  const [interval, setInterval] = useState<"month" | "year">("year");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("veranstalter_profile")
+        .select("plan, abo_bis, stripe_subscription_id")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          setProfil(data);
+          setLaedt(false);
+        });
+    });
+  }, []);
+
+  const plan: Plan = profil ? effectivePlan(profil.plan, profil.abo_bis) : "free";
+  const aboBisDatum = profil?.abo_bis ? new Date(profil.abo_bis) : null;
+
+  async function upgradeToProClick() {
+    setAktionLaedt(true);
+    const res = await fetch("/api/abonnement/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interval }),
+    });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+    else setAktionLaedt(false);
+  }
+
+  async function manageClick() {
+    setAktionLaedt(true);
+    const res = await fetch("/api/abonnement/portal", { method: "POST" });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+    else setAktionLaedt(false);
+  }
+
+  if (laedt) {
+    return <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">Lädt…</div>;
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h1 className="text-xl font-bold">Abonnement</h1>
+        <p className="text-sm text-muted-foreground mt-1">Verwalte deinen Plan und deine Abrechnung.</p>
+      </div>
+
+      {/* Current plan badge */}
+      <div className="rounded-xl border border-border bg-card p-5 flex items-center gap-4">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${plan === "pro" ? "bg-primary/10" : "bg-muted"}`}>
+          {plan === "pro" ? <Crown className="h-5 w-5 text-primary" /> : <Zap className="h-5 w-5 text-muted-foreground" />}
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold">{plan === "pro" ? "Pro Plan" : "Free Plan"}</p>
+          {plan === "pro" && aboBisDatum ? (
+            <p className="text-sm text-muted-foreground">
+              Aktiv bis {aboBisDatum.toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">3 Events/Monat · max. 80 Plätze · €1,50 Servicegebühr/Ticket</p>
+          )}
+        </div>
+        {plan === "pro" && (
+          <Button variant="outline" size="sm" onClick={manageClick} disabled={aktionLaedt}>
+            {aktionLaedt ? "Lädt…" : "Verwalten"}
+          </Button>
+        )}
+      </div>
+
+      {/* Upgrade card — only show on free */}
+      {plan === "free" && (
+        <div className="rounded-xl border border-primary/30 bg-primary/[0.03] p-6 space-y-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-semibold text-base">Upgrade auf Pro</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Rechnet sich ab <strong>40 Tickets pro Monat</strong> — dann ist Pro günstiger als Free.
+              </p>
+            </div>
+
+            {/* Interval toggle */}
+            <div className="flex rounded-lg border border-border overflow-hidden text-sm shrink-0">
+              <button
+                type="button"
+                onClick={() => setInterval("month")}
+                className={`px-3 py-1.5 transition-colors ${interval === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                Monatlich
+              </button>
+              <button
+                type="button"
+                onClick={() => setInterval("year")}
+                className={`px-3 py-1.5 transition-colors ${interval === "year" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                Jährlich{" "}
+                <span className="text-[10px] font-semibold text-green-600 ml-1">−2 Mon.</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-extrabold">
+              {interval === "year" ? `€${(ANNUAL_EUR / 12).toFixed(0)}` : `€${MONTHLY_EUR}`}
+            </span>
+            <span className="text-sm text-muted-foreground">/Monat</span>
+            {interval === "year" && (
+              <span className="text-xs text-muted-foreground ml-2">
+                (€{ANNUAL_EUR}/Jahr — statt €{MONTHLY_EUR * 12})
+              </span>
+            )}
+          </div>
+
+          <ul className="space-y-2">
+            {[
+              "Unlimitierte Events",
+              "Unlimitierte Plätze",
+              "Servicegebühr nur €0,75/Ticket (statt €1,50)",
+              "Eigenes Branding auf Tickets",
+              "Analytics",
+            ].map((f) => (
+              <li key={f} className="flex items-center gap-2 text-sm">
+                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          <Button onClick={upgradeToProClick} disabled={aktionLaedt} className="w-full sm:w-auto">
+            {aktionLaedt ? "Weiterleitung…" : `Pro ${interval === "year" ? "jährlich" : "monatlich"} abonnieren`}
+          </Button>
+        </div>
+      )}
+
+      {/* Fee comparison table */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Feature</th>
+              <th className="text-center px-4 py-3 font-medium">Free</th>
+              <th className="text-center px-4 py-3 font-medium text-primary">Pro</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {[
+              ["Events/Monat", "3", "Unbegrenzt"],
+              ["Plätze/Event", "80", "Unbegrenzt"],
+              ["Servicegebühr/Ticket", "€1,50", "€0,75"],
+              ["Eigenes Branding", "–", "✓"],
+              ["Analytics", "–", "✓"],
+            ].map(([label, frei, pro]) => (
+              <tr key={label}>
+                <td className="px-4 py-3 text-muted-foreground">{label}</td>
+                <td className="px-4 py-3 text-center">{frei}</td>
+                <td className="px-4 py-3 text-center font-medium">{pro}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

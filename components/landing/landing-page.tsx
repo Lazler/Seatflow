@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MapPin, Zap, QrCode, BarChart3, Check } from "lucide-react";
+import Preisrechner from "@/components/pricing/preisrechner";
 
 export type LandingContent = {
   lang: "de" | "en" | "hu";
@@ -29,6 +30,13 @@ export type LandingContent = {
     popular: string;
     startBtn: string;
     plans: { name: string; price: string; period: string; desc: string; features: string[]; highlight: boolean }[];
+    rechner: {
+      heading: string;
+      ticketsLabel: string;
+      breakevenHint: (n: number) => string;
+      upgradeBtn: string;
+      currency: string;
+    };
   };
   footer: string;
 };
@@ -145,7 +153,8 @@ export default function LandingPage({ c, registerPath, loginPath }: {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">{c.pricing.heading}</h2>
         <p className="text-center text-sm text-muted-foreground mb-12">{c.pricing.subline}</p>
-        <div className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-8 max-w-4xl mx-auto items-start">
+        <div className="lg:col-span-2 grid sm:grid-cols-2 gap-5">
           {c.pricing.plans.map((plan) => (
             <div
               key={plan.name}
@@ -182,6 +191,17 @@ export default function LandingPage({ c, registerPath, loginPath }: {
               </Button>
             </div>
           ))}
+        </div>
+        <Preisrechner
+          registerPath={registerPath}
+          labels={{
+            heading: c.pricing.rechner.heading,
+            ticketsLabel: c.pricing.rechner.ticketsLabel,
+            breakevenHint: c.pricing.rechner.breakevenHint,
+            upgradeBtn: c.pricing.rechner.upgradeBtn,
+            currency: c.pricing.rechner.currency,
+          }}
+        />
         </div>
       </section>
 

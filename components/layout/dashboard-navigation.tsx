@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Calendar, MapPin, LogOut, ReceiptText, Tag, Ticket, BarChart2 } from "lucide-react";
+import { LayoutDashboard, Calendar, MapPin, LogOut, ReceiptText, Tag, Ticket, BarChart2, CreditCard } from "lucide-react";
 import { useT } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
@@ -22,6 +22,7 @@ export function DashboardNavigation() {
     { href: "/dashboard/venues",           label: t.nav.venues,           icon: MapPin,          exakt: false },
     { href: "/dashboard/gutscheine",       label: t.nav.gutscheine,       icon: Tag,             exakt: false },
     { href: "/dashboard/ticket-templates", label: t.nav.ticketTemplates,  icon: Ticket,          exakt: false },
+    { href: "/dashboard/abo",              label: t.nav.abo ?? "Abo",     icon: CreditCard,      exakt: true  },
   ];
 
   async function abmelden() {
