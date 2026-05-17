@@ -14,9 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SeatFlow – Ticketshop für kleine Venues",
+  title: {
+    default: "SeatFlow – Ticketshop mit Sitzplan für kleine Venues",
+    template: "%s | SeatFlow",
+  },
   description:
-    "Interaktiver Sitzplan-Ticketshop für Theater, Kabaretts und Comedy-Clubs.",
+    "Interaktiver Sitzplan-Ticketshop für Theater, Kabaretts und Comedy-Clubs. Keine Provision, kein Entwickler.",
+  metadataBase: new URL("https://seatflow.app"),
 };
 
 export default function RootLayout({
@@ -26,6 +30,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <head>
+        <link rel="alternate" hrefLang="de" href="https://seatflow.app/" />
+        <link rel="alternate" hrefLang="en" href="https://seatflow.app/en" />
+        <link rel="alternate" hrefLang="hu" href="https://seatflow.app/hu" />
+        <link rel="alternate" hrefLang="x-default" href="https://seatflow.app/" />
+      </head>
       <body>
         <AuthHashRedirect />
         {children}

@@ -1,181 +1,172 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Zap, QrCode, BarChart3 } from "lucide-react";
+import type { Metadata } from "next";
+import LandingPage, { type LandingContent } from "@/components/landing/landing-page";
 
-const FEATURES = [
-  {
-    icon: MapPin,
-    titel: "Visueller Raumplan-Builder",
-    beschreibung:
-      "Sitzreihen, Tische und Bühnenelemente per Drag & Drop positionieren. Kein Code, kein Design-Tool.",
+export const metadata: Metadata = {
+  title: "SeatFlow – Ticketshop mit nummerierter Bestuhlung für kleine Venues",
+  description:
+    "SeatFlow gibt Theatern, Kabaretts und Comedy-Clubs einen professionellen Sitzplan-Ticketshop – ohne Provision, ohne Entwickler, in einer Stunde live.",
+  alternates: {
+    canonical: "https://seatflow.app/",
+    languages: {
+      "de": "https://seatflow.app/",
+      "en": "https://seatflow.app/en",
+      "hu": "https://seatflow.app/hu",
+    },
   },
-  {
-    icon: Zap,
-    titel: "Automatischer Ticketshop",
-    beschreibung:
-      "Aus dem Raumplan wird sofort eine buchbare Seite. Gäste klicken auf ihren Platz, zahlen per Stripe.",
+  openGraph: {
+    title: "SeatFlow – Ticketshop mit nummerierter Bestuhlung für kleine Venues",
+    description:
+      "Sitzplan-Ticketshop für Theater, Kabarett und Comedy-Clubs. In einer Stunde live, keine Provision, €0,50 / Ticket.",
+    url: "https://seatflow.app/",
+    siteName: "SeatFlow",
+    locale: "de_AT",
+    type: "website",
   },
-  {
-    icon: QrCode,
-    titel: "QR-Code-Tickets",
-    beschreibung:
-      "Sofortige E-Mail-Bestätigung mit QR-Code. Check-in per Smartphone – ohne extra Hardware.",
+  twitter: {
+    card: "summary_large_image",
+    title: "SeatFlow – Ticketshop mit Sitzplan für kleine Venues",
+    description:
+      "Theater, Kabarett, Comedy-Club: In einer Stunde deinen eigenen Ticketshop mit interaktivem Sitzplan – kein Entwickler nötig.",
   },
-  {
-    icon: BarChart3,
-    titel: "Echtzeit-Dashboard",
-    beschreibung:
-      "Belegungsübersicht, Gästeliste und Auszahlungen über Stripe Connect auf einen Blick.",
-  },
-];
+};
 
-const PREISE = [
-  {
-    name: "Starter",
-    preis: "€49",
-    beschreibung: "Für den Einstieg",
-    features: ["5 Events/Monat", "Bis 150 Plätze", "Sitzplan-Builder", "Shop & E-Mail-Bestätigung"],
-    hervorgehoben: false,
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "SeatFlow",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "49",
+    priceCurrency: "EUR",
   },
-  {
-    name: "Pro",
-    preis: "€99",
-    beschreibung: "Für aktive Venues",
-    features: [
-      "Unlimitierte Events",
-      "Bis 500 Plätze",
-      "Check-in App",
-      "Eigenes Branding",
-      "Analytics",
+  description:
+    "SeatFlow ist ein Sitzplan-Ticketshop für kleine Venues – Theater, Kabarett, Comedy-Club. Interaktiver Raumplan-Builder, automatischer Ticketshop, QR-Code-Tickets und Echtzeit-Dashboard.",
+  url: "https://seatflow.app",
+  inLanguage: ["de", "en", "hu"],
+};
+
+const DE: LandingContent = {
+  lang: "de",
+  nav: {
+    anmelden: "Anmelden",
+    kostenlosStarten: "Kostenlos starten",
+  },
+  hero: {
+    badge: "Ticketshop für Theater · Kabarett · Comedy-Clubs",
+    h1: "Nummerierte Sitzplätze verkaufen –",
+    h1Accent: "ohne Entwickler.",
+    lead: "SeatFlow gibt kleinen Venues einen fertigen Ticketshop mit interaktivem Sitzplan. Keine Provision, kein Code, kein Aufwand – in einer Stunde live.",
+    cta: "Jetzt kostenlos starten",
+    ctaSecondary: "Anmelden",
+    subline: "Kein Setup-Aufwand · Keine Provision · €0,50 pro Ticket",
+  },
+  stats: [
+    { value: "< 1 h", label: "Einrichtungszeit" },
+    { value: "€0,50", label: "pro Ticket, keine Provision" },
+    { value: "100 %", label: "web-basiert, kein App-Download" },
+  ],
+  steps: {
+    heading: "In drei Schritten live",
+    items: [
+      {
+        num: "1",
+        title: "Raumplan zeichnen",
+        desc: "Sitzreihen, Tische und Bühnenelemente per Drag & Drop platzieren. Kein Designprogramm nötig.",
+      },
+      {
+        num: "2",
+        title: "Event anlegen",
+        desc: "Datum, Ticketpreis, Beschreibung und Buchungsseite in wenigen Minuten konfigurieren.",
+      },
+      {
+        num: "3",
+        title: "Link teilen – fertig",
+        desc: "Gäste klicken auf ihren Wunschplatz, zahlen per Stripe und erhalten das Ticket sofort per E-Mail.",
+      },
     ],
-    hervorgehoben: true,
   },
-  {
-    name: "Venue",
-    preis: "€149",
-    beschreibung: "Für große Häuser",
-    features: [
-      "Unlimitierte Events",
-      "Unlimitierte Plätze",
-      "Multi-User",
-      "API-Zugang",
-      "Priority Support",
+  features: {
+    heading: "Alles, was ein Venue braucht",
+    items: [
+      {
+        icon: "map",
+        title: "Visueller Sitzplan-Builder",
+        desc: "Reihen, Tische und Freiflächen frei positionieren. Der Plan wird direkt zur buchbaren Seite.",
+      },
+      {
+        icon: "zap",
+        title: "Automatischer Ticketshop",
+        desc: "Kein Extra-Tool: Gäste buchen direkt auf deiner Seite und zahlen sicher über Stripe.",
+      },
+      {
+        icon: "qr",
+        title: "QR-Code-Tickets per E-Mail",
+        desc: "Sofort nach der Buchung. Check-in am Einlass per Smartphone – keine extra Hardware.",
+      },
+      {
+        icon: "chart",
+        title: "Echtzeit-Belegungsübersicht",
+        desc: "Welche Plätze sind frei, wer hat gebucht, wie viel Umsatz? Alles auf einen Blick.",
+      },
     ],
-    hervorgehoben: false,
   },
-];
+  pricing: {
+    heading: "Transparente Preise",
+    subline: "Monatlich kündbar · Alle Pläne inkl. Sitzplan-Builder, Ticketshop & QR-Code-Check-in",
+    popular: "Beliebteste Wahl",
+    startBtn: "Starten",
+    plans: [
+      {
+        name: "Starter",
+        price: "€49",
+        period: "/Monat",
+        desc: "Für den Einstieg",
+        features: ["5 Events/Monat", "Bis 150 Plätze", "Sitzplan-Builder", "E-Mail-Tickets & QR-Code"],
+        highlight: false,
+      },
+      {
+        name: "Pro",
+        price: "€99",
+        period: "/Monat",
+        desc: "Für aktive Venues",
+        features: [
+          "Unlimitierte Events",
+          "Bis 500 Plätze",
+          "Mehrere Ticket-Kategorien",
+          "Check-in App",
+          "Analytics",
+        ],
+        highlight: true,
+      },
+      {
+        name: "Venue",
+        price: "€149",
+        period: "/Monat",
+        desc: "Für große Häuser",
+        features: [
+          "Unlimitierte Events & Plätze",
+          "Mehrsprachige Buchungsseite",
+          "Multi-User",
+          "API-Zugang",
+          "Priority Support",
+        ],
+        highlight: false,
+      },
+    ],
+  },
+  footer: "© 2026 SeatFlow · Alle Rechte vorbehalten",
+};
 
 export default function Startseite() {
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">SF</span>
-            </div>
-            <span className="font-semibold text-lg">SeatFlow</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link href="/anmelden">Anmelden</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/registrieren">Kostenlos starten</Link>
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-        <Badge variant="secondary" className="mb-6">
-          Für kleine Venues in DACH
-        </Badge>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-          Nummerierte Sitzplätze verkaufen –{" "}
-          <span className="text-muted-foreground">ohne Entwickler</span>
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-          SeatFlow gibt kleinen Theatern, Kabaretts und Comedy-Clubs einen professionellen
-          Ticketshop mit interaktivem Sitzplan – eingerichtet in unter einer Stunde.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button size="lg" asChild>
-            <Link href="/registrieren">Jetzt kostenlos starten</Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/anmelden">Anmelden</Link>
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground mt-4">
-          Kein Setup-Aufwand · Keine Provision · €0,50 / Ticket
-        </p>
-      </section>
-
-      <section className="bg-muted/40 py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Alles in einem Paket</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map((f) => (
-              <Card key={f.titel}>
-                <CardHeader>
-                  <f.icon className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle className="text-base">{f.titel}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>{f.beschreibung}</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4">Transparente Preise</h2>
-          <p className="text-center text-muted-foreground mb-12">
-            + €0,50 pro verkauftem Ticket (Weitergabe an Gast möglich)
-          </p>
-          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {PREISE.map((p) => (
-              <Card key={p.name} className={p.hervorgehoben ? "border-primary shadow-md" : ""}>
-                <CardHeader>
-                  {p.hervorgehoben && <Badge className="w-fit mb-2">Beliebteste Wahl</Badge>}
-                  <CardTitle>{p.name}</CardTitle>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">{p.preis}</span>
-                    <span className="text-muted-foreground text-sm">/Monat</span>
-                  </div>
-                  <CardDescription>{p.beschreibung}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {p.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm">
-                        <span className="text-primary">✓</span> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="w-full mt-6"
-                    variant={p.hervorgehoben ? "default" : "outline"}
-                    asChild
-                  >
-                    <Link href="/registrieren">Starten</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        <p>© 2026 SeatFlow · Alle Rechte vorbehalten</p>
-      </footer>
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
+      <LandingPage c={DE} registerPath="/registrieren" loginPath="/anmelden" />
+    </>
   );
 }

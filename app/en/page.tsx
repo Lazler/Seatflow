@@ -1,0 +1,172 @@
+import type { Metadata } from "next";
+import LandingPage, { type LandingContent } from "@/components/landing/landing-page";
+
+export const metadata: Metadata = {
+  title: "SeatFlow – Numbered Seat Ticketing for Small Venues",
+  description:
+    "SeatFlow gives theaters, cabarets and comedy clubs a professional ticketing shop with interactive seating plan – no commission, no developer, live within an hour.",
+  alternates: {
+    canonical: "https://seatflow.app/en",
+    languages: {
+      "de": "https://seatflow.app/",
+      "en": "https://seatflow.app/en",
+      "hu": "https://seatflow.app/hu",
+    },
+  },
+  openGraph: {
+    title: "SeatFlow – Numbered Seat Ticketing for Small Venues",
+    description:
+      "Seating plan ticketing for theaters, cabarets and comedy clubs. Live in one hour, no commission, €0.50 / ticket.",
+    url: "https://seatflow.app/en",
+    siteName: "SeatFlow",
+    locale: "en_GB",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SeatFlow – Seat Ticketing for Small Venues",
+    description:
+      "Theater, cabaret, comedy club: your own ticketing shop with interactive seating plan, live in one hour – no developer needed.",
+  },
+};
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "SeatFlow",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "49",
+    priceCurrency: "EUR",
+  },
+  description:
+    "SeatFlow is a seating plan ticketing platform for small venues – theaters, cabarets and comedy clubs. Visual seat map builder, automatic ticket shop, QR-code tickets and real-time dashboard.",
+  url: "https://seatflow.app",
+  inLanguage: ["de", "en", "hu"],
+};
+
+const EN: LandingContent = {
+  lang: "en",
+  nav: {
+    anmelden: "Log in",
+    kostenlosStarten: "Start for free",
+  },
+  hero: {
+    badge: "Ticketing for theaters · cabarets · comedy clubs",
+    h1: "Sell numbered seats –",
+    h1Accent: "without a developer.",
+    lead: "SeatFlow gives small venues a ready-made ticketing shop with interactive seating plan. No commission, no code, no hassle – live within an hour.",
+    cta: "Start for free",
+    ctaSecondary: "Log in",
+    subline: "No setup fees · No commission · €0.50 per ticket",
+  },
+  stats: [
+    { value: "< 1 h", label: "Setup time" },
+    { value: "€0.50", label: "per ticket, no commission" },
+    { value: "100 %", label: "web-based, no app download" },
+  ],
+  steps: {
+    heading: "Live in three steps",
+    items: [
+      {
+        num: "1",
+        title: "Draw your floor plan",
+        desc: "Place rows, tables and stage elements via drag & drop. No design tool required.",
+      },
+      {
+        num: "2",
+        title: "Create your event",
+        desc: "Set date, ticket price, description and configure your booking page in minutes.",
+      },
+      {
+        num: "3",
+        title: "Share the link – done",
+        desc: "Guests pick their seat, pay via Stripe and receive the ticket instantly by email.",
+      },
+    ],
+  },
+  features: {
+    heading: "Everything a venue needs",
+    items: [
+      {
+        icon: "map",
+        title: "Visual seat map builder",
+        desc: "Freely position rows, tables and open areas. The map becomes your booking page directly.",
+      },
+      {
+        icon: "zap",
+        title: "Automatic ticket shop",
+        desc: "No extra tool needed: guests book directly on your page and pay securely via Stripe.",
+      },
+      {
+        icon: "qr",
+        title: "QR-code tickets by email",
+        desc: "Sent immediately after booking. Check-in at the door via smartphone – no extra hardware.",
+      },
+      {
+        icon: "chart",
+        title: "Real-time occupancy overview",
+        desc: "Which seats are free, who has booked, how much revenue? Everything at a glance.",
+      },
+    ],
+  },
+  pricing: {
+    heading: "Transparent pricing",
+    subline: "Cancel anytime · All plans include seat map builder, ticket shop & QR code check-in",
+    popular: "Most popular",
+    startBtn: "Get started",
+    plans: [
+      {
+        name: "Starter",
+        price: "€49",
+        period: "/month",
+        desc: "To get started",
+        features: ["5 events/month", "Up to 150 seats", "Seat map builder", "Email tickets & QR code"],
+        highlight: false,
+      },
+      {
+        name: "Pro",
+        price: "€99",
+        period: "/month",
+        desc: "For active venues",
+        features: [
+          "Unlimited events",
+          "Up to 500 seats",
+          "Multiple ticket categories",
+          "Check-in app",
+          "Analytics",
+        ],
+        highlight: true,
+      },
+      {
+        name: "Venue",
+        price: "€149",
+        period: "/month",
+        desc: "For larger houses",
+        features: [
+          "Unlimited events & seats",
+          "Multilingual booking page",
+          "Multi-user",
+          "API access",
+          "Priority support",
+        ],
+        highlight: false,
+      },
+    ],
+  },
+  footer: "© 2026 SeatFlow · All rights reserved",
+};
+
+export default function EnPage() {
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
+      <LandingPage c={EN} registerPath="/registrieren" loginPath="/anmelden" />
+    </>
+  );
+}
