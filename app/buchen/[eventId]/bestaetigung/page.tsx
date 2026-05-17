@@ -73,8 +73,11 @@ export default async function BestaetigungsSeite({
     <div className="min-h-screen bg-muted/40">
       <nav className="border-b border-border bg-background sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-4 h-14 flex items-center gap-2">
-          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold text-[10px]">SF</span>
+          <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 24 24" className="w-3 h-3 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 9a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v2a2 2 0 0 0 0 4v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a2 2 0 0 0 0-4V9z" />
+              <line x1="9" y1="8" x2="9" y2="16" strokeDasharray="2 2" />
+            </svg>
           </div>
           <span className="font-semibold text-sm">SeatFlow</span>
         </div>
@@ -159,6 +162,12 @@ export default async function BestaetigungsSeite({
           <Link href="/agb" className="underline hover:text-foreground">AGB</Link>
           {" · "}
           <Link href="/datenschutz" className="underline hover:text-foreground">Datenschutz</Link>
+        </p>
+
+        <p className="text-center text-xs text-muted-foreground/60 pt-2">
+          <Link href="https://seatflow.app?ref=ticket" className="hover:text-muted-foreground transition-colors">
+            Powered by <strong className="font-medium">SeatFlow</strong>
+          </Link>
         </p>
       </div>
     </div>

@@ -13,6 +13,7 @@ type TicketData = {
   ticketTypName?: string;
   qrCodeDataUrl: string;
   design: TicketDesign;
+  poweredBySeatflow?: boolean;
 };
 
 function euro(cent: number) {
@@ -321,6 +322,11 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
                   <Text style={styles.footerText}>
                     {design.fusszeile || `Buchung #${ticket.buchungId.slice(0, 8).toUpperCase()}`}
                   </Text>
+                  {ticket.poweredBySeatflow && design.logoUrl && (
+                    <Text style={{ fontSize: 7, color: "#94a3b8", marginTop: 2 }}>
+                      Powered by SeatFlow · seatflow.app
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>

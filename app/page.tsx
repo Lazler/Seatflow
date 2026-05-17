@@ -152,14 +152,34 @@ const DE: LandingContent = {
   footer: "© 2026 SeatFlow · Alle Rechte vorbehalten",
 };
 
-export default function Startseite() {
+const DE_TICKET_REF: LandingContent = {
+  ...DE,
+  hero: {
+    badge: "Sie sind Veranstalter?",
+    h1: "Das Ticketsystem hinter dem Event –",
+    h1Accent: "jetzt für Ihr Venue.",
+    lead: "SeatFlow ist der Ticketshop, den Sie gerade erlebt haben. Interaktiver Sitzplan, automatische E-Mail-Tickets, keine Provision. In einer Stunde live.",
+    cta: "Kostenlos ausprobieren",
+    ctaSecondary: "Anmelden",
+    subline: "Kein Setup-Aufwand · Keine Provision · €0,50 pro Ticket",
+  },
+};
+
+export default async function Startseite({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
+  const { ref } = await searchParams;
+  const content = ref === "ticket" ? DE_TICKET_REF : DE;
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
-      <LandingPage c={DE} registerPath="/registrieren" loginPath="/anmelden" />
+      <LandingPage c={content} registerPath="/registrieren" loginPath="/anmelden" />
     </>
   );
 }

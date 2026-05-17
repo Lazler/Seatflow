@@ -113,7 +113,7 @@ export async function sendTicketMail(params: TicketMailParams) {
         ${emailStrings.fragen}
       </p>
     </div>
-    ${params.poweredBySeatflow ? `<div style="padding:12px 32px;border-top:1px solid #e2e8f0;text-align:center"><a href="https://seatflow.app" style="font-size:11px;color:#94a3b8;text-decoration:none">Powered by <strong style="color:#64748b">SeatFlow</strong></a></div>` : ""}
+    ${params.poweredBySeatflow ? `<div style="padding:12px 32px;border-top:1px solid #e2e8f0;text-align:center"><a href="https://seatflow.app?ref=ticket" style="font-size:11px;color:#94a3b8;text-decoration:none">Powered by <strong style="color:#64748b">SeatFlow</strong></a></div>` : ""}
   </div>
 </body>
 </html>`;
@@ -130,6 +130,7 @@ export async function sendTicketMail(params: TicketMailParams) {
       ticketTypName,
       qrCodeDataUrl: await QRCode.toDataURL(s.qrCode ?? buchungId, { width: 200, margin: 1, errorCorrectionLevel: "M" }),
       design: activeDesign,
+      poweredBySeatflow: params.poweredBySeatflow,
     }))
   );
 
