@@ -244,6 +244,12 @@ export default async function EventDetail({
                     Buchungsseite öffnen
                   </Link>
                 </Button>
+                <Button size="sm" variant="outline" className="w-full" asChild>
+                  <Link href={`/scan/${event.id}`} target="_blank">
+                    <Ticket className="h-3.5 w-3.5 mr-1.5" />
+                    Ticket-Scanner öffnen
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           )}

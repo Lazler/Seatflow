@@ -14,16 +14,16 @@
 - [x] Rechnungsnummer-System (sequential, pro Veranstalter)
 
 ## Phase 3 – Missing Flows 🟡
-- [ ] Stornierung durch Käufer (Self-Service)
-- [ ] Erstattungs-UI für Veranstalter (Stripe Refund)
-- [ ] Event-Absage: Bulk-Refund + Benachrichtigung aller Käufer
-- [ ] Buchungsbestätigungs-Seite robuster machen
+- [x] Erstattungs-UI für Veranstalter (Stripe Refund via Buchungs-Detail)
+- [x] Event-Absage: Bulk-Refund + Benachrichtigung aller Käufer
+- [x] Buchungsbestätigungs-Seite robuster machen
+- [ ] Stornierung durch Käufer (Self-Service) — entfällt wegen §312g BGB
 - [ ] Double-Opt-In E-Mail für Käufer
 
 ## Phase 4 – Nice to Haves 🟢
-- [ ] Analytics-Dashboard (Einnahmen-Charts, Conversion)
-- [ ] Ticket-Scanner-App (QR-Code scannen, Einlass markieren)
+- [x] Analytics-Dashboard (Einnahmen-Charts, Conversion, Top-Events, Wochentag/Stunden)
+- [x] Ticket-Scanner-App (QR-Code scannen via Kamera, Einlass markieren)
 - [ ] Mehrsprachigkeit (DE/EN via next-intl)
 
 ---
-Current: Phase 1
+Abgeschlossen: Alle kritischen Phasen (1-3) + Analytics + Ticket-Scanner
