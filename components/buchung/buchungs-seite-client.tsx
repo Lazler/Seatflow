@@ -410,12 +410,12 @@ export default function BuchungsSeiteClient({
           <div className="border-t border-dashed border-border pt-2 space-y-0.5">
             {serviceGebuehrCent > 0 && (
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Servicegebühr ({ausgewaehlt.length}×)</span>
+                <span>{uiStrings.servicegebuehr} ({ausgewaehlt.length}×)</span>
                 <span>{euro(gebuehrCent)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-sm pt-0.5">
-              <span>Gesamt</span>
+              <span>{uiStrings.gesamtpreis}</span>
               <span>{euro(gesamtPreisCent)}</span>
             </div>
           </div>
@@ -436,7 +436,7 @@ export default function BuchungsSeiteClient({
           bg-primary text-primary-foreground hover:bg-primary/90
           disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        {ausgewaehlt.length === 0 ? "Platz im Sitzplan wählen" : `Weiter zur Bestellung →`}
+        {ausgewaehlt.length === 0 ? uiStrings.auswaehlen : `${uiStrings.weiter} →`}
       </button>
     </div>
   );
@@ -527,15 +527,15 @@ export default function BuchungsSeiteClient({
             )}
             {serviceGebuehrCent > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Servicegebühr</span>
+                <span>{uiStrings.servicegebuehr}</span>
                 <span className="tabular-nums">{euro(gebuehrCent)}</span>
               </div>
             )}
             <div className="flex justify-between items-center pt-1 border-t border-border">
-              <span className="font-bold text-base">Gesamtbetrag</span>
+              <span className="font-bold text-base">{uiStrings.gesamtpreis}</span>
               <span className="font-bold text-lg tabular-nums">{euro(gesamtPreisCent)}</span>
             </div>
-            <p className="text-xs text-muted-foreground">inkl. MwSt.</p>
+            <p className="text-xs text-muted-foreground">{uiStrings.mwst}</p>
           </div>
         </div>
 
@@ -558,10 +558,10 @@ export default function BuchungsSeiteClient({
           </div>
           <div className="px-5 py-4 space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-medium">Vollständiger Name</Label>
+              <Label htmlFor="name" className="text-sm font-medium">{uiStrings.name}</Label>
               <Input
                 id="name"
-                placeholder="Max Mustermann"
+                placeholder={uiStrings.namePlaceholder}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="h-11 rounded-xl text-sm"
@@ -569,11 +569,11 @@ export default function BuchungsSeiteClient({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium">E-Mail-Adresse</Label>
+              <Label htmlFor="email" className="text-sm font-medium">{uiStrings.email}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="max@beispiel.de"
+                placeholder={uiStrings.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-11 rounded-xl text-sm"
@@ -587,7 +587,7 @@ export default function BuchungsSeiteClient({
         <div className="rounded-2xl border border-border bg-background overflow-hidden">
           <div className="px-5 pt-4 pb-5 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Gesamtbetrag</span>
+              <span className="text-sm text-muted-foreground">{uiStrings.gesamtpreis}</span>
               <span className="text-xl font-bold tabular-nums">{euro(gesamtPreisCent)}</span>
             </div>
 
