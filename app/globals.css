@@ -119,3 +119,23 @@ body {
 }
 .bottom-sheet[data-state="open"]   { animation: slide-up-sheet 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
 .bottom-sheet[data-state="closed"] { animation: slide-down-sheet 0.22s ease-in; }
+
+/* Ticket scanner */
+@keyframes scan-sweep {
+  0%   { top: 2px;              opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: calc(100% - 2px); opacity: 0; }
+}
+.scan-sweep-line {
+  position: absolute;
+  animation: scan-sweep 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes scanner-result-in {
+  from { transform: translateY(32px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.scanner-result-in {
+  animation: scanner-result-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
