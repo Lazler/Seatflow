@@ -59,15 +59,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   }
 
-  // Determine service fee from organizer's plan
+  // Determine service fee from organizer's plan + Stripe Connect status
   const admin = createAdminClient();
   const { data: profil } = await admin
     .from("veranstalter_profile")
-    .select("plan, abo_bis")
+    .select("plan, abo_bis, stripe_account_id, stripe_connect_onboarded")
     .eq("id", event.veranstalter_id)
     .single();
   const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
   const serviceGebuehrCent = PLAN_SERVICE_FEE_CENT[plan];
+  const connectAccountId = (profil?.stripe_connect_onboarded && profil?.stripe_account_id)
+    ? (profil.stripe_account_id as string)
+    : null;
 
   // ─── Server-side price calculation ────────────────────────────────────────
   // Load all sitzplaene to build a server-authoritative category price map
@@ -181,6 +184,8 @@ export async function POST(req: NextRequest) {
     : `${appUrl}/buchen/${eventId}/bestaetigung?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = event.cancel_url ?? `${appUrl}/buchen/${eventId}`;
 
+  const applicationFeeCent = serviceGebuehrCent * validatedSitzplaetze.length;
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: lineItems,
@@ -191,6 +196,12 @@ export async function POST(req: NextRequest) {
     payment_method_types: ["card", "sepa_debit", "sofort"],
     allow_promotion_codes: true,
     locale: "de",
+    ...(connectAccountId ? {
+      payment_intent_data: {
+        application_fee_amount: applicationFeeCent,
+        transfer_data: { destination: connectAccountId },
+      },
+    } : {}),
   });
 
   return NextResponse.json({ url: session.url });

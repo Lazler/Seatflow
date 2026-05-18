@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { effectivePlan, type Plan } from "@/lib/plan";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Crown } from "lucide-react";
+import { Check, Zap, Crown, Link2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 type ProfilData = {
   plan: string;
   abo_bis: string | null;
   stripe_subscription_id: string | null;
+  stripe_account_id: string | null;
+  stripe_connect_onboarded: boolean;
 };
 
 const MONTHLY_EUR = 29;
@@ -19,7 +22,10 @@ export default function AboPage() {
   const [profil, setProfil] = useState<ProfilData | null>(null);
   const [laedt, setLaedt] = useState(true);
   const [aktionLaedt, setAktionLaedt] = useState(false);
+  const [connectLaedt, setConnectLaedt] = useState(false);
   const [interval, setInterval] = useState<"month" | "year">("year");
+  const searchParams = useSearchParams();
+  const connectSuccess = searchParams.get("connect") === "success";
 
   useEffect(() => {
     const supabase = createClient();
@@ -27,11 +33,11 @@ export default function AboPage() {
       if (!user) return;
       supabase
         .from("veranstalter_profile")
-        .select("plan, abo_bis, stripe_subscription_id")
+        .select("plan, abo_bis, stripe_subscription_id, stripe_account_id, stripe_connect_onboarded")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          setProfil(data);
+          setProfil(data as ProfilData);
           setLaedt(false);
         });
     });
@@ -58,6 +64,14 @@ export default function AboPage() {
     const { url } = await res.json();
     if (url) window.location.href = url;
     else setAktionLaedt(false);
+  }
+
+  async function connectClick() {
+    setConnectLaedt(true);
+    const res = await fetch("/api/stripe/connect", { method: "POST" });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+    else setConnectLaedt(false);
   }
 
   if (laedt) {
@@ -156,6 +170,59 @@ export default function AboPage() {
           </Button>
         </div>
       )}
+
+      {/* Stripe Connect */}
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold">Stripe-Auszahlungskonto</h2>
+        <p className="text-sm text-muted-foreground">
+          Verbinden Sie Ihr Stripe-Konto damit Ticketeinnahmen direkt an Sie ausgezahlt werden. SeatFlow behält nur die Servicegebühr.
+        </p>
+
+        {connectSuccess && (
+          <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            Ihr Stripe-Konto wurde erfolgreich verbunden. Zahlungen werden ab sofort direkt ausgezahlt.
+          </div>
+        )}
+
+        {profil?.stripe_connect_onboarded ? (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-800">Stripe-Konto verbunden</p>
+              <p className="text-xs text-emerald-700 mt-0.5">Ticketeinnahmen werden direkt auf Ihr Konto überwiesen.</p>
+            </div>
+            <span className="text-xs font-mono text-muted-foreground hidden sm:block">
+              {String(profil.stripe_account_id).slice(0, 18)}…
+            </span>
+          </div>
+        ) : profil?.stripe_account_id ? (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800">Onboarding nicht abgeschlossen</p>
+              <p className="text-xs text-amber-700 mt-0.5">Bitte schließen Sie die Stripe-Verifizierung ab, um Auszahlungen zu aktivieren.</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={connectClick} disabled={connectLaedt}>
+              {connectLaedt ? "Weiterleitung…" : "Fortsetzen"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Kein Stripe-Konto verbunden</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Ohne verbundenes Konto verbleiben Ticketeinnahmen auf dem SeatFlow-Konto bis zur manuellen Auszahlung.
+              </p>
+            </div>
+            <Button size="sm" onClick={connectClick} disabled={connectLaedt} className="shrink-0 gap-1.5">
+              <Link2 className="h-3.5 w-3.5" />
+              {connectLaedt ? "Weiterleitung…" : "Jetzt verbinden"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Fee comparison table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">

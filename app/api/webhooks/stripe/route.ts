@@ -54,6 +54,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
+  // ── Subscription payment failed → downgrade to free ───────────────────────
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+    if (customerId && invoice.billing_reason === "subscription_cycle") {
+      await admin
+        .from("veranstalter_profile")
+        .update({ plan: "free", abo_bis: null })
+        .eq("stripe_customer_id", customerId);
+    }
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Stripe Connect: account onboarding completed ──────────────────────────
+  if (event.type === "account.updated") {
+    const account = event.data.object as Stripe.Account;
+    if (account.charges_enabled) {
+      await admin
+        .from("veranstalter_profile")
+        .update({ stripe_connect_onboarded: true })
+        .eq("stripe_account_id", account.id);
+    }
+    return NextResponse.json({ received: true });
+  }
+
   // ── Ticket purchase ───────────────────────────────────────────────────────
   if (event.type !== "checkout.session.completed") {
     return NextResponse.json({ received: true });
