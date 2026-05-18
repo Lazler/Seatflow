@@ -488,6 +488,8 @@ export default function SitzplanCanvas({
     <Stage
       width={raumbreite * scale} height={raumhoehe * scale}
       scale={{ x: scale, y: scale }}
+      role={istBuchungsmodus ? "application" : undefined}
+      aria-label={istBuchungsmodus ? "Sitzplan – klicke auf einen Platz um ihn auszuwählen" : "Sitzplan-Editor"}
       onMouseDown={(e) => {
         if (istBuchungsmodus) return;
         const targetId = (e.target as Konva.Shape).id?.() ?? "";

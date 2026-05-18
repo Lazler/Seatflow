@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "claude/**", "feature/**"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  ci:
+    name: Lint · Type-Check · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Dummy values so Next.js build doesn't fail on missing env vars
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_anon_key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder_service_role
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+      RESEND_API_KEY: placeholder_resend
+      # Disable Sentry build-time uploads in CI (no auth token)
+      SENTRY_AUTH_TOKEN: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

@@ -14,6 +14,7 @@ import {
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 
@@ -327,6 +328,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
             style={{ width: konfig.breite * renderScale, minHeight: konfig.hoehe * renderScale }}
           >
+            <ErrorBoundary>
             <SitzplanCanvas
               konfiguration={konfig}
               modus="editor"
@@ -338,6 +340,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               onBuehneVerschieben={buehneVerschieben}
               onBuehneTransformiert={buehneTransformiert}
             />
+            </ErrorBoundary>
           </div>
         </div>
 
