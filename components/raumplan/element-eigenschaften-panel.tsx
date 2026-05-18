@@ -33,7 +33,7 @@ function Divider() {
 
 function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between px-4 py-1.5">
+    <div className="flex items-center justify-between px-4 py-2.5">
       <span className="text-sm text-foreground">{label}</span>
       <button type="button" onClick={() => onChange(!value)}
         className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${value ? "bg-primary" : "bg-input"}`}>
@@ -49,24 +49,24 @@ function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
 }) {
   function clamp(v: number) { return Math.min(max ?? 9999, Math.max(min ?? 0, v)); }
   return (
-    <div className="flex items-center justify-between px-4 py-1.5">
+    <div className="flex items-center justify-between px-4 py-2">
       <span className="text-sm text-foreground">{label}</span>
       <div className="flex items-center gap-1.5">
         <button type="button"
-          className="h-7 w-7 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="h-9 w-9 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           disabled={min !== undefined && value <= min}
           onClick={() => onChange(clamp(value - schritt))}>
-          <Minus className="h-3 w-3" />
+          <Minus className="h-3.5 w-3.5" />
         </button>
         <input type="number" value={value} min={min} max={max}
-          className={`h-7 w-14 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
+          className={`h-9 w-16 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
           onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) onChange(clamp(v)); }}
         />
         <button type="button"
-          className="h-7 w-7 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="h-9 w-9 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           disabled={max !== undefined && value >= max}
           onClick={() => onChange(clamp(value + schritt))}>
-          <Plus className="h-3 w-3" />
+          <Plus className="h-3.5 w-3.5" />
         </button>
         {einheit && <span className="text-xs text-muted-foreground w-5">{einheit}</span>}
       </div>
@@ -214,7 +214,7 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
             return (
               <button key={k.id} type="button"
                 onClick={() => onChange({ kategorie_id: k.id } as Partial<SitzplanElement>)}
-                className={`w-full flex items-center gap-3 h-10 px-3 rounded-lg border-2 transition-all text-left ${
+                className={`w-full flex items-center gap-3 h-12 px-3 rounded-lg border-2 transition-all text-left ${
                   aktiv ? "text-white shadow-sm" : "border-input bg-background hover:bg-muted"
                 }`}
                 style={aktiv ? { background: k.farbe, borderColor: k.farbe } : {}}>
@@ -235,7 +235,7 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
       {/* ── Footer: Duplizieren + Löschen ── */}
       <div className="shrink-0 px-4 py-3 border-t border-border space-y-2">
         <button type="button" onClick={onDuplizieren}
-          className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-input text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-input text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
           <Copy className="h-3.5 w-3.5" /> Element duplizieren
         </button>
         {loeschen ? (
@@ -256,7 +256,7 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
           </div>
         ) : (
           <button type="button" onClick={() => setLoeschen(true)}
-            className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
             <Trash2 className="h-3.5 w-3.5" /> Element löschen
           </button>
         )}

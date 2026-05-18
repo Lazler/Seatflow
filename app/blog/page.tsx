@@ -34,6 +34,14 @@ const ARTIKEL = [
     datum: "2026-05-08",
     lesezeit: "6 min",
   },
+  {
+    slug: "ticketing-vergleich",
+    titel: "Ticketing-Systeme im Vergleich: Was passt zu kleinen Kulturveranstaltungen?",
+    teaser:
+      "Eventbrite, TicketTailor, pretix oder Eigenentwicklung? Wir vergleichen die gängigsten Lösungen für Theater, Kabarett und Comedy-Clubs – und zeigen, worauf es wirklich ankommt.",
+    datum: "2026-05-15",
+    lesezeit: "8 min",
+  },
 ];
 
 export default function BlogIndex() {

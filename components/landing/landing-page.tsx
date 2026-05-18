@@ -153,10 +153,11 @@ function DashboardMockup() {
   );
 }
 
-export default function LandingPage({ c, registerPath, loginPath }: {
+export default function LandingPage({ c, registerPath, loginPath, blogPath = "/blog" }: {
   c: LandingContent;
   registerPath: string;
   loginPath: string;
+  blogPath?: string;
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -341,7 +342,7 @@ export default function LandingPage({ c, registerPath, loginPath }: {
             <span className="hidden sm:inline">{c.footer}</span>
           </div>
           <div className="flex gap-5">
-            <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+            <Link href={blogPath} className="hover:text-foreground transition-colors">Blog</Link>
             <Link href="/agb" className="hover:text-foreground transition-colors">AGB</Link>
             <Link href="/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link>
             <Link href="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>

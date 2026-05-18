@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import * as Dialog from "@radix-ui/react-dialog";
 import EditorToolbar from "./editor-toolbar";
 import ElementEigenschaftenPanel from "./element-eigenschaften-panel";
 import type { Auswahl } from "./sitzplan-canvas";
@@ -13,7 +14,7 @@ import {
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X } from "lucide-react";
+import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -39,6 +40,35 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [nameWert, setNameWert] = useState(planName);
   const [nameEditModus, setNameEditModus] = useState(false);
   const [nameLaedt, setNameLaedt] = useState(false);
+  const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
+
+  // Responsive canvas scaling
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [containerBreite, setContainerBreite] = useState(0);
+
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    setContainerBreite(el.clientWidth);
+    const ro = new ResizeObserver(() => setContainerBreite(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Scale canvas to fit container on mobile; cap at 1 on desktop
+  const renderScale = containerBreite > 0
+    ? Math.min(1, (containerBreite - 32) / konfig.breite)
+    : 1;
+
+  // Auto-open mobile panel when an element is selected
+  useEffect(() => {
+    if (auswahl !== null) setMobilePanelOffen(true);
+  }, [auswahl]);
+
+  function mobilePanelSchliessen() {
+    setMobilePanelOffen(false);
+    setAuswahl(null);
+  }
 
   async function nameSpeichern() {
     const bereinigt = nameWert.trim();
@@ -179,6 +209,67 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     return () => window.removeEventListener("keydown", onKey);
   }, [auswahl]);
 
+  // Shared sidebar panel content (used in both desktop aside and mobile bottom sheet)
+  function sidebarInhalt(onClose?: () => void) {
+    if (auswahlIds.length > 1) {
+      return (
+        <div className="flex flex-col h-full">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+            <button type="button" onClick={() => { setAuswahl(null); onClose?.(); }}
+              className="h-9 w-9 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-semibold">{auswahlIds.length} Elemente</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+            <MousePointer2 className="h-8 w-8 opacity-30" />
+            <p className="text-sm">Ziehe ein Element um alle <strong>{auswahlIds.length} Elemente</strong> gemeinsam zu verschieben.</p>
+            <p className="text-xs">Shift+Klick zum Abwählen.</p>
+          </div>
+          <div className="px-4 py-3 border-t border-border">
+            <button type="button"
+              onClick={() => {
+                setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
+                setAuswahl(null);
+                onClose?.();
+                setGespeichert(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
+              <Trash2 className="h-3.5 w-3.5" /> {auswahlIds.length} Elemente löschen
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (ausgewaehltesElement) {
+      return (
+        <ElementEigenschaftenPanel
+          el={ausgewaehltesElement}
+          kategorien={konfig.kategorien}
+          alleBezeichnungen={alleBezeichnungen}
+          onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
+          onLoeschen={() => { elementLoeschen(ausgewaehltesElement.id); onClose?.(); }}
+          onSchliessen={() => { setAuswahl(null); onClose?.(); }}
+          onDuplizieren={() => elementDuplizieren(ausgewaehltesElement.id)}
+        />
+      );
+    }
+    return (
+      <EditorToolbar
+        elemente={konfig.elemente}
+        buehne={konfig.buehne}
+        kategorien={konfig.kategorien}
+        raumbreite={konfig.breite}
+        raumhoehe={konfig.hoehe}
+        gesamtSitze={gesamtSitze}
+        onHinzufuegen={(typ) => { elementHinzufuegen(typ); onClose?.(); }}
+        onBuehneAktualisieren={buehneAktualisieren}
+        onKategorienAktualisieren={kategorienAktualisieren}
+        onRaumgroesseAktualisieren={raumgroesseAktualisieren}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Header */}
@@ -198,12 +289,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
                 className="h-6 flex-1 min-w-0 text-sm font-semibold bg-transparent border-b border-primary focus:outline-none px-0"
               />
               <button type="button" onClick={nameSpeichern} disabled={nameLaedt}
-                className="h-5 w-5 flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 shrink-0">
-                <Check className="h-3 w-3" />
+                className="h-7 w-7 flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 shrink-0">
+                <Check className="h-3.5 w-3.5" />
               </button>
               <button type="button" onClick={() => { setNameWert(planName); setNameEditModus(false); }}
-                className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
-                <X className="h-3 w-3" />
+                className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ) : (
@@ -214,26 +305,32 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <span className="text-xs text-muted-foreground hidden sm:inline">{konfig.breite} × {konfig.hoehe} px · {gesamtSitze} Plätze</span>
-          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>}
-          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Bezeichnungen</span>}
+          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ Gespeichert</span>}
+          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Bez.</span>}
           <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {speichernLaedt ? "Speichern…" : "Speichern"}
+            <Save className="h-3.5 w-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">{speichernLaedt ? "Speichern…" : "Speichern"}</span>
           </Button>
         </div>
       </div>
 
       {/* Hauptbereich: Canvas + kontext-sensitive Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
-          <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
-            style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
+        {/* Canvas — full width on mobile, flex-1 on desktop */}
+        <div
+          ref={canvasContainerRef}
+          className="flex-1 overflow-auto p-4 sm:p-6 flex items-start justify-center bg-slate-100"
+        >
+          <div
+            className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
+            style={{ width: konfig.breite * renderScale, minHeight: konfig.hoehe * renderScale }}
+          >
             <SitzplanCanvas
               konfiguration={konfig}
               modus="editor"
+              renderScale={renderScale}
               auswahl={auswahl}
               onAuswaehlen={setAuswahl}
               onElementVerschieben={elementVerschieben}
@@ -244,60 +341,44 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           </div>
         </div>
 
-        {/* Sidebar: wechselt zwischen globalen Einstellungen und Element-Eigenschaften */}
-        <aside className="w-64 border-l border-border bg-background flex flex-col overflow-hidden shrink-0">
-          {auswahlIds.length > 1 ? (
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-                <button type="button" onClick={() => setAuswahl(null)}
-                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-sm font-semibold">{auswahlIds.length} Elemente</span>
-              </div>
-              <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-                <MousePointer2 className="h-8 w-8 opacity-30" />
-                <p className="text-sm">Ziehe ein Element um alle <strong>{auswahlIds.length} Elemente</strong> gemeinsam zu verschieben.</p>
-                <p className="text-xs">Shift+Klick zum Abwählen.</p>
-              </div>
-              <div className="px-4 py-3 border-t border-border">
-                <button type="button"
-                  onClick={() => {
-                    setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
-                    setAuswahl(null);
-                    setGespeichert(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" /> {auswahlIds.length} Elemente löschen
-                </button>
-              </div>
-            </div>
-          ) : ausgewaehltesElement ? (
-            <ElementEigenschaftenPanel
-              el={ausgewaehltesElement}
-              kategorien={konfig.kategorien}
-              alleBezeichnungen={alleBezeichnungen}
-              onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
-              onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
-              onSchliessen={() => setAuswahl(null)}
-              onDuplizieren={() => elementDuplizieren(ausgewaehltesElement.id)}
-            />
-          ) : (
-            <EditorToolbar
-              elemente={konfig.elemente}
-              buehne={konfig.buehne}
-              kategorien={konfig.kategorien}
-              raumbreite={konfig.breite}
-              raumhoehe={konfig.hoehe}
-              gesamtSitze={gesamtSitze}
-              onHinzufuegen={elementHinzufuegen}
-              onBuehneAktualisieren={buehneAktualisieren}
-              onKategorienAktualisieren={kategorienAktualisieren}
-              onRaumgroesseAktualisieren={raumgroesseAktualisieren}
-            />
-          )}
+        {/* Desktop Sidebar (lg+) */}
+        <aside className="hidden lg:flex w-64 border-l border-border bg-background flex-col overflow-hidden shrink-0">
+          {sidebarInhalt()}
         </aside>
       </div>
+
+      {/* Mobile FAB — opens panel when nothing is selected */}
+      {!mobilePanelOffen && (
+        <button
+          onClick={() => setMobilePanelOffen(true)}
+          className="lg:hidden fixed bottom-5 right-5 z-20 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Panel öffnen"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Mobile Bottom Sheet (< lg) */}
+      <Dialog.Root open={mobilePanelOffen} onOpenChange={(open) => { if (!open) mobilePanelSchliessen(); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="drawer-overlay fixed inset-0 bg-black/40 z-30 lg:hidden" />
+          <Dialog.Content
+            className="bottom-sheet fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-card rounded-t-2xl shadow-2xl flex flex-col focus:outline-none"
+            style={{ maxHeight: "78vh" }}
+            aria-describedby={undefined}
+          >
+            <Dialog.Title className="sr-only">Editor-Panel</Dialog.Title>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
+            {/* Panel content */}
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              {sidebarInhalt(mobilePanelSchliessen)}
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

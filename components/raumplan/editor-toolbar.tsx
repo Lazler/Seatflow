@@ -36,16 +36,16 @@ function ZahlInput({ label, value, min, max, schritt = 10, onChange, einheit }: 
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <div className="flex items-center gap-1">
-        <Button size="icon" variant="outline" className="h-6 w-6 shrink-0"
+        <Button size="icon" variant="outline" className="h-9 w-9 shrink-0"
           onClick={() => onChange(Math.max(min ?? 0, value - schritt))} disabled={min !== undefined && value <= min}>
-          <Minus className="h-3 w-3" />
+          <Minus className="h-3.5 w-3.5" />
         </Button>
         <Input type="number" value={value} min={min} max={max}
           onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) onChange(Math.min(max ?? 9999, Math.max(min ?? 0, v))); }}
-          className={`h-6 text-xs text-center px-0 flex-1 min-w-0 ${NO_SPIN}`} />
-        <Button size="icon" variant="outline" className="h-6 w-6 shrink-0"
+          className={`h-9 text-sm text-center px-0 flex-1 min-w-0 ${NO_SPIN}`} />
+        <Button size="icon" variant="outline" className="h-9 w-9 shrink-0"
           onClick={() => onChange(Math.min(max ?? 9999, value + schritt))} disabled={max !== undefined && value >= max}>
-          <Plus className="h-3 w-3" />
+          <Plus className="h-3.5 w-3.5" />
         </Button>
         {einheit && <span className="text-xs text-muted-foreground shrink-0">{einheit}</span>}
       </div>
@@ -75,7 +75,7 @@ function RaumgroesseSection({ breite, hoehe, onChange }: {
             {RAUM_PRESETS.map((p) => (
               <button key={p.label} title={`${p.breite}×${p.hoehe}`}
                 onClick={() => onChange(p.breite, p.hoehe)}
-                className={`text-xs py-1 rounded border transition-colors font-medium ${
+                className={`text-xs py-2.5 rounded border transition-colors font-medium ${
                   breite === p.breite && hoehe === p.hoehe
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-input hover:bg-muted"
@@ -227,8 +227,8 @@ export default function EditorToolbar({
         <div className="grid grid-cols-3 gap-1.5">
           {(Object.entries(TYP_META) as [ElementTyp, typeof TYP_META[ElementTyp]][]).map(([typ, meta]) => (
             <button key={typ} onClick={() => onHinzufuegen(typ)}
-              className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg border border-input hover:bg-accent hover:border-primary/50 text-xs font-medium transition-colors">
-              <meta.icon className="h-4 w-4" />
+              className="flex flex-col items-center gap-1.5 py-3.5 px-1 rounded-lg border border-input hover:bg-accent hover:border-primary/50 text-xs font-medium transition-colors min-h-[60px]">
+              <meta.icon className="h-4.5 w-4.5" />
               <span className="leading-none text-center">{meta.label}</span>
             </button>
           ))}
