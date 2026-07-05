@@ -105,6 +105,27 @@ export function naechsteBezeichnung(elemente: SitzplanElement[], prefix = ""): s
   return `R${elemente.length + 1}`;
 }
 
+// --- Multi-Floor Sitz-Namespacing ---
+// Bei Events mit mehreren Ebenen wird die Sitz-ID mit der Floor-ID
+// qualifiziert ("<floorId>:A-1"), damit gleichnamige Reihen auf
+// verschiedenen Ebenen nicht kollidieren. Einzel-Floor-Events bleiben
+// unpräfixiert (rückwärtskompatibel zu bestehenden Tickets).
+
+export function floorSitzId(floorId: string | null, sitzId: string): string {
+  return floorId ? `${floorId}:${sitzId}` : sitzId;
+}
+
+// Anzeige-Name: alles nach dem letzten ":" (unpräfixierte IDs unverändert)
+export function sitzAnzeige(sitzplatzId: string): string {
+  const i = sitzplatzId.lastIndexOf(":");
+  return i === -1 ? sitzplatzId : sitzplatzId.slice(i + 1);
+}
+
+// Legacy-IDs ohne Präfix blockieren sicherheitshalber auf allen Ebenen
+export function sitzGehoertZuFloor(sitzplatzId: string, floorId: string): boolean {
+  return !sitzplatzId.includes(":") || sitzplatzId.startsWith(`${floorId}:`);
+}
+
 // Alle Sitze mit ihrer Kategorie
 export function alleSitze(konfig: SitzplanKonfiguration): { sitzId: string; kategorieId: string }[] {
   return konfig.elemente.flatMap((el) =>

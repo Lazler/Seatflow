@@ -4,6 +4,7 @@ import { Calendar, MapPin, ArrowLeft, Globe } from "lucide-react";
 import Link from "next/link";
 import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";
+import { belegteSitzIdsLaden } from "@/lib/belegte-sitze";
 import type { TicketTyp } from "@/types/ticket-typ";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
@@ -66,16 +67,15 @@ export default async function BuchungsSeite({
       ? [event.sitzplan_id]
       : [];
 
-  const [sitzplaeneResults, belegteTicketsResult] = await Promise.all([
+  const [sitzplaeneResults, belegteSitzIds] = await Promise.all([
     Promise.all(
       sitzplanIds.map((id) =>
         supabase.from("sitzplaene").select("id, konfiguration").eq("id", id).single()
       )
     ),
-    supabase.from("tickets").select("sitzplatz_id").eq("event_id", eventId),
+    // Bezahlte Tickets + frische Checkout-Holds; abgelaufene Holds geben frei
+    belegteSitzIdsLaden(eventId),
   ]);
-
-  const belegteSitzIds = (belegteTicketsResult.data ?? []).map((t) => t.sitzplatz_id);
 
   const floors = sitzplanIds
     .map((id, i) => {

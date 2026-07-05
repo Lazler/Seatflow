@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Loader2, ChevronUp, ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
-import { alleSitze } from "@/types/sitzplan";
+import { alleSitze, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
 import { preisNachRegel, regelLabel } from "@/types/ticket-typ";
 
@@ -281,17 +281,32 @@ export default function BuchungsSeiteClient({
 
   useEffect(() => {
     const supabase = createClient();
+    const namespaced = floors.length > 1;
     const channel = supabase.channel(`tickets-${eventId}`)
       .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "tickets", filter: `event_id=eq.${eventId}` },
         (payload) => {
-          const sitzId = (payload.new as { sitzplatz_id: string }).sitzplatz_id;
-          setBelegte((prev) => new Set([...prev, sitzId]));
-          setAusgewaehlt((prev) => prev.filter((s) => s.sitzId !== sitzId));
+          const roh = (payload.new as { sitzplatz_id: string }).sitzplatz_id;
+          setBelegte((prev) => new Set([...prev, roh]));
+          setAusgewaehlt((prev) =>
+            prev.filter((s) => floorSitzId(namespaced ? s.floorId : null, s.sitzId) !== roh)
+          );
         }
-      ).subscribe();
+      )
+      // Sitz wurde freigegeben (abgelaufener Checkout, Storno) → neu laden
+      .on("postgres_changes",
+        { event: "DELETE", schema: "public", table: "tickets" },
+        async () => {
+          try {
+            const res = await fetch(`/api/events/${eventId}/belegte`);
+            const json = await res.json() as { belegte?: string[] };
+            if (Array.isArray(json.belegte)) setBelegte(new Set(json.belegte));
+          } catch { /* nächster Reload korrigiert */ }
+        }
+      )
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [eventId]);
+  }, [eventId, floors.length]);
 
   const floorMaps = floors.map((floor) => ({
     id: floor.id,
@@ -302,6 +317,14 @@ export default function BuchungsSeiteClient({
   const aktiverFloorMap = floorMaps[aktiverFloorIdx];
   const ausgewaehlteIdsAktiverFloor = new Set(
     ausgewaehlt.filter((s) => s.floorId === aktiverFloor.id).map((s) => s.sitzId)
+  );
+
+  // Belegte Sitze der aktiven Ebene (DB-IDs können floor-präfixiert sein;
+  // Legacy-IDs ohne Präfix blockieren auf allen Ebenen)
+  const belegteAktiverFloor = new Set(
+    [...belegte]
+      .filter((id) => sitzGehoertZuFloor(id, aktiverFloor.id))
+      .map((id) => (id.includes(":") ? id.slice(id.lastIndexOf(":") + 1) : id))
   );
 
   const onSitzKlicken = useCallback((sitzId: string) => {
@@ -315,6 +338,12 @@ export default function BuchungsSeiteClient({
       return [...prev, { sitzId, floorId, kategorie: kat, ticketTypId: null, extraFelder: {} }];
     });
   }, [aktiverFloor, aktiverFloorMap]);
+
+  // Explizites Entfernen aus der Auswahlliste — funktioniert unabhängig
+  // davon, welche Ebene gerade aktiv ist (anders als onSitzKlicken)
+  const entferneSitz = useCallback((floorId: string, sitzId: string) => {
+    setAusgewaehlt((prev) => prev.filter((s) => !(s.sitzId === sitzId && s.floorId === floorId)));
+  }, []);
 
   function updateSitzTyp(sitzId: string, typId: string | null) {
     setAusgewaehlt((prev) => prev.map((s) => s.sitzId === sitzId ? { ...s, ticketTypId: typId, extraFelder: {} } : s));
@@ -368,12 +397,20 @@ export default function BuchungsSeiteClient({
         eventId,
         sitzplaetze: ausgewaehlt.map((s) => {
           const typ = ticketTypen.find((t) => t.id === s.ticketTypId) ?? null;
+          const floorIdx = floors.findIndex((f) => f.id === s.floorId);
+          const floor = floors[floorIdx];
+          // Ebene in die menschenlesbare Bezeichnung aufnehmen (Ticket/E-Mail/Scanner)
+          const ebenenTeil = mehrereEbenen && floor ? ` · ${floorLabel(floor, floorIdx)}` : "";
           return {
-            sitzId: s.sitzId,
+            // Bei Multi-Floor floor-qualifiziert, damit gleichnamige Reihen
+            // auf verschiedenen Ebenen nicht kollidieren
+            sitzId: floorSitzId(mehrereEbenen ? s.floorId : null, s.sitzId),
             kategorieId: s.kategorie.id,
             preisCent: sitzPreis(s),
             kategorieName: s.kategorie.name,
-            bezeichnung: typ ? `${typName(typ)} · ${s.sitzId}` : `${s.kategorie.name} · ${s.sitzId}`,
+            bezeichnung: typ
+              ? `${typName(typ)}${ebenenTeil} · ${s.sitzId}`
+              : `${s.kategorie.name}${ebenenTeil} · ${s.sitzId}`,
             ticketTyp: typ ? { id: typ.id, name: typName(typ), extra_felder: s.extraFelder } : null,
           };
         }),
@@ -392,7 +429,7 @@ export default function BuchungsSeiteClient({
     <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-hidden"
       style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
       <SitzplanCanvas konfiguration={aktiverFloor.konfiguration} modus="buchung"
-        renderScale={scale} belegteSitze={belegte} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
+        renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
         onSitzKlicken={onSitzKlicken} />
     </div>
   );
@@ -421,7 +458,8 @@ export default function BuchungsSeiteClient({
                   <div className="flex items-center gap-1.5">
                     {hatRabatt && <span className="line-through text-muted-foreground text-xs">{euro(s.kategorie.preis_cent)}</span>}
                     <span className="text-sm tabular-nums font-medium">{euro(typPreis)}</span>
-                    <button type="button" onClick={() => onSitzKlicken(s.sitzId)}
+                    <button type="button" onClick={() => entferneSitz(s.floorId, s.sitzId)}
+                      aria-label={`Platz ${s.sitzId} entfernen`}
                       className="text-muted-foreground/40 hover:text-destructive transition-colors ml-1 p-0.5">
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -667,7 +705,8 @@ export default function BuchungsSeiteClient({
           <div className="border-t border-border bg-muted/30 px-5 py-3">
             <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
               Mit dem Klick auf „Zahlungspflichtig bestellen" wirst du zu Stripe weitergeleitet.
-              Deine Buchung wird erst nach erfolgreicher Zahlung bestätigt.
+              Deine Plätze sind während der Zahlung <strong>30 Minuten für dich reserviert</strong> —
+              die Buchung wird erst nach erfolgreicher Zahlung bestätigt.
             </p>
           </div>
         </div>

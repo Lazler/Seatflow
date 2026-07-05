@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sitzAnzeige } from "@/types/sitzplan";
 import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download, RotateCcw, RefreshCw } from "lucide-react";
 
 type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
@@ -310,7 +311,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                     <div key={t.id} className="flex items-center justify-between py-2.5">
                       <div className="flex items-center gap-2.5">
                         <div>
-                          <span className="text-sm font-medium font-mono">{t.sitzplatz_id}</span>
+                          <span className="text-sm font-medium font-mono">{sitzAnzeige(t.sitzplatz_id)}</span>
                           {t.sitzplatz_bezeichnung && t.sitzplatz_bezeichnung !== t.sitzplatz_id && (
                             <span className="text-xs text-muted-foreground ml-2">{t.sitzplatz_bezeichnung}</span>
                           )}

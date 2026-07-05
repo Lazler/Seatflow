@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTicketMail } from "@/lib/email";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
+import { sitzAnzeige } from "@/types/sitzplan";
 
 export async function POST(
   _req: NextRequest,
@@ -72,7 +73,7 @@ export async function POST(
     venue,
     buchungId: id,
     sitze: tickets.map((t) => ({
-      sitzId: t.sitzplatz_id,
+      sitzId: sitzAnzeige(t.sitzplatz_id),
       kategorieName: t.sitzplatz_bezeichnung,
       preisCent: t.preis_cent,
       qrCode: t.qr_code,

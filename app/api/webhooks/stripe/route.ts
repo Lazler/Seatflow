@@ -6,6 +6,7 @@ import { effectivePlan } from "@/lib/plan";
 import type Stripe from "stripe";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
+import { sitzAnzeige } from "@/types/sitzplan";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -75,6 +76,24 @@ export async function POST(req: NextRequest) {
         .from("veranstalter_profile")
         .update({ stripe_connect_onboarded: true })
         .eq("stripe_account_id", account.id);
+    }
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Abgelaufener Checkout → Sitze wieder freigeben ────────────────────────
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const buchungId = session.metadata?.buchung_id;
+    if (buchungId) {
+      const { data: b } = await admin
+        .from("buchungen")
+        .select("status")
+        .eq("id", buchungId)
+        .single();
+      if (b?.status === "ausstehend") {
+        await admin.from("tickets").delete().eq("buchung_id", buchungId);
+        await admin.from("buchungen").update({ status: "abgelaufen" }).eq("id", buchungId);
+      }
     }
     return NextResponse.json({ received: true });
   }
@@ -168,7 +187,7 @@ export async function POST(req: NextRequest) {
     venue,
     buchungId,
     sitze: tickets.map((t) => ({
-      sitzId: t.sitzplatz_id,
+      sitzId: sitzAnzeige(t.sitzplatz_id),
       kategorieName: t.sitzplatz_bezeichnung,
       preisCent: t.preis_cent,
       qrCode: t.qr_code,

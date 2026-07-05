@@ -6,6 +6,7 @@ import { TicketPDF } from "@/lib/ticket-pdf";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import type { TicketDesign } from "@/types/ticket-design";
 import React from "react";
+import { sitzAnzeige } from "@/types/sitzplan";
 
 export async function GET(req: NextRequest) {
   const buchungId = req.nextUrl.searchParams.get("buchungId");
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
       eventTitel: event.titel,
       eventDatum: new Date(event.datum),
       venue,
-      sitzplaetze: [{ sitzId: t.sitzplatz_id, bezeichnung: t.sitzplatz_bezeichnung, preisCent: t.preis_cent }],
+      sitzplaetze: [{ sitzId: sitzAnzeige(t.sitzplatz_id), bezeichnung: t.sitzplatz_bezeichnung, preisCent: t.preis_cent }],
       buchungId,
       gaestName: buchung.gaest_name,
       ticketTypName: ticketTyp?.name,

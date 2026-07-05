@@ -8,6 +8,7 @@ import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import type { TicketTyp, PreisRegel } from "@/types/ticket-typ";
 import { rateLimit } from "@/lib/rate-limit";
 import { PLAN_SERVICE_FEE_CENT, effectivePlan } from "@/lib/plan";
+import { HOLD_MINUTEN } from "@/lib/belegte-sitze";
 
 const SitzplatzSchema = z.object({
   sitzId: z.string().min(1).max(100),
@@ -111,6 +112,30 @@ export async function POST(req: NextRequest) {
   const gesamtCent = validatedSitzplaetze.reduce((s, p) => s + p.preisCent, 0) +
     validatedSitzplaetze.length * serviceGebuehrCent;
 
+  // ─── Stale-Hold-Cleanup ────────────────────────────────────────────────────
+  // Abgelaufene unbezahlte Checkouts (älter als HOLD_MINUTEN) blockieren die
+  // gewünschten Sitze sonst über den Unique-Constraint dauerhaft.
+  const angefragteSitzIds = sitzplaetze.map((p) => p.sitzId);
+  const { data: bestehende } = await admin
+    .from("tickets")
+    .select("id, buchung_id, buchungen!inner(status, created_at)")
+    .eq("event_id", eventId)
+    .in("sitzplatz_id", angefragteSitzIds);
+
+  const holdCutoff = Date.now() - HOLD_MINUTEN * 60_000;
+  const staleBuchungIds = new Set<string>();
+  (bestehende ?? []).forEach((t) => {
+    const b = t.buchungen as unknown as { status: string; created_at: string | null } | null;
+    if (b?.status === "ausstehend" && b.created_at && new Date(b.created_at).getTime() < holdCutoff) {
+      staleBuchungIds.add(t.buchung_id as string);
+    }
+  });
+  if (staleBuchungIds.size > 0) {
+    const ids = [...staleBuchungIds];
+    await admin.from("tickets").delete().in("buchung_id", ids);
+    await admin.from("buchungen").update({ status: "abgelaufen" }).in("id", ids);
+  }
+
   // ─── Create booking via admin client (bypasses RLS — writes are server-only) ──
   const firstTicketTyp = validatedSitzplaetze.find((p) => p.ticketTyp)?.ticketTyp ?? null;
 
@@ -193,6 +218,8 @@ export async function POST(req: NextRequest) {
     metadata: { buchung_id: buchung.id, event_id: eventId, sprache: sprache ?? "de" },
     success_url: successUrl,
     cancel_url: cancelUrl,
+    // Sitze sind 30 Min. reserviert; danach räumt checkout.session.expired auf
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     payment_method_types: ["card", "sepa_debit", "sofort"],
     allow_promotion_codes: true,
     locale: "de",
