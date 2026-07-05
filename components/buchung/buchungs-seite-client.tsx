@@ -357,12 +357,14 @@ export default function BuchungsSeiteClient({
   );
 
   // Belegte Sitze der aktiven Ebene (DB-IDs können floor-präfixiert sein;
-  // Legacy-IDs ohne Präfix blockieren auf allen Ebenen)
-  const belegteAktiverFloor = new Set(
-    [...belegte]
+  // Legacy-IDs ohne Präfix blockieren auf allen Ebenen).
+  // Vom Veranstalter gesperrte Plätze zählen ebenfalls als belegt.
+  const belegteAktiverFloor = new Set([
+    ...[...belegte]
       .filter((id) => sitzGehoertZuFloor(id, aktiverFloor.id))
-      .map((id) => (id.includes(":") ? id.slice(id.lastIndexOf(":") + 1) : id))
-  );
+      .map((id) => (id.includes(":") ? id.slice(id.lastIndexOf(":") + 1) : id)),
+    ...(aktiverFloor.konfiguration.gesperrteSitze ?? []),
+  ]);
 
   const onSitzKlicken = useCallback((sitzId: string) => {
     const floorId = aktiverFloor.id;
@@ -382,8 +384,10 @@ export default function BuchungsSeiteClient({
     setAusgewaehlt((prev) => prev.filter((s) => !(s.sitzId === sitzId && s.floorId === floorId)));
   }, []);
 
-  // ── Verfügbarkeit ──────────────────────────────────────────────────────────
-  const gesamtPlaetze = floors.reduce((s, f) => s + alleSitze(f.konfiguration).length, 0);
+  // ── Verfügbarkeit (gesperrte Plätze zählen nicht als verkäuflich) ──────────
+  const gesperrtGesamt = floors.reduce((s, f) => s + (f.konfiguration.gesperrteSitze?.length ?? 0), 0);
+  const gesamtPlaetze = Math.max(0,
+    floors.reduce((s, f) => s + alleSitze(f.konfiguration).length, 0) - gesperrtGesamt);
   const freiePlaetze = Math.max(0, gesamtPlaetze - belegte.size);
   const wenigePlaetze = freiePlaetze > 0 && freiePlaetze <= Math.max(12, Math.round(gesamtPlaetze * 0.15));
   const ausverkauft = gesamtPlaetze > 0 && freiePlaetze === 0;

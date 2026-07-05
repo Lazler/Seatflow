@@ -12,7 +12,7 @@ export const DEFAULT_KATEGORIEN: Preiskategorie[] = [
 ];
 
 // --- Element-Typen ---
-export type ElementTyp = "reihe" | "tischreihe" | "rundtisch";
+export type ElementTyp = "reihe" | "tischreihe" | "rundtisch" | "stehplatz" | "text";
 
 type BasisElement = {
   id: string;
@@ -43,7 +43,22 @@ export type RundtischElement = BasisElement & {
   tischRadius: number;
 };
 
-export type SitzplanElement = ReiheElement | TischreiheElement | RundtischElement;
+// Freie Zone ohne feste Plätze — verkauft `kapazitaet` Stehplätze
+export type StehplatzElement = BasisElement & {
+  typ: "stehplatz";
+  breite: number;
+  hoehe: number;
+  kapazitaet: number;
+};
+
+// Reine Beschriftung (Eingang, Bar, WC, Notausgang …) — keine Plätze
+export type TextElement = BasisElement & {
+  typ: "text";
+  text: string;
+  fontSize: number;
+};
+
+export type SitzplanElement = ReiheElement | TischreiheElement | RundtischElement | StehplatzElement | TextElement;
 
 export type Buehne = {
   x: number;
@@ -60,6 +75,8 @@ export type SitzplanKonfiguration = {
   buehne: Buehne;
   kategorien: Preiskategorie[];
   elemente: SitzplanElement[];
+  // Einzeln gesperrte Plätze (Technik, Kamera, defekt) — nicht buchbar
+  gesperrteSitze?: string[];
 };
 
 // --- Konstanten ---
@@ -74,16 +91,22 @@ export const FARBE_ELEMENT_SELEKTIERT = "#f59e0b";
 // --- Hilfsfunktionen ---
 
 export function elementSitzIds(el: SitzplanElement): string[] {
-  if (el.typ === "tischreihe") {
-    const ids: string[] = [];
-    if (el.sitzeOben)
-      for (let i = 0; i < el.sitzeProSeite; i++) ids.push(`${el.bezeichnung}-${i + 1}`);
-    if (el.sitzeUnten)
-      for (let i = 0; i < el.sitzeProSeite; i++) ids.push(`${el.bezeichnung}-${el.sitzeProSeite + i + 1}`);
-    return ids;
+  switch (el.typ) {
+    case "tischreihe": {
+      const ids: string[] = [];
+      if (el.sitzeOben)
+        for (let i = 0; i < el.sitzeProSeite; i++) ids.push(`${el.bezeichnung}-${i + 1}`);
+      if (el.sitzeUnten)
+        for (let i = 0; i < el.sitzeProSeite; i++) ids.push(`${el.bezeichnung}-${el.sitzeProSeite + i + 1}`);
+      return ids;
+    }
+    case "text":
+      return [];
+    case "stehplatz":
+      return Array.from({ length: el.kapazitaet }, (_, i) => `${el.bezeichnung}-${i + 1}`);
+    default:
+      return Array.from({ length: el.anzahlSitze }, (_, i) => `${el.bezeichnung}-${i + 1}`);
   }
-  const anzahl = el.typ === "reihe" ? el.anzahlSitze : el.anzahlSitze;
-  return Array.from({ length: anzahl }, (_, i) => `${el.bezeichnung}-${i + 1}`);
 }
 
 export function tischreiheBreite(el: TischreiheElement): number {
@@ -149,6 +172,7 @@ export function migrierteKonfiguration(raw: unknown): SitzplanKonfiguration {
     breite: (k.breite as number) || LEERE_KONFIGURATION.breite,
     hoehe:  (k.hoehe  as number) || LEERE_KONFIGURATION.hoehe,
     kategorien: (k.kategorien as Preiskategorie[]) || DEFAULT_KATEGORIEN,
+    gesperrteSitze: Array.isArray(k.gesperrteSitze) ? (k.gesperrteSitze as string[]) : [],
   };
   if (k.buehne) {
     const b = k.buehne as Record<string, unknown>;

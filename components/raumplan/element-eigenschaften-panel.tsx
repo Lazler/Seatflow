@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   AlignJustify, Armchair, CircleDot, Trash2, Minus, Plus,
-  RotateCcw, ChevronLeft, Users, Check, Copy,
+  RotateCcw, ChevronLeft, Users, Check, Copy, Type,
 } from "lucide-react";
 import {
   type SitzplanElement, type Preiskategorie, type ElementTyp,
@@ -12,9 +12,11 @@ import {
 } from "@/types/sitzplan";
 
 const TYP_META: Record<ElementTyp, { label: string; icon: React.ElementType }> = {
-  reihe:      { label: "Reihe",        icon: AlignJustify },
-  tischreihe: { label: "Tischreihe",   icon: Armchair     },
-  rundtisch:  { label: "Runder Tisch", icon: CircleDot    },
+  reihe:      { label: "Reihe",          icon: AlignJustify },
+  tischreihe: { label: "Tischreihe",     icon: Armchair     },
+  rundtisch:  { label: "Runder Tisch",   icon: CircleDot    },
+  stehplatz:  { label: "Stehplatz-Zone", icon: Users        },
+  text:       { label: "Text",           icon: Type         },
 };
 
 const NO_SPIN = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -173,14 +175,37 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
             onChange={(v) => onChange({ tischRadius: v } as Partial<SitzplanElement>)} />
         </>)}
 
+        {el.typ === "stehplatz" && (<>
+          <Stepper label="Kapazität" value={el.kapazitaet} min={1} max={500} schritt={5}
+            onChange={(v) => onChange({ kapazitaet: v } as Partial<SitzplanElement>)} />
+          <Stepper label="Breite" value={el.breite} min={80} max={1200} schritt={20} einheit="px"
+            onChange={(v) => onChange({ breite: v } as Partial<SitzplanElement>)} />
+          <Stepper label="Höhe" value={el.hoehe} min={60} max={900} schritt={20} einheit="px"
+            onChange={(v) => onChange({ hoehe: v } as Partial<SitzplanElement>)} />
+        </>)}
+
+        {el.typ === "text" && (<>
+          <div className="px-4 py-2 space-y-1">
+            <input
+              value={el.text}
+              onChange={(e) => onChange({ text: e.target.value.slice(0, 60) } as Partial<SitzplanElement>)}
+              className="h-9 w-full px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="z. B. Eingang, Bar, Notausgang"
+            />
+          </div>
+          <Stepper label="Schriftgröße" value={el.fontSize} min={10} max={48} schritt={2} einheit="px"
+            onChange={(v) => onChange({ fontSize: v } as Partial<SitzplanElement>)} />
+        </>)}
+
         <Divider />
 
         {/* Anzeige */}
-        <SectionLabel>Anzeige</SectionLabel>
-        <ToggleRow label="Sitznummern anzeigen" value={!(el.nummerAusblenden ?? false)}
-          onChange={(v) => onChange({ nummerAusblenden: !v } as Partial<SitzplanElement>)} />
-
-        <Divider />
+        {el.typ !== "text" && el.typ !== "stehplatz" && (<>
+          <SectionLabel>Anzeige</SectionLabel>
+          <ToggleRow label="Sitznummern anzeigen" value={!(el.nummerAusblenden ?? false)}
+            onChange={(v) => onChange({ nummerAusblenden: !v } as Partial<SitzplanElement>)} />
+          <Divider />
+        </>)}
 
         {/* Winkel */}
         <SectionLabel>Winkel</SectionLabel>
@@ -206,7 +231,8 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
 
         <Divider />
 
-        {/* Preiskategorie */}
+        {/* Preiskategorie (nicht für reine Text-Elemente) */}
+        {el.typ !== "text" && (<>
         <SectionLabel>Preiskategorie</SectionLabel>
         <div className="px-4 pb-3 space-y-1.5">
           {kategorien.map((k) => {
@@ -229,6 +255,7 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
             );
           })}
         </div>
+        </>)}
 
       </div>
 

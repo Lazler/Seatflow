@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlignJustify, Armchair, CircleDot, Minus, Plus,
   RotateCw, Theater, ChevronDown, ChevronUp, Tags, Pencil, Check, X, Maximize2,
+  Users, Type,
 } from "lucide-react";
 import {
   type SitzplanElement, type Buehne, type ElementTyp, type Preiskategorie,
@@ -17,6 +18,8 @@ const TYP_META: Record<ElementTyp, { label: string; icon: React.ElementType }> =
   reihe:      { label: "Reihe",        icon: AlignJustify },
   tischreihe: { label: "Tischreihe",   icon: Armchair     },
   rundtisch:  { label: "Runder Tisch", icon: CircleDot    },
+  stehplatz:  { label: "Stehplatz",    icon: Users        },
+  text:       { label: "Text",         icon: Type         },
 };
 
 const RAUM_PRESETS = [

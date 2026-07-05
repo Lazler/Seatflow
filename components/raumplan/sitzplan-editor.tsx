@@ -11,11 +11,12 @@ import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
   type ReiheElement, type TischreiheElement, type RundtischElement,
+  type StehplatzElement, type TextElement,
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X, SlidersHorizontal, ZoomIn, ZoomOut, Undo2, Redo2, Magnet } from "lucide-react";
+import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X, SlidersHorizontal, ZoomIn, ZoomOut, Undo2, Redo2, Magnet, Ban } from "lucide-react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -90,6 +91,17 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   // ── Snapping ─────────────────────────────────────────────────────────────
   const [snapAktiv, setSnapAktiv] = useState(true);
+
+  // ── Sperrmodus: einzelne Plätze blockieren (Technik, Kamera, defekt) ─────
+  const [sperrModus, setSperrModus] = useState(false);
+  const sitzSperrungToggeln = useCallback((sitzId: string) => {
+    mutiere((k) => {
+      const gesperrt = new Set(k.gesperrteSitze ?? []);
+      if (gesperrt.has(sitzId)) gesperrt.delete(sitzId);
+      else gesperrt.add(sitzId);
+      return { ...k, gesperrteSitze: [...gesperrt] };
+    }, "sperrung");
+  }, [mutiere]);
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
   const [nameWert, setNameWert] = useState(planName);
@@ -155,13 +167,16 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   }
 
   function elementHinzufuegen(typ: ElementTyp) {
-    const bezeichnung = naechsteBezeichnung(konfig.elemente, typ === "reihe" ? "" : typ === "tischreihe" ? "T" : "R");
+    const PREFIXE: Record<ElementTyp, string> = { reihe: "", tischreihe: "T", rundtisch: "R", stehplatz: "S", text: "X" };
+    const bezeichnung = naechsteBezeichnung(konfig.elemente, PREFIXE[typ]);
     const defaultKatId = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
     const basis = { id: crypto.randomUUID(), bezeichnung, x: Math.round(konfig.breite / 2), y: naechstesY(), winkel: 0, kategorie_id: defaultKatId };
 
     let neuesElement: SitzplanElement;
     if      (typ === "reihe")      neuesElement = { ...basis, typ: "reihe",      anzahlSitze: 10, sitzAbstand: 34 } satisfies ReiheElement;
     else if (typ === "tischreihe") neuesElement = { ...basis, typ: "tischreihe", sitzeProSeite: 4, sitzeOben: true, sitzeUnten: true } satisfies TischreiheElement;
+    else if (typ === "stehplatz")  neuesElement = { ...basis, typ: "stehplatz",  breite: 220, hoehe: 130, kapazitaet: 30 } satisfies StehplatzElement;
+    else if (typ === "text")       neuesElement = { ...basis, typ: "text",       text: "Beschriftung", fontSize: 16 } satisfies TextElement;
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
     mutiere((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
@@ -180,7 +195,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       ...original,
       id: crypto.randomUUID(),
       bezeichnung: naechsteBezeichnung(konfig.elemente,
-        original.typ === "reihe" ? "" : original.typ === "tischreihe" ? "T" : "R"),
+        ({ reihe: "", tischreihe: "T", rundtisch: "R", stehplatz: "S", text: "X" } as Record<ElementTyp, string>)[original.typ]),
       x: Math.min(original.x + 40, konfig.breite - 60),
       y: Math.min(original.y + 40, konfig.hoehe - 60),
     };
@@ -393,6 +408,14 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               }`}>
               <Magnet className="h-3.5 w-3.5" />
             </button>
+            <button type="button" onClick={() => { setSperrModus((v) => !v); setAuswahl(null); }}
+              aria-label="Sitze sperren" aria-pressed={sperrModus}
+              title="Sperrmodus: einzelne Plätze blockieren"
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                sperrModus ? "bg-destructive/15 text-destructive" : "hover:bg-muted text-muted-foreground"
+              }`}>
+              <Ban className="h-3.5 w-3.5" />
+            </button>
           </div>
           {/* Zoom-Steuerung */}
           <div className="hidden sm:flex items-center gap-0.5 rounded-lg border border-input p-0.5">
@@ -433,8 +456,15 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         {/* Canvas — full width on mobile, flex-1 on desktop */}
         <div
           ref={canvasContainerRef}
-          className="flex-1 overflow-auto p-4 sm:p-6 flex items-start justify-center bg-slate-100"
+          className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center gap-3 bg-slate-100"
         >
+          {sperrModus && (
+            <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
+              <Ban className="h-4 w-4 shrink-0" />
+              Sperrmodus: Plätze anklicken zum Sperren/Entsperren
+              · {konfig.gesperrteSitze?.length ?? 0} gesperrt
+            </div>
+          )}
           <div
             className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
             style={{ width: konfig.breite * renderScale, minHeight: konfig.hoehe * renderScale }}
@@ -445,6 +475,9 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               modus="editor"
               renderScale={renderScale}
               snapRaster={snapAktiv ? 10 : 0}
+              sperrModus={sperrModus}
+              belegteSitze={sperrModus || (konfig.gesperrteSitze?.length ?? 0) > 0 ? new Set(konfig.gesperrteSitze ?? []) : undefined}
+              onSitzKlicken={sperrModus ? sitzSperrungToggeln : undefined}
               auswahl={auswahl}
               onAuswaehlen={setAuswahl}
               onElementVerschieben={elementVerschieben}
