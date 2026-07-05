@@ -87,7 +87,7 @@ function RaumgroesseSection({ breite, hoehe, onChange }: {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
             <ZahlInput label="Breite" value={breite} min={400} max={2000} onChange={(v) => onChange(v, hoehe)} einheit="px" />
             <ZahlInput label="Höhe"   value={hoehe}  min={300} max={1500} onChange={(v) => onChange(breite, v)} einheit="px" />
           </div>

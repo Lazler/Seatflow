@@ -455,7 +455,8 @@ function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
 // ── Text-Annotation ───────────────────────────────────────────────────────────
 
 function TextKomponente({ el, stageScale, snapRaster, editorAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd }: ElementProps<TextElement>) {
-  const geschaetzteBreite = Math.max(40, el.text.length * el.fontSize * 0.58);
+  // Bold-Großbuchstaben + letterSpacing brauchen ~0.78 × fontSize pro Zeichen
+  const geschaetzteBreite = Math.max(48, el.text.length * el.fontSize * 0.78 + 12);
   const H = el.fontSize * 1.5;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel}
@@ -718,11 +719,17 @@ export default function SitzplanCanvas({
       }}
       onDblClick={(e) => {
         if (!istBuchungsmodus) return;
+        // Nur auf leerer Fläche — schnelle Klicks auf benachbarte Sitze
+        // sind Auswahl, kein Zoom
+        const tid = (e.target as Konva.Shape).id?.() ?? "";
+        if (e.target !== e.target.getStage() && tid !== "bg") return;
         const p = e.target.getStage()!.getPointerPosition();
         if (p) applyZoom(p, zoom > 1 ? 1 : 2);
       }}
       onDblTap={(e) => {
         if (!istBuchungsmodus) return;
+        const tid = (e.target as Konva.Shape).id?.() ?? "";
+        if (e.target !== e.target.getStage() && tid !== "bg") return;
         const p = e.target.getStage()!.getPointerPosition();
         if (p) applyZoom(p, zoom > 1 ? 1 : 2);
       }}
