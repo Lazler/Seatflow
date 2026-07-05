@@ -13,9 +13,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
   ]),
   {
+    // Nur components/** — API-Routen und Server Components dürfen den Admin-
+    // Client nutzen. Client-Komponenten außerhalb von components/ fängt der
+    // "server-only"-Import in admin.ts als Build-Fehler ab.
+    files: ["components/**/*.{ts,tsx}"],
     rules: {
-      // Prevent accidental import of service-role admin client in client components.
-      // `server-only` in admin.ts gives a build error; this rule catches it at lint time.
       "no-restricted-imports": [
         "error",
         {
@@ -23,11 +25,20 @@ const eslintConfig = defineConfig([
             {
               name: "@/lib/supabase/admin",
               message:
-                "Admin client uses the service role key — only import in server-side code (API routes, Server Components, Server Actions).",
+                "Admin client uses the service role key — never import it in components.",
             },
           ],
         },
       ],
+    },
+  },
+  {
+    rules: {
+      // Deutsche Anführungszeichen („…", ‚…') in JSX-Texten sind gewollt
+      "react/no-unescaped-entities": "off",
+      // React-Compiler-Empfehlung, kein Bug: bestehende Sync-Patterns
+      // (Laden bei Mount, Reset bei Prop-Wechsel) bleiben vorerst Warnungen
+      "react-hooks/set-state-in-effect": "warn",
     },
   },
 ]);

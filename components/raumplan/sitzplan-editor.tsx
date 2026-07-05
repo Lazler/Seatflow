@@ -38,14 +38,16 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [konfig, setKonfig] = useState<SitzplanKonfiguration>(migrierteKonfiguration(initialKonfiguration));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
 
+  const [gespeichert, setGespeichert] = useState(false);
+
   // ── Undo/Redo ────────────────────────────────────────────────────────────
   // Ref-Spiegel des aktuellen Zustands, damit mutiere() außerhalb des
   // setState-Updaters (StrictMode-sicher) auf die History pushen kann
   const konfigRef = useRef(konfig);
-  konfigRef.current = konfig;
+  useEffect(() => { konfigRef.current = konfig; }, [konfig]);
   const historieRef = useRef<{ past: SitzplanKonfiguration[]; future: SitzplanKonfiguration[] }>({ past: [], future: [] });
   const letzteMutationRef = useRef<{ key: string; zeit: number }>({ key: "", zeit: 0 });
-  const [, erzwingeRender] = useState(0);
+  const [historieStand, setHistorieStand] = useState({ kannUndo: false, kannRedo: false });
 
   // Zentrale Mutations-Funktion: pusht den alten Zustand auf den Undo-Stack.
   // coalesceKey fasst schnelle Folge-Änderungen (Slider, Stepper) zu einem
@@ -60,9 +62,14 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       historieRef.current.future = [];
     }
     letzteMutationRef.current = { key: coalesceKey ?? "", zeit: jetzt };
-    setKonfig(update(konfigRef.current));
+    const neu = update(konfigRef.current);
+    konfigRef.current = neu;
+    setKonfig(neu);
     setGespeichert(false);
-    erzwingeRender((v) => v + 1);
+    setHistorieStand({
+      kannUndo: historieRef.current.past.length > 0,
+      kannRedo: historieRef.current.future.length > 0,
+    });
   }, []);
 
   const undo = useCallback(() => {
@@ -71,10 +78,14 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     if (!prev) return;
     h.future.push(konfigRef.current);
     letzteMutationRef.current = { key: "", zeit: 0 };
+    konfigRef.current = prev;
     setKonfig(prev);
     setAuswahl(null);
     setGespeichert(false);
-    erzwingeRender((v) => v + 1);
+    setHistorieStand({
+      kannUndo: historieRef.current.past.length > 0,
+      kannRedo: historieRef.current.future.length > 0,
+    });
   }, []);
 
   const redo = useCallback(() => {
@@ -83,10 +94,14 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     if (!next) return;
     h.past.push(konfigRef.current);
     letzteMutationRef.current = { key: "", zeit: 0 };
+    konfigRef.current = next;
     setKonfig(next);
     setAuswahl(null);
     setGespeichert(false);
-    erzwingeRender((v) => v + 1);
+    setHistorieStand({
+      kannUndo: historieRef.current.past.length > 0,
+      kannRedo: historieRef.current.future.length > 0,
+    });
   }, []);
 
   // ── Snapping ─────────────────────────────────────────────────────────────
@@ -103,7 +118,6 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     }, "sperrung");
   }, [mutiere]);
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
-  const [gespeichert, setGespeichert] = useState(false);
   const [nameWert, setNameWert] = useState(planName);
   const [nameEditModus, setNameEditModus] = useState(false);
   const [nameLaedt, setNameLaedt] = useState(false);
@@ -137,10 +151,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     setEditorZoom(next);
   }
 
-  // Auto-open mobile panel when an element is selected
-  useEffect(() => {
-    if (auswahl !== null) setMobilePanelOffen(true);
-  }, [auswahl]);
+  // Auswahl setzen + Mobile-Panel direkt öffnen (statt via Effect)
+  const waehleAus = useCallback((a: Auswahl) => {
+    setAuswahl(a);
+    if (a !== null) setMobilePanelOffen(true);
+  }, []);
 
   function mobilePanelSchliessen() {
     setMobilePanelOffen(false);
@@ -180,7 +195,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
     mutiere((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
-    setAuswahl({ typ: "element", ids: [neuesElement.id] });
+    waehleAus({ typ: "element", ids: [neuesElement.id] });
   }
 
   function elementLoeschen(id: string) {
@@ -200,7 +215,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       y: Math.min(original.y + 40, konfig.hoehe - 60),
     };
     mutiere((k) => ({ ...k, elemente: [...k.elemente, kopie] }));
-    setAuswahl({ typ: "element", ids: [kopie.id] });
+    waehleAus({ typ: "element", ids: [kopie.id] });
   }
 
   function elementAktualisieren(id: string, delta: Partial<SitzplanElement>) {
@@ -390,12 +405,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Undo / Redo / Snap */}
           <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
-            <button type="button" onClick={undo} disabled={historieRef.current.past.length === 0}
+            <button type="button" onClick={undo} disabled={!historieStand.kannUndo}
               aria-label="Rückgängig (Cmd+Z)" title="Rückgängig (Cmd+Z)"
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
               <Undo2 className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={redo} disabled={historieRef.current.future.length === 0}
+            <button type="button" onClick={redo} disabled={!historieStand.kannRedo}
               aria-label="Wiederholen (Cmd+Shift+Z)" title="Wiederholen (Cmd+Shift+Z)"
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
               <Redo2 className="h-3.5 w-3.5" />
@@ -479,7 +494,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               belegteSitze={sperrModus || (konfig.gesperrteSitze?.length ?? 0) > 0 ? new Set(konfig.gesperrteSitze ?? []) : undefined}
               onSitzKlicken={sperrModus ? sitzSperrungToggeln : undefined}
               auswahl={auswahl}
-              onAuswaehlen={setAuswahl}
+              onAuswaehlen={waehleAus}
               onElementVerschieben={elementVerschieben}
               onMehrereElementeVerschieben={elementeMehrfachVerschieben}
               onBuehneVerschieben={buehneVerschieben}

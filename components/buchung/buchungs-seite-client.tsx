@@ -525,7 +525,7 @@ export default function BuchungsSeiteClient({
     });
     const data = await res.json() as { url?: string; error?: string };
     if (!res.ok || !data.url) { setFehler(data.error ?? "Fehler beim Starten des Checkouts."); setLaedt(false); return; }
-    window.location.href = data.url;
+    window.location.assign(data.url);
   }
 
   const alleKategorien = aktiverFloor.konfiguration.kategorien;

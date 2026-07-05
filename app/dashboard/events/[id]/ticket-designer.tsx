@@ -89,7 +89,7 @@ function TicketVorschau({
                 <div
                   key={i}
                   className="rounded-[1px]"
-                  style={{ backgroundColor: Math.random() > 0.5 || [0,1,8,9,16,17,56,57,48,49,6,7,14,15,62,63].includes(i) ? "#1e293b" : "transparent" }}
+                  style={{ backgroundColor: (i * 7 + 3) % 11 > 5 || [0,1,8,9,16,17,56,57,48,49,6,7,14,15,62,63].includes(i) ? "#1e293b" : "transparent" }}
                 />
               ))}
             </div>

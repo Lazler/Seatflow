@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle, Copy } from "lucide-react";
 
 type Plan = { id: string; name: string };
 
@@ -13,7 +13,37 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
   const router = useRouter();
   const [confirming, setConfirming] = useState<string | null>(null);
   const [loescht, setLoescht] = useState<string | null>(null);
+  const [dupliziert, setDupliziert] = useState<string | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+
+  // Kopiert einen Plan samt Konfiguration und öffnet die Kopie im Editor
+  async function duplizieren(plan: Plan) {
+    setDupliziert(plan.id);
+    setFehler(null);
+    const supabase = createClient();
+    const { data: original, error: ladeFehler } = await supabase
+      .from("sitzplaene")
+      .select("konfiguration")
+      .eq("id", plan.id)
+      .single();
+    if (ladeFehler || !original) {
+      setFehler("Plan konnte nicht geladen werden.");
+      setDupliziert(null);
+      return;
+    }
+    const { data: kopie, error: insertFehler } = await supabase
+      .from("sitzplaene")
+      .insert({
+        venue_id: venueId,
+        name: `${plan.name} (Kopie)`,
+        konfiguration: original.konfiguration,
+      })
+      .select("id")
+      .single();
+    setDupliziert(null);
+    if (insertFehler || !kopie) { setFehler("Duplizieren fehlgeschlagen."); return; }
+    router.push(`/dashboard/venues/${venueId}/raumplan/${kopie.id}`);
+  }
 
   async function loeschen(planId: string) {
     setLoescht(planId);
@@ -65,6 +95,14 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
           <div className="flex items-center gap-1 shrink-0">
             <Button size="sm" variant="ghost" asChild>
               <Link href={`/dashboard/venues/${venueId}/raumplan/${plan.id}`}>Bearbeiten</Link>
+            </Button>
+            <Button size="icon" variant="ghost"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors"
+              title="Plan duplizieren" aria-label={`${plan.name} duplizieren`}
+              onClick={() => duplizieren(plan)} disabled={dupliziert === plan.id}>
+              {dupliziert === plan.id
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Copy className="h-3.5 w-3.5" />}
             </Button>
             {confirming === plan.id ? (
               <div className="flex items-center gap-1">
