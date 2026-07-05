@@ -15,7 +15,7 @@ import {
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X, SlidersHorizontal, ZoomIn, ZoomOut } from "lucide-react";
+import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X, SlidersHorizontal, ZoomIn, ZoomOut, Undo2, Redo2, Magnet } from "lucide-react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -36,6 +36,60 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const router = useRouter();
   const [konfig, setKonfig] = useState<SitzplanKonfiguration>(migrierteKonfiguration(initialKonfiguration));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
+
+  // ── Undo/Redo ────────────────────────────────────────────────────────────
+  // Ref-Spiegel des aktuellen Zustands, damit mutiere() außerhalb des
+  // setState-Updaters (StrictMode-sicher) auf die History pushen kann
+  const konfigRef = useRef(konfig);
+  konfigRef.current = konfig;
+  const historieRef = useRef<{ past: SitzplanKonfiguration[]; future: SitzplanKonfiguration[] }>({ past: [], future: [] });
+  const letzteMutationRef = useRef<{ key: string; zeit: number }>({ key: "", zeit: 0 });
+  const [, erzwingeRender] = useState(0);
+
+  // Zentrale Mutations-Funktion: pusht den alten Zustand auf den Undo-Stack.
+  // coalesceKey fasst schnelle Folge-Änderungen (Slider, Stepper) zu einem
+  // History-Eintrag zusammen.
+  const mutiere = useCallback((update: (k: SitzplanKonfiguration) => SitzplanKonfiguration, coalesceKey?: string) => {
+    const jetzt = Date.now();
+    const l = letzteMutationRef.current;
+    const zusammenfassen = coalesceKey && l.key === coalesceKey && jetzt - l.zeit < 800;
+    if (!zusammenfassen) {
+      historieRef.current.past.push(konfigRef.current);
+      if (historieRef.current.past.length > 50) historieRef.current.past.shift();
+      historieRef.current.future = [];
+    }
+    letzteMutationRef.current = { key: coalesceKey ?? "", zeit: jetzt };
+    setKonfig(update(konfigRef.current));
+    setGespeichert(false);
+    erzwingeRender((v) => v + 1);
+  }, []);
+
+  const undo = useCallback(() => {
+    const h = historieRef.current;
+    const prev = h.past.pop();
+    if (!prev) return;
+    h.future.push(konfigRef.current);
+    letzteMutationRef.current = { key: "", zeit: 0 };
+    setKonfig(prev);
+    setAuswahl(null);
+    setGespeichert(false);
+    erzwingeRender((v) => v + 1);
+  }, []);
+
+  const redo = useCallback(() => {
+    const h = historieRef.current;
+    const next = h.future.pop();
+    if (!next) return;
+    h.past.push(konfigRef.current);
+    letzteMutationRef.current = { key: "", zeit: 0 };
+    setKonfig(next);
+    setAuswahl(null);
+    setGespeichert(false);
+    erzwingeRender((v) => v + 1);
+  }, []);
+
+  // ── Snapping ─────────────────────────────────────────────────────────────
+  const [snapAktiv, setSnapAktiv] = useState(true);
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [gespeichert, setGespeichert] = useState(false);
   const [nameWert, setNameWert] = useState(planName);
@@ -110,15 +164,13 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     else if (typ === "tischreihe") neuesElement = { ...basis, typ: "tischreihe", sitzeProSeite: 4, sitzeOben: true, sitzeUnten: true } satisfies TischreiheElement;
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
-    setKonfig((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
+    mutiere((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
     setAuswahl({ typ: "element", ids: [neuesElement.id] });
-    setGespeichert(false);
   }
 
   function elementLoeschen(id: string) {
-    setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
+    mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
     setAuswahl(null);
-    setGespeichert(false);
   }
 
   function elementDuplizieren(id: string) {
@@ -132,58 +184,49 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       x: Math.min(original.x + 40, konfig.breite - 60),
       y: Math.min(original.y + 40, konfig.hoehe - 60),
     };
-    setKonfig((k) => ({ ...k, elemente: [...k.elemente, kopie] }));
+    mutiere((k) => ({ ...k, elemente: [...k.elemente, kopie] }));
     setAuswahl({ typ: "element", ids: [kopie.id] });
-    setGespeichert(false);
   }
 
   function elementAktualisieren(id: string, delta: Partial<SitzplanElement>) {
-    setKonfig((k) => ({
+    mutiere((k) => ({
       ...k,
       elemente: k.elemente.map((e) => (e.id === id ? ({ ...e, ...delta } as SitzplanElement) : e)),
-    }));
-    setGespeichert(false);
+    }), `el-${id}`);
   }
 
   const elementVerschieben = useCallback((id: string, x: number, y: number) => {
-    setKonfig((k) => ({ ...k, elemente: k.elemente.map((e) => e.id === id ? { ...e, x, y } : e) }));
-    setGespeichert(false);
-  }, []);
+    mutiere((k) => ({ ...k, elemente: k.elemente.map((e) => e.id === id ? { ...e, x, y } : e) }));
+  }, [mutiere]);
 
   const elementeMehrfachVerschieben = useCallback((list: { id: string; x: number; y: number }[]) => {
-    setKonfig((k) => ({
+    mutiere((k) => ({
       ...k,
       elemente: k.elemente.map((e) => {
         const upd = list.find((u) => u.id === e.id);
         return upd ? { ...e, x: upd.x, y: upd.y } : e;
       }),
     }));
-    setGespeichert(false);
-  }, []);
+  }, [mutiere]);
 
   function buehneAktualisieren(delta: Partial<Buehne>) {
-    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, ...delta } }));
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, buehne: { ...k.buehne, ...delta } }), "buehne");
   }
 
   const buehneVerschieben = useCallback((x: number, y: number) => {
-    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, x, y } }));
-    setGespeichert(false);
-  }, []);
+    mutiere((k) => ({ ...k, buehne: { ...k.buehne, x, y } }));
+  }, [mutiere]);
 
   const buehneTransformiert = useCallback((breite: number, hoehe: number, x: number, y: number, winkel: number) => {
-    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, breite, hoehe, x, y, winkel } }));
-    setGespeichert(false);
-  }, []);
+    mutiere((k) => ({ ...k, buehne: { ...k.buehne, breite, hoehe, x, y, winkel } }));
+  }, [mutiere]);
 
   function kategorienAktualisieren(kategorien: Preiskategorie[]) {
-    setKonfig((k) => ({ ...k, kategorien }));
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, kategorien }), "kategorien");
   }
 
   function raumgroesseAktualisieren(breite: number, hoehe: number) {
-    setKonfig((k) => ({ ...k, breite, hoehe }));
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, breite, hoehe }), "raum");
   }
 
   async function speichern() {
@@ -207,18 +250,32 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const inInput = document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA";
+      // Undo/Redo: Cmd/Ctrl+Z bzw. Cmd/Ctrl+Shift+Z / Ctrl+Y
+      if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z" || e.key === "y")) {
+        if (inInput) return;
+        e.preventDefault();
+        if (e.key === "y" || e.shiftKey) redo();
+        else undo();
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+        if (inInput) return;
         const ids = auswahl?.typ === "element" ? auswahl.ids : [];
         if (ids.length === 0) return;
-        setKonfig((k) => ({ ...k, elemente: k.elemente.filter((el) => !ids.includes(el.id)) }));
+        mutiere((k) => ({ ...k, elemente: k.elemente.filter((el) => !ids.includes(el.id)) }));
         setAuswahl(null);
-        setGespeichert(false);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [auswahl]);
+  }, [auswahl, mutiere, undo, redo]);
+
+  // Max. möglicher Umsatz bei Vollauslastung (Kapazitäts-/Umsatz-Widget)
+  const maxUmsatzCent = konfig.elemente.reduce((summe, el) => {
+    const kat = konfig.kategorien.find((k) => k.id === el.kategorie_id);
+    return summe + elementSitzIds(el).length * (kat?.preis_cent ?? 0);
+  }, 0);
 
   // Shared sidebar panel content (used in both desktop aside and mobile bottom sheet)
   function sidebarInhalt(onClose?: () => void) {
@@ -240,10 +297,9 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           <div className="px-4 py-3 border-t border-border">
             <button type="button"
               onClick={() => {
-                setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
+                mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
                 setAuswahl(null);
                 onClose?.();
-                setGespeichert(false);
               }}
               className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
               <Trash2 className="h-3.5 w-3.5" /> {auswahlIds.length} Elemente löschen
@@ -317,6 +373,27 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           )}
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Undo / Redo / Snap */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
+            <button type="button" onClick={undo} disabled={historieRef.current.past.length === 0}
+              aria-label="Rückgängig (Cmd+Z)" title="Rückgängig (Cmd+Z)"
+              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
+              <Undo2 className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={redo} disabled={historieRef.current.future.length === 0}
+              aria-label="Wiederholen (Cmd+Shift+Z)" title="Wiederholen (Cmd+Shift+Z)"
+              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
+              <Redo2 className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => setSnapAktiv((v) => !v)}
+              aria-label="Am Raster ausrichten" aria-pressed={snapAktiv}
+              title={snapAktiv ? "Raster-Snapping aktiv" : "Raster-Snapping aus"}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                snapAktiv ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"
+              }`}>
+              <Magnet className="h-3.5 w-3.5" />
+            </button>
+          </div>
           {/* Zoom-Steuerung */}
           <div className="hidden sm:flex items-center gap-0.5 rounded-lg border border-input p-0.5">
             <button type="button" onClick={() => zoomSchritt(-1)} disabled={editorZoom <= ZOOM_STUFEN[0]}
@@ -334,7 +411,14 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
           </div>
-          <span className="text-xs text-muted-foreground hidden sm:inline">{konfig.breite} × {konfig.hoehe} px · {gesamtSitze} Plätze</span>
+          <span className="text-xs text-muted-foreground hidden xl:inline">
+            {gesamtSitze} Plätze
+            {maxUmsatzCent > 0 && (
+              <> · max. <strong className="text-foreground font-semibold">
+                {(maxUmsatzCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
+              </strong></>
+            )}
+          </span>
           {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ Gespeichert</span>}
           {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Bez.</span>}
           <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
@@ -360,6 +444,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               konfiguration={konfig}
               modus="editor"
               renderScale={renderScale}
+              snapRaster={snapAktiv ? 10 : 0}
               auswahl={auswahl}
               onAuswaehlen={setAuswahl}
               onElementVerschieben={elementVerschieben}

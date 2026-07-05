@@ -26,6 +26,25 @@ export type Auswahl = { typ: "buehne" } | { typ: "element"; ids: string[] } | nu
 
 const DRAG_MARGIN = 40;
 
+// dragBoundFunc arbeitet in Viewport-Koordinaten (inkl. Stage-Scale).
+// Für Clamping + Raster-Snapping in Content-Koordinaten umrechnen.
+function begrenzeUndSnappe(
+  pos: { x: number; y: number },
+  stageScale: number, snapRaster: number,
+  minX: number, maxX: number, minY: number, maxY: number,
+) {
+  const s = stageScale || 1;
+  let cx = pos.x / s, cy = pos.y / s;
+  if (snapRaster > 0) {
+    cx = Math.round(cx / snapRaster) * snapRaster;
+    cy = Math.round(cy / snapRaster) * snapRaster;
+  }
+  return {
+    x: Math.max(minX, Math.min(maxX, cx)) * s,
+    y: Math.max(minY, Math.min(maxY, cy)) * s,
+  };
+}
+
 // ── Seat component with smooth hover scale animation ──────────────────────────
 
 export type SeatHoverInfo = {
@@ -144,6 +163,7 @@ function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
 
 type ElementProps<T> = {
   el: T; kategoriefarbe: string; kategorieName: string; kategoriePreisCent: number;
+  stageScale: number; snapRaster: number;
   editorAusgewaehlt: boolean;
   belegte: Set<string>; buchungAusgewaehlt: Set<string>;
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
@@ -155,12 +175,12 @@ type ElementProps<T> = {
 
 // ── Reihe ─────────────────────────────────────────────────────────────────────
 
-function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
+function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
       draggable={!istBuchungsmodus}
-      dragBoundFunc={(pos) => ({ x: Math.max(DRAG_MARGIN, Math.min(raumbreite - DRAG_MARGIN, pos.x)), y: Math.max(DRAG_MARGIN, Math.min(raumhoehe - DRAG_MARGIN, pos.y)) })}
+      dragBoundFunc={(pos) => begrenzeUndSnappe(pos, stageScale, snapRaster, DRAG_MARGIN, raumbreite - DRAG_MARGIN, DRAG_MARGIN, raumhoehe - DRAG_MARGIN)}
       onClick={!istBuchungsmodus ? onKlick : undefined} onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
@@ -202,7 +222,7 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
 
 // ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
-function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
+function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
   const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
   const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
@@ -214,7 +234,7 @@ function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePrei
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={tischBreite / 2}
       draggable={!istBuchungsmodus}
-      dragBoundFunc={(pos) => ({ x: Math.max(DRAG_MARGIN, Math.min(raumbreite - DRAG_MARGIN, pos.x)), y: Math.max(DRAG_MARGIN, Math.min(raumhoehe - DRAG_MARGIN, pos.y)) })}
+      dragBoundFunc={(pos) => begrenzeUndSnappe(pos, stageScale, snapRaster, DRAG_MARGIN, raumbreite - DRAG_MARGIN, DRAG_MARGIN, raumhoehe - DRAG_MARGIN)}
       onClick={!istBuchungsmodus ? onKlick : undefined} onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
@@ -285,14 +305,14 @@ function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePrei
 
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
-function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
+function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
   const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel}
       draggable={!istBuchungsmodus}
-      dragBoundFunc={(pos) => ({ x: Math.max(r, Math.min(raumbreite - r, pos.x)), y: Math.max(r, Math.min(raumhoehe - r, pos.y)) })}
+      dragBoundFunc={(pos) => begrenzeUndSnappe(pos, stageScale, snapRaster, r, raumbreite - r, r, raumhoehe - r)}
       onClick={!istBuchungsmodus ? onKlick : undefined} onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
@@ -354,9 +374,9 @@ function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
 
 // ── Bühne ─────────────────────────────────────────────────────────────────────
 
-function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, nodeRef }: {
+function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, stageScale, snapRaster, onKlick, onDragEnd, nodeRef }: {
   buehne: Buehne; ausgewaehlt: boolean; istBuchungsmodus: boolean;
-  raumbreite: number; raumhoehe: number;
+  raumbreite: number; raumhoehe: number; stageScale: number; snapRaster: number;
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   nodeRef: React.RefObject<Konva.Group | null>;
 }) {
@@ -372,10 +392,8 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
     <Group ref={nodeRef} x={buehne.x} y={buehne.y} rotation={buehne.winkel}
       offsetX={buehne.breite / 2} offsetY={buehne.hoehe / 2}
       draggable={!istBuchungsmodus}
-      dragBoundFunc={(pos) => ({
-        x: Math.max(visW / 2 + 4, Math.min(raumbreite - visW / 2 - 4, pos.x)),
-        y: Math.max(visH / 2 + 4, Math.min(raumhoehe - visH / 2 - 4, pos.y)),
-      })}
+      dragBoundFunc={(pos) => begrenzeUndSnappe(pos, stageScale, snapRaster,
+        visW / 2 + 4, raumbreite - visW / 2 - 4, visH / 2 + 4, raumhoehe - visH / 2 - 4)}
       onClick={!istBuchungsmodus ? onKlick : undefined} onTap={!istBuchungsmodus ? onKlick : undefined}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
@@ -426,12 +444,14 @@ type Props = {
   belegteSitze?: Set<string>;
   ausgewaehlteSitze?: Set<string>;
   onSitzKlicken?: (sitzId: string) => void;
+  snapRaster?: number;
 };
 
 export default function SitzplanCanvas({
   konfiguration, modus, renderScale = 1,
   auswahl, onAuswaehlen, onElementVerschieben, onMehrereElementeVerschieben, onBuehneVerschieben, onBuehneTransformiert,
   belegteSitze = new Set(), ausgewaehlteSitze = new Set(), onSitzKlicken,
+  snapRaster = 0,
 }: Props) {
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
@@ -501,6 +521,8 @@ export default function SitzplanCanvas({
       kategoriefarbe: kat?.farbe ?? "#3b82f6",
       kategorieName: kat?.name ?? "",
       kategoriePreisCent: kat?.preis_cent ?? 0,
+      stageScale: scale,
+      snapRaster,
       onHoverInfo: istBuchungsmodus ? setTooltip : undefined,
       editorAusgewaehlt: istAusgewaehlt,
       belegte: belegteSitze,
@@ -670,6 +692,7 @@ export default function SitzplanCanvas({
         <BuehneKomponente
           buehne={konfiguration.buehne} ausgewaehlt={auswahl?.typ === "buehne"}
           istBuchungsmodus={istBuchungsmodus} raumbreite={raumbreite} raumhoehe={raumhoehe}
+          stageScale={scale} snapRaster={snapRaster}
           onKlick={() => onAuswaehlen?.(auswahl?.typ === "buehne" ? null : { typ: "buehne" })}
           onDragEnd={(x, y) => onBuehneVerschieben?.(x, y)} nodeRef={buehneRef}
         />
