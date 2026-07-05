@@ -9,6 +9,7 @@ import type { TicketTyp, PreisRegel } from "@/types/ticket-typ";
 import { rateLimit } from "@/lib/rate-limit";
 import { PLAN_SERVICE_FEE_CENT, effectivePlan } from "@/lib/plan";
 import { HOLD_MINUTEN } from "@/lib/belegte-sitze";
+import { fruehbucherAktiv, fruehbucherPreis, type Fruehbucher, type EventAddon } from "@/types/event-extras";
 
 const SitzplatzSchema = z.object({
   sitzId: z.string().min(1).max(100),
@@ -29,6 +30,10 @@ const CheckoutSchema = z.object({
   name: z.string().min(1).max(200).trim(),
   email: z.string().email().max(300),
   sprache: z.enum(["de", "en", "hu"]).optional(),
+  addons: z.array(z.object({
+    id: z.string().min(1).max(100),
+    anzahl: z.number().int().min(1).max(20),
+  })).max(10).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Ungültige Eingabe", details: parsed.error.flatten() }, { status: 400 });
   }
-  const { eventId, sitzplaetze, name, email, sprache } = parsed.data;
+  const { eventId, sitzplaetze, name, email, sprache, addons: addonWuensche } = parsed.data;
 
   const supabase = await createClient();
 
@@ -95,6 +100,19 @@ export async function POST(req: NextRequest) {
   const ticketTypenMap = new Map<string, TicketTyp>();
   ((event.ticket_typen as TicketTyp[] | null) ?? []).forEach((t) => ticketTypenMap.set(t.id, t));
 
+  // Frühbucher + Add-ons (fehler-tolerant — Spalten evtl. noch nicht migriert)
+  const { data: extras, error: extrasFehler } = await admin
+    .from("events")
+    .select("fruehbucher, addons")
+    .eq("id", eventId)
+    .maybeSingle();
+  const fruehbucher = !extrasFehler && fruehbucherAktiv(extras?.fruehbucher as Fruehbucher | null)
+    ? (extras!.fruehbucher as Fruehbucher)
+    : null;
+  const eventAddons = !extrasFehler
+    ? (((extras?.addons as EventAddon[] | null) ?? []).filter((a) => a.aktiv))
+    : [];
+
   // Calculate authoritative price per seat
   const validatedSitzplaetze = sitzplaetze.map((p) => {
     const kategorie = kategorienMap.get(p.kategorieId);
@@ -106,11 +124,23 @@ export async function POST(req: NextRequest) {
         preisCent = preisNachRegel(basisCent, typ.preis_regel as PreisRegel);
       }
     }
+    // Frühbucher-Rabatt greift nach der Ticket-Typ-Regel (server-autoritativ)
+    if (fruehbucher) preisCent = fruehbucherPreis(preisCent, fruehbucher);
     return { ...p, preisCent, kategorieName: kategorie?.name ?? p.kategorieName };
   });
 
+  // Add-ons gegen Event-Konfiguration validieren; Preise server-autoritativ
+  const validierteAddons = (addonWuensche ?? [])
+    .map((w) => {
+      const a = eventAddons.find((x) => x.id === w.id);
+      return a ? { name: a.name, preisCent: a.preis_cent, anzahl: w.anzahl } : null;
+    })
+    .filter((a): a is { name: string; preisCent: number; anzahl: number } => a !== null);
+  const addonSummeCent = validierteAddons.reduce((s, a) => s + a.preisCent * a.anzahl, 0);
+
   const gesamtCent = validatedSitzplaetze.reduce((s, p) => s + p.preisCent, 0) +
-    validatedSitzplaetze.length * serviceGebuehrCent;
+    validatedSitzplaetze.length * serviceGebuehrCent +
+    addonSummeCent;
 
   // ─── Stale-Hold-Cleanup ────────────────────────────────────────────────────
   // Abgelaufene unbezahlte Checkouts (älter als HOLD_MINUTEN) blockieren die
@@ -200,6 +230,13 @@ export async function POST(req: NextRequest) {
     lineItems.push({
       price_data: { currency: "eur", product_data: { name: "Servicegebühr" }, unit_amount: serviceGebuehrCent },
       quantity: validatedSitzplaetze.length,
+    });
+  }
+  for (const a of validierteAddons) {
+    if (a.preisCent <= 0) continue;
+    lineItems.push({
+      price_data: { currency: "eur", product_data: { name: `${a.name} — ${event.titel}` }, unit_amount: a.preisCent },
+      quantity: a.anzahl,
     });
   }
 

@@ -10,6 +10,8 @@ import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
 import { preisNachRegel, regelLabel } from "@/types/ticket-typ";
+import type { Fruehbucher, EventAddon } from "@/types/event-extras";
+import { fruehbucherPreis } from "@/types/event-extras";
 
 const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canvas"), {
   ssr: false,
@@ -39,6 +41,9 @@ type Props = {
   serviceGebuehrCent: number;
   ticketTypen?: TicketTyp[];
   displayLang?: "de" | "en" | "hu";
+  // Server-validierter, AKTIVER Frühbucher-Rabatt (null wenn abgelaufen/keiner)
+  fruehbucher?: Fruehbucher | null;
+  addons?: EventAddon[];
 };
 
 type AusgewaehlterSitz = {
@@ -176,6 +181,7 @@ function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange, display
 export default function BuchungsSeiteClient({
   eventId, eventTitel, eventDatum, venueName,
   floors, belegteSitzIds, serviceGebuehrCent, ticketTypen = [], displayLang,
+  fruehbucher = null, addons = [],
 }: Props) {
   const uiStrings = {
     de: {
@@ -434,15 +440,29 @@ export default function BuchungsSeiteClient({
     setAusgewaehlt((prev) => prev.map((s) => s.sitzId === sitzId ? { ...s, extraFelder: { ...s.extraFelder, [label]: value } } : s));
   }
 
-  function sitzPreis(s: AusgewaehlterSitz): number {
+  function sitzBasisPreis(s: AusgewaehlterSitz): number {
     const typ = ticketTypen.find((t) => t.id === s.ticketTypId);
     if (!typ) return s.kategorie.preis_cent;
     return preisNachRegel(s.kategorie.preis_cent, typ.preis_regel);
   }
 
+  // Frühbucher-Rabatt greift NACH der Ticket-Typ-Regel
+  function sitzPreis(s: AusgewaehlterSitz): number {
+    const basis = sitzBasisPreis(s);
+    return fruehbucher ? fruehbucherPreis(basis, fruehbucher) : basis;
+  }
+
+  // Add-on-Mengen (Schritt 2)
+  const [addonMengen, setAddonMengen] = useState<Record<string, number>>({});
+  function addonMenge(id: string) { return addonMengen[id] ?? 0; }
+  function setzeAddonMenge(id: string, menge: number) {
+    setAddonMengen((prev) => ({ ...prev, [id]: Math.max(0, Math.min(20, menge)) }));
+  }
+  const addonSummeCent = addons.reduce((s, a) => s + addonMenge(a.id) * a.preis_cent, 0);
+
   const ticketSummeCent = ausgewaehlt.reduce((sum, s) => sum + sitzPreis(s), 0);
   const gebuehrCent = ausgewaehlt.length * serviceGebuehrCent;
-  const gesamtPreisCent = ticketSummeCent + gebuehrCent;
+  const gesamtPreisCent = ticketSummeCent + gebuehrCent + addonSummeCent;
 
   function validiereTypFelder(): string | null {
     for (const s of ausgewaehlt) {
@@ -498,6 +518,9 @@ export default function BuchungsSeiteClient({
         }),
         name, email,
         sprache: displayLang ?? "de",
+        addons: addons
+          .filter((a) => addonMenge(a.id) > 0)
+          .map((a) => ({ id: a.id, anzahl: addonMenge(a.id) })),
       }),
     });
     const data = await res.json() as { url?: string; error?: string };
@@ -515,6 +538,17 @@ export default function BuchungsSeiteClient({
         onSitzKlicken={onSitzKlicken} />
     </div>
   );
+
+  // Frühbucher-Badge (Server hat Gültigkeit bereits geprüft)
+  const fruehbucherBadge = fruehbucher ? (
+    <div className="flex items-center gap-2 rounded-xl bg-primary/8 border border-primary/25 px-4 py-2.5">
+      <span className="text-base leading-none">⏳</span>
+      <p className="text-sm font-medium text-primary">
+        Frühbucher: <strong>−{fruehbucher.prozent} %</strong> auf alle Plätze
+        bis {new Date(fruehbucher.bis).toLocaleDateString("de-DE", { day: "numeric", month: "long" })}
+      </p>
+    </div>
+  ) : null;
 
   // Verknappungs-Banner (echte Zahlen, kein Fake-Marketing)
   const verfuegbarkeitsBanner = ausverkauft ? (
@@ -732,6 +766,18 @@ export default function BuchungsSeiteClient({
                 <span className="tabular-nums">{euro(gebuehrCent)}</span>
               </div>
             )}
+            {addonSummeCent > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Extras</span>
+                <span className="tabular-nums">{euro(addonSummeCent)}</span>
+              </div>
+            )}
+            {fruehbucher && ticketSummeCent > 0 && (
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                <span>Frühbucher-Rabatt</span>
+                <span className="tabular-nums">−{fruehbucher.prozent} %</span>
+              </div>
+            )}
             <div className="flex justify-between items-center pt-1 border-t border-border">
               <span className="font-bold text-base">{uiStrings.gesamtpreis}</span>
               <span className="font-bold text-lg tabular-nums">{euro(gesamtPreisCent)}</span>
@@ -739,6 +785,51 @@ export default function BuchungsSeiteClient({
             <p className="text-xs text-muted-foreground">{uiStrings.mwst}</p>
           </div>
         </div>
+
+        {/* Add-ons */}
+        {addons.length > 0 && (
+          <div className="rounded-2xl border border-border bg-background overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border">
+              <p className="text-sm font-semibold">Extras hinzufügen</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Optional — direkt mitbestellen und Wartezeit sparen</p>
+            </div>
+            <div className="divide-y divide-border">
+              {addons.map((a) => {
+                const menge = addonMenge(a.id);
+                return (
+                  <div key={a.id} className="flex items-center gap-3 px-5 py-3.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{a.name}</p>
+                      <p className="text-xs text-muted-foreground">{euro(a.preis_cent)} / Stück</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button type="button"
+                        onClick={() => setzeAddonMenge(a.id, menge - 1)}
+                        disabled={menge === 0}
+                        aria-label={`${a.name} entfernen`}
+                        className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30 transition-colors">
+                        −
+                      </button>
+                      <span className="w-6 text-center text-sm font-semibold tabular-nums">{menge}</span>
+                      <button type="button"
+                        onClick={() => setzeAddonMenge(a.id, menge + 1)}
+                        disabled={menge >= 20}
+                        aria-label={`${a.name} hinzufügen`}
+                        className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30 transition-colors">
+                        +
+                      </button>
+                    </div>
+                    {menge > 0 && (
+                      <span className="text-sm font-semibold tabular-nums w-16 text-right shrink-0">
+                        {euro(menge * a.preis_cent)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Back link */}
         <button
@@ -874,6 +965,7 @@ export default function BuchungsSeiteClient({
           {/* Desktop */}
           <div className="hidden lg:grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-3">
+              {fruehbucherBadge}
               {verfuegbarkeitsBanner}
               {mehrereEbenen && (
                 <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
@@ -896,6 +988,7 @@ export default function BuchungsSeiteClient({
 
           {/* Mobile */}
           <div className="lg:hidden space-y-3">
+            {fruehbucherBadge}
             {verfuegbarkeitsBanner}
             {mehrereEbenen && (
               <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />

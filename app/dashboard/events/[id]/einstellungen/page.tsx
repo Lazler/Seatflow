@@ -9,6 +9,8 @@ import SitzplanZuweisung, { type Etage } from "../sitzplan-zuweisung";
 import TicketTypen from "../ticket-typen";
 import TicketTemplateSelector from "../ticket-template-selector";
 import EventWeiterleitungen from "../event-weiterleitungen";
+import EventExtras from "../event-extras";
+import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import EventSprachen from "../event-sprachen";
 import type { TicketTyp } from "@/types/ticket-typ";
 import type { TicketDesign } from "@/types/ticket-design";
@@ -79,6 +81,11 @@ export default async function EventEinstellungen({
             eventId={event.id}
             initialTypen={(event.ticket_typen as TicketTyp[] | null) ?? []}
             eventSprachen={(event.sprachen as string[] | null) ?? ["de"]}
+          />
+          <EventExtras
+            eventId={event.id}
+            initialFruehbucher={(event.fruehbucher as Fruehbucher | null) ?? null}
+            initialAddons={(event.addons as EventAddon[] | null) ?? []}
           />
         </div>
 

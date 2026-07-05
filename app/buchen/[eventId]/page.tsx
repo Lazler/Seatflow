@@ -5,6 +5,7 @@ import Link from "next/link";
 import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";
 import { belegteSitzIdsLaden } from "@/lib/belegte-sitze";
+import { fruehbucherAktiv, type Fruehbucher, type EventAddon } from "@/types/event-extras";
 import type { TicketTyp } from "@/types/ticket-typ";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
@@ -67,7 +68,16 @@ export default async function BuchungsSeite({
       ? [event.sitzplan_id]
       : [];
 
-  const [sitzplaeneResults, belegteSitzIds] = await Promise.all([
+  // Frühbucher + Add-ons separat und fehler-tolerant laden — die Spalten
+  // existieren erst nach der Migration 20260705120000_fruehbucher_addons
+  const extrasPromise = supabase
+    .from("events")
+    .select("fruehbucher, addons")
+    .eq("id", eventId)
+    .maybeSingle()
+    .then((r) => (r.error ? null : r.data));
+
+  const [sitzplaeneResults, belegteSitzIds, extras] = await Promise.all([
     Promise.all(
       sitzplanIds.map((id) =>
         supabase.from("sitzplaene").select("id, konfiguration").eq("id", id).single()
@@ -75,7 +85,11 @@ export default async function BuchungsSeite({
     ),
     // Bezahlte Tickets + frische Checkout-Holds; abgelaufene Holds geben frei
     belegteSitzIdsLaden(eventId),
+    extrasPromise,
   ]);
+
+  const fruehbucher = (extras?.fruehbucher as Fruehbucher | null) ?? null;
+  const addons = ((extras?.addons as EventAddon[] | null) ?? []).filter((a) => a.aktiv && a.name.trim());
 
   const floors = sitzplanIds
     .map((id, i) => {
@@ -197,6 +211,8 @@ export default async function BuchungsSeite({
             serviceGebuehrCent={event.service_gebuehr_cent ?? 50}
             ticketTypen={((event.ticket_typen as TicketTyp[] | null) ?? []).filter((t) => t.aktiv)}
             displayLang={displayLang}
+            fruehbucher={fruehbucherAktiv(fruehbucher) ? fruehbucher : null}
+            addons={addons}
           />
         ) : (
           <div className="rounded-xl border border-border bg-background p-12 text-center text-muted-foreground text-sm">
