@@ -193,13 +193,16 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
       {/* Row label — pill chip, anchored left of first seat */}
-      <LabelChip x={-(SITZ_RADIUS + 20)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+      {!el.labelAusblenden && (
+        <LabelChip x={-(SITZ_RADIUS + 20)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+      )}
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
-        const sitzId = `${el.bezeichnung}-${i + 1}`;
+        const nummer = (el.nummerStart ?? 1) + i;
+        const sitzId = `${el.bezeichnung}-${nummer}`;
         return (
           <SitzKreis key={sitzId}
             x={i * el.sitzAbstand} y={0}
-            sitzId={sitzId} nummer={i + 1}
+            sitzId={sitzId} nummer={nummer}
             kategoriefarbe={kategoriefarbe}
             belegt={belegte.has(sitzId)}
             buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}

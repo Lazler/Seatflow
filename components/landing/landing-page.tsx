@@ -69,82 +69,119 @@ function LogoMark({ size = 7 }: { size?: number }) {
   );
 }
 
-function DashboardMockup() {
+// Das Kernprodukt zeigen: ein interaktiver Sitzplan, wie ihn Gäste beim
+// Buchen sehen — nicht ein generisches Admin-Dashboard.
+function SitzplanMockup() {
+  const FARBE_PARKETT = "#3b82f6";
+  const FARBE_PREMIUM = "#8b5cf6";
+  const FARBE_BELEGT = "#cbd5e1";
+  const FARBE_GEWAEHLT = "#10b981";
+
+  // Deterministisch "zufällig" belegte Plätze (kein Math.random im Render)
+  const istBelegt = (reihe: number, sitz: number) => (reihe * 13 + sitz * 7 + 3) % 11 < 3;
+  const REIHEN = 6;
+  const SITZE = 14;
+  const R = 9;               // Sitzradius
+  const ABSTAND = 26;        // horizontal
+  const REIHEN_ABSTAND = 30; // vertikal
+  const GANG = 30;           // Mittelgang-Lücke
+  const breite = (SITZE - 1) * ABSTAND + GANG + 2 * R + 56;
+  const startX = 44;
+  const gewaehlt: [number, number][] = [[3, 6], [3, 7]];
+
+  const sitzX = (s: number) => startX + s * ABSTAND + (s >= SITZE / 2 ? GANG : 0);
+  const sitzY = (r: number) => 64 + r * REIHEN_ABSTAND;
+
   return (
     <div className="relative mx-auto max-w-4xl px-4 sm:px-6 -mb-8 z-10">
       <p className="text-center text-xs text-muted-foreground mb-3 uppercase tracking-widest font-medium">
-        So sieht Ihr Dashboard aus
+        So buchen Ihre Gäste — direkt im Sitzplan
       </p>
       <div className="rounded-xl border border-border shadow-2xl overflow-hidden bg-card">
-        {/* Mock-Topbar */}
+        {/* Browser-Topbar */}
         <div className="h-9 bg-muted/60 border-b border-border flex items-center px-4 gap-2">
           <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-border" />
             <div className="w-2.5 h-2.5 rounded-full bg-border" />
             <div className="w-2.5 h-2.5 rounded-full bg-border" />
           </div>
-          <div className="flex-1 mx-4 h-4 bg-border/60 rounded-full max-w-48" />
+          <div className="flex-1 mx-4 h-4 bg-border/60 rounded-full max-w-56" />
         </div>
-        <div className="flex" style={{ minHeight: 260 }}>
-          {/* Mock-Sidebar */}
-          <div className="w-44 shrink-0 border-r border-border bg-card p-3 space-y-1 hidden sm:block">
-            <div className="h-8 flex items-center gap-2 mb-3 px-1">
-              <div className="w-5 h-5 rounded bg-primary shrink-0" />
-              <div className="h-3 bg-muted rounded flex-1" />
+
+        <div className="flex">
+          {/* Sitzplan */}
+          <div className="flex-1 min-w-0 bg-[#fbfcfe] p-2 sm:p-4">
+            <svg viewBox={`0 0 ${breite} ${64 + REIHEN * REIHEN_ABSTAND + 12}`} className="w-full h-auto" role="img"
+              aria-label="Beispiel-Sitzplan mit Bühne, freien, belegten und ausgewählten Plätzen">
+              {/* Bühne */}
+              <rect x={breite / 2 - 130} y={12} width={260} height={26} rx={7} fill="#1e293b" />
+              <text x={breite / 2} y={29} textAnchor="middle" fill="rgba(248,250,252,0.9)"
+                fontSize="10" fontWeight="700" letterSpacing="3">BÜHNE</text>
+
+              {Array.from({ length: REIHEN }, (_, r) => (
+                <g key={r}>
+                  {/* Reihen-Label */}
+                  <text x={startX - 26} y={sitzY(r) + 3.5} fontSize="10" fontWeight="700"
+                    fill="#94a3b8" textAnchor="middle">{String.fromCharCode(65 + r)}</text>
+                  {Array.from({ length: SITZE }, (_, s) => {
+                    const selektiert = gewaehlt.some(([gr, gs]) => gr === r && gs === s);
+                    const belegt = !selektiert && istBelegt(r, s);
+                    const farbe = selektiert ? FARBE_GEWAEHLT
+                      : belegt ? FARBE_BELEGT
+                      : r < 2 ? FARBE_PREMIUM : FARBE_PARKETT;
+                    return (
+                      <g key={s}>
+                        {selektiert && (
+                          <circle cx={sitzX(s)} cy={sitzY(r)} r={R + 4} fill={FARBE_GEWAEHLT} opacity={0.25} />
+                        )}
+                        <circle cx={sitzX(s)} cy={sitzY(r)} r={R} fill={farbe}
+                          opacity={belegt ? 0.55 : 1}
+                          stroke={belegt ? "none" : "rgba(255,255,255,0.65)"} strokeWidth={1.2} />
+                      </g>
+                    );
+                  })}
+                </g>
+              ))}
+            </svg>
+
+            {/* Legende */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 sm:px-2 pt-1 text-[10px] sm:text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PREMIUM }} />Premium — 32 €</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PARKETT }} />Parkett — 24 €</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_BELEGT }} />Belegt</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_GEWAEHLT }} />Ausgewählt</span>
             </div>
-            {[80, 65, 90, 55, 70, 60].map((w, i) => (
-              <div
-                key={i}
-                className={`h-7 rounded-md flex items-center gap-2 px-2 ${i === 0 ? "bg-primary/15" : ""}`}
-              >
-                <div className={`w-3.5 h-3.5 rounded ${i === 0 ? "bg-primary/40" : "bg-muted"}`} />
-                <div
-                  className={`h-2.5 rounded ${i === 0 ? "bg-primary/30" : "bg-muted"}`}
-                  style={{ width: `${w}%` }}
-                />
-              </div>
-            ))}
           </div>
-          {/* Mock-Content */}
-          <div className="flex-1 p-5 space-y-4">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { color: "bg-emerald-100", bar: "bg-emerald-400" },
-                { color: "bg-blue-100", bar: "bg-blue-400" },
-                { color: "bg-violet-100", bar: "bg-violet-400" },
-                { color: "bg-amber-100", bar: "bg-amber-400" },
-              ].map((c, i) => (
-                <div key={i} className="rounded-lg border border-border p-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1.5">
-                      <div className="h-2 bg-muted rounded w-16" />
-                      <div className="h-4 bg-foreground/15 rounded w-12" />
-                    </div>
-                    <div className={`w-7 h-7 rounded-lg ${c.color} shrink-0`} />
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full ${c.bar} rounded-full`} style={{ width: `${40 + i * 15}%` }} />
-                  </div>
-                </div>
-              ))}
+
+          {/* Auswahl-Panel (wie die echte Buchungsseite) */}
+          <div className="hidden md:flex w-52 shrink-0 border-l border-border flex-col">
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-xs font-semibold">Deine Auswahl</p>
             </div>
-            {/* Event List */}
-            <div className="space-y-2">
-              {[90, 60, 35].map((pct, i) => (
-                <div key={i} className="rounded-lg border border-border px-4 py-3 flex items-center gap-4">
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-2.5 bg-foreground/15 rounded" style={{ width: `${50 + i * 10}%` }} />
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${pct >= 80 ? "bg-amber-400" : "bg-emerald-400"}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="h-2.5 w-14 bg-muted rounded shrink-0" />
+            <div className="px-4 py-3 space-y-2.5 flex-1">
+              {["D-7", "D-8"].map((platz) => (
+                <div key={platz} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-medium">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: FARBE_GEWAEHLT }} />
+                    <span className="font-mono">{platz}</span>
+                    <span className="text-muted-foreground font-normal">Parkett</span>
+                  </span>
+                  <span className="text-xs tabular-nums font-medium">24,00 €</span>
                 </div>
               ))}
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Servicegebühr (2×)</span>
+                <span className="tabular-nums">1,00 €</span>
+              </div>
+              <div className="border-t border-dashed border-border pt-2 flex items-center justify-between">
+                <span className="text-xs font-semibold">Gesamt</span>
+                <span className="text-xs font-bold tabular-nums">49,00 €</span>
+              </div>
+            </div>
+            <div className="p-3">
+              <div className="h-9 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-[11px] font-semibold text-primary-foreground">Weiter zur Bestellung →</span>
+              </div>
             </div>
           </div>
         </div>
@@ -208,7 +245,7 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
       </section>
 
       {/* Dashboard Mockup */}
-      <DashboardMockup />
+      <SitzplanMockup />
 
       {/* Stats row */}
       <section className="border-y border-border bg-muted/30 pt-16 pb-8">

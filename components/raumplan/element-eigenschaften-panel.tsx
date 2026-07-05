@@ -79,19 +79,22 @@ function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
 type Props = {
   el: SitzplanElement;
   kategorien: Preiskategorie[];
-  alleBezeichnungen: string[];
+  // Sitz-IDs aller anderen Elemente — für die Kollisionswarnung
+  fremdeSitzIds: Set<string>;
   onChange: (delta: Partial<SitzplanElement>) => void;
   onLoeschen: () => void;
   onSchliessen: () => void;
   onDuplizieren: () => void;
 };
 
-export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichnungen, onChange, onLoeschen, onSchliessen, onDuplizieren }: Props) {
+export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzIds, onChange, onLoeschen, onSchliessen, onDuplizieren }: Props) {
   const { icon: Icon, label: typLabel } = TYP_META[el.typ];
   const [loeschen, setLoeschen] = useState(false);
   const sitzAnzahl = elementSitzIds(el).length;
   const aktiveKat = kategorien.find((k) => k.id === el.kategorie_id);
-  const isDuplikat = alleBezeichnungen.includes(el.bezeichnung);
+  // Kollision, wenn eine Sitz-ID dieses Elements bereits woanders existiert
+  // (geteilte Reihen mit disjunkten Nummernbereichen sind erlaubt)
+  const isDuplikat = elementSitzIds(el).some((id) => fremdeSitzIds.has(id));
 
   useEffect(() => { setLoeschen(false); }, [el.id]);
 
@@ -142,7 +145,7 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
           />
           {isDuplikat && (
             <p className="text-[11px] text-destructive font-medium text-center">
-              Bezeichnung bereits vergeben
+              Sitz-IDs kollidieren mit einem anderen Element
             </p>
           )}
         </div>
@@ -157,6 +160,8 @@ export default function ElementEigenschaftenPanel({ el, kategorien, alleBezeichn
             onChange={(v) => onChange({ anzahlSitze: v } as Partial<SitzplanElement>)} />
           <Stepper label="Sitzabstand" value={el.sitzAbstand} min={24} max={60} einheit="px"
             onChange={(v) => onChange({ sitzAbstand: v } as Partial<SitzplanElement>)} />
+          <Stepper label="Erste Sitznummer" value={el.nummerStart ?? 1} min={1} max={200}
+            onChange={(v) => onChange({ nummerStart: v === 1 ? undefined : v } as Partial<SitzplanElement>)} />
         </>)}
 
         {el.typ === "tischreihe" && (<>

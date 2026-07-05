@@ -28,6 +28,11 @@ export type ReiheElement = BasisElement & {
   typ: "reihe";
   anzahlSitze: number;
   sitzAbstand: number;
+  // Erste Sitznummer (Default 1) — erlaubt geteilte Reihen mit Mittelgang:
+  // links "A" 1–6, rechts "A" ab 7. Sitz-IDs bleiben eindeutig.
+  nummerStart?: number;
+  // Reihen-Label-Chip ausblenden (rechte Hälfte einer geteilten Reihe)
+  labelAusblenden?: boolean;
 };
 
 export type TischreiheElement = BasisElement & {
@@ -104,9 +109,27 @@ export function elementSitzIds(el: SitzplanElement): string[] {
       return [];
     case "stehplatz":
       return Array.from({ length: el.kapazitaet }, (_, i) => `${el.bezeichnung}-${i + 1}`);
+    case "reihe": {
+      const start = el.nummerStart ?? 1;
+      return Array.from({ length: el.anzahlSitze }, (_, i) => `${el.bezeichnung}-${start + i}`);
+    }
     default:
       return Array.from({ length: el.anzahlSitze }, (_, i) => `${el.bezeichnung}-${i + 1}`);
   }
+}
+
+// Kollidierende Sitz-IDs über alle Elemente (statt bloßem Bezeichnungs-
+// Vergleich — geteilte Reihen teilen sich legitim eine Bezeichnung)
+export function doppelteSitzIds(elemente: SitzplanElement[]): string[] {
+  const gesehen = new Set<string>();
+  const doppelt = new Set<string>();
+  for (const el of elemente) {
+    for (const id of elementSitzIds(el)) {
+      if (gesehen.has(id)) doppelt.add(id);
+      else gesehen.add(id);
+    }
+  }
+  return [...doppelt];
 }
 
 export function tischreiheBreite(el: TischreiheElement): number {

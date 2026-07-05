@@ -12,7 +12,7 @@ import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
   type ReiheElement, type TischreiheElement, type RundtischElement,
   type StehplatzElement, type TextElement,
-  naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
+  naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, doppelteSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -198,6 +198,100 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     waehleAus({ typ: "element", ids: [neuesElement.id] });
   }
 
+
+  // ── Bestuhlungs-Generator ─────────────────────────────────────────────────
+  const SITZ_ABSTAND_GEN = 32;
+  const REIHEN_ABSTAND_GEN = 46;
+
+  function bestuhlungErzeugen(reihen: number, sitzeProReihe: number, mittelgang: boolean) {
+    const kat = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
+    const startY = konfig.buehne.y + konfig.buehne.hoehe / 2 + 90;
+    const mitteX = konfig.breite / 2;
+    const gangHalb = 28;
+    const neu: SitzplanElement[] = [];
+    const basisElemente = [...konfig.elemente];
+
+    for (let r = 0; r < reihen; r++) {
+      const y = startY + r * REIHEN_ABSTAND_GEN;
+      const bez = naechsteBezeichnung([...basisElemente, ...neu], "");
+      const gemeinsam = { winkel: 0, kategorie_id: kat };
+      if (mittelgang && sitzeProReihe >= 4) {
+        const links = Math.ceil(sitzeProReihe / 2);
+        const rechts = sitzeProReihe - links;
+        const wLinks = (links - 1) * SITZ_ABSTAND_GEN;
+        const wRechts = (rechts - 1) * SITZ_ABSTAND_GEN;
+        neu.push({
+          ...gemeinsam, typ: "reihe", id: crypto.randomUUID(), bezeichnung: bez,
+          x: Math.round(mitteX - gangHalb - wLinks / 2), y,
+          anzahlSitze: links, sitzAbstand: SITZ_ABSTAND_GEN,
+        } satisfies ReiheElement);
+        neu.push({
+          ...gemeinsam, typ: "reihe", id: crypto.randomUUID(), bezeichnung: bez,
+          x: Math.round(mitteX + gangHalb + wRechts / 2), y,
+          anzahlSitze: rechts, sitzAbstand: SITZ_ABSTAND_GEN,
+          nummerStart: links + 1, labelAusblenden: true,
+        } satisfies ReiheElement);
+      } else {
+        neu.push({
+          ...gemeinsam, typ: "reihe", id: crypto.randomUUID(), bezeichnung: bez,
+          x: Math.round(mitteX), y,
+          anzahlSitze: sitzeProReihe, sitzAbstand: SITZ_ABSTAND_GEN,
+        } satisfies ReiheElement);
+      }
+    }
+
+    // Raum bei Bedarf mitwachsen lassen, damit nichts abgeschnitten wird
+    const noetigeHoehe = Math.ceil(startY + reihen * REIHEN_ABSTAND_GEN + 60);
+    const noetigeBreite = Math.ceil(sitzeProReihe * SITZ_ABSTAND_GEN + (mittelgang ? 56 : 0) + 160);
+    mutiere((k) => ({
+      ...k,
+      hoehe: Math.max(k.hoehe, noetigeHoehe),
+      breite: Math.max(k.breite, noetigeBreite),
+      elemente: [...k.elemente, ...neu],
+    }));
+    setAuswahl(null);
+  }
+
+  function rundtischGruppeErzeugen(anzahl: number, sitzeProTisch: number, startYOffset = 90) {
+    const kat = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
+    const startY = konfig.buehne.y + konfig.buehne.hoehe / 2 + startYOffset;
+    const proZeile = Math.min(3, anzahl);
+    const dx = 200, dy = 180, radius = 32;
+    const mitteX = konfig.breite / 2;
+    const neu: SitzplanElement[] = [];
+    const basisElemente = [...konfig.elemente];
+    for (let i = 0; i < anzahl; i++) {
+      const spalte = i % proZeile;
+      const zeile = Math.floor(i / proZeile);
+      const zeilenBreite = (Math.min(proZeile, anzahl - zeile * proZeile) - 1) * dx;
+      neu.push({
+        typ: "rundtisch", id: crypto.randomUUID(),
+        bezeichnung: naechsteBezeichnung([...basisElemente, ...neu], "R"),
+        x: Math.round(mitteX - zeilenBreite / 2 + spalte * dx),
+        y: Math.round(startY + 70 + zeile * dy),
+        winkel: 0, kategorie_id: kat,
+        anzahlSitze: sitzeProTisch, tischRadius: radius,
+      } satisfies RundtischElement);
+    }
+    const zeilen = Math.ceil(anzahl / proZeile);
+    mutiere((k) => ({
+      ...k,
+      hoehe: Math.max(k.hoehe, Math.ceil(startY + 70 + zeilen * dy + 80)),
+      elemente: [...k.elemente, ...neu],
+    }));
+    setAuswahl(null);
+  }
+
+  function vorlageAnwenden(typ: "theater" | "kabarett" | "misch") {
+    if (typ === "theater") { bestuhlungErzeugen(10, 12, true); return; }
+    if (typ === "kabarett") { rundtischGruppeErzeugen(6, 6); return; }
+    // Mischbestuhlung: 4 Reihen vorn, danach Rundtische
+    bestuhlungErzeugen(4, 12, true);
+    // Tische unterhalb der erzeugten Reihen platzieren
+    const reihenEnde = konfig.buehne.y + konfig.buehne.hoehe / 2 + 90 + 4 * REIHEN_ABSTAND_GEN;
+    rundtischGruppeErzeugen(3, 8, reihenEnde - (konfig.buehne.y + konfig.buehne.hoehe / 2) + 40);
+  }
+
   function elementLoeschen(id: string) {
     mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
     setAuswahl(null);
@@ -272,11 +366,16 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       ? konfig.elemente.find((e) => e.id === auswahl.ids[0]) ?? null
       : null;
   const auswahlIds = auswahl?.typ === "element" ? auswahl.ids : [];
-  const alleBezeichnungen = ausgewaehltesElement
-    ? konfig.elemente.filter((e) => e.id !== ausgewaehltesElement.id).map((e) => e.bezeichnung)
-    : [];
-  const bezeichnungen = konfig.elemente.map((e) => e.bezeichnung);
-  const hatDuplikate = bezeichnungen.length !== new Set(bezeichnungen).size;
+  // Sitz-IDs aller ANDEREN Elemente — geteilte Reihen (gleiche Bezeichnung,
+  // disjunkte Nummernbereiche) sind legitim, echte ID-Kollisionen nicht
+  const fremdeSitzIds = new Set(
+    ausgewaehltesElement
+      ? konfig.elemente
+          .filter((e) => e.id !== ausgewaehltesElement.id)
+          .flatMap((e) => elementSitzIds(e))
+      : []
+  );
+  const hatDuplikate = doppelteSitzIds(konfig.elemente).length > 0;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -343,7 +442,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         <ElementEigenschaftenPanel
           el={ausgewaehltesElement}
           kategorien={konfig.kategorien}
-          alleBezeichnungen={alleBezeichnungen}
+          fremdeSitzIds={fremdeSitzIds}
           onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
           onLoeschen={() => { elementLoeschen(ausgewaehltesElement.id); onClose?.(); }}
           onSchliessen={() => { setAuswahl(null); onClose?.(); }}
@@ -355,6 +454,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       <EditorToolbar
         elemente={konfig.elemente}
         buehne={konfig.buehne}
+        onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); onClose?.(); }}
+        onVorlage={(typ) => { vorlageAnwenden(typ); onClose?.(); }}
         kategorien={konfig.kategorien}
         raumbreite={konfig.breite}
         raumhoehe={konfig.hoehe}
@@ -458,7 +559,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             )}
           </span>
           {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ Gespeichert</span>}
-          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Bez.</span>}
+          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Sitz-IDs</span>}
           <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
             <Save className="h-3.5 w-3.5 sm:mr-1.5" />
             <span className="hidden sm:inline">{speichernLaedt ? "Speichern…" : "Speichern"}</span>

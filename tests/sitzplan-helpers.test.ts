@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { elementSitzIds, migrierteKonfiguration } from "@/types/sitzplan";
+import { elementSitzIds, doppelteSitzIds, migrierteKonfiguration } from "@/types/sitzplan";
 import type { ReiheElement, TischreiheElement, RundtischElement } from "@/types/sitzplan";
 
 describe("elementSitzIds", () => {
@@ -92,5 +92,33 @@ describe("migrierteKonfiguration", () => {
       elemente: [{ typ: "reihe", id: "r1", bezeichnung: "A", x: 0, y: 0, winkel: 0, anzahlSitze: 3, sitzAbstand: 40, kategorie_id: null }],
     });
     expect(result.elemente).toHaveLength(1);
+  });
+});
+
+describe("nummerStart + doppelteSitzIds (geteilte Reihen)", () => {
+  const linkeHaelfte: ReiheElement = {
+    typ: "reihe", id: "l", bezeichnung: "A", x: 0, y: 0, winkel: 0,
+    anzahlSitze: 6, sitzAbstand: 32, kategorie_id: "k",
+  };
+  const rechteHaelfte: ReiheElement = {
+    typ: "reihe", id: "r", bezeichnung: "A", x: 300, y: 0, winkel: 0,
+    anzahlSitze: 6, sitzAbstand: 32, kategorie_id: "k",
+    nummerStart: 7, labelAusblenden: true,
+  };
+
+  it("continues numbering across the aisle", () => {
+    const ids = elementSitzIds(rechteHaelfte);
+    expect(ids[0]).toBe("A-7");
+    expect(ids[5]).toBe("A-12");
+  });
+
+  it("split rows with disjoint ranges do not collide", () => {
+    expect(doppelteSitzIds([linkeHaelfte, rechteHaelfte])).toEqual([]);
+  });
+
+  it("same bezeichnung with overlapping ranges IS a collision", () => {
+    const kollision: ReiheElement = { ...rechteHaelfte, id: "r2", nummerStart: 6 };
+    const dupes = doppelteSitzIds([linkeHaelfte, kollision]);
+    expect(dupes).toContain("A-6");
   });
 });

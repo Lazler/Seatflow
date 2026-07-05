@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlignJustify, Armchair, CircleDot, Minus, Plus,
   RotateCw, Theater, ChevronDown, ChevronUp, Tags, Pencil, Check, X, Maximize2,
-  Users, Type,
+  Users, Type, Rows3, Wand2,
 } from "lucide-react";
 import {
   type SitzplanElement, type Buehne, type ElementTyp, type Preiskategorie,
@@ -214,11 +214,83 @@ type Props = {
   onBuehneAktualisieren: (delta: Partial<Buehne>) => void;
   onKategorienAktualisieren: (k: Preiskategorie[]) => void;
   onRaumgroesseAktualisieren: (breite: number, hoehe: number) => void;
+  onBestuhlungErzeugen: (reihen: number, sitzeProReihe: number, mittelgang: boolean) => void;
+  onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
 };
+
+const VORLAGEN: { typ: "theater" | "kabarett" | "misch"; label: string; desc: string }[] = [
+  { typ: "theater",  label: "Theater",          desc: "10 Reihen à 12, Mittelgang" },
+  { typ: "kabarett", label: "Kabarett-Tische",  desc: "6 Rundtische à 6 Plätze" },
+  { typ: "misch",    label: "Mischbestuhlung",  desc: "4 Reihen + 3 Rundtische" },
+];
+
+// --- Bestuhlungs-Generator ---
+function BestuhlungsGenerator({ leer, onErzeugen, onVorlage }: {
+  leer: boolean;
+  onErzeugen: (reihen: number, sitze: number, gang: boolean) => void;
+  onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
+}) {
+  const [offen, setOffen] = useState(leer);
+  const [reihen, setReihen] = useState(8);
+  const [sitze, setSitze] = useState(12);
+  const [gang, setGang] = useState(true);
+
+  return (
+    <Card className="border-slate-200 rounded-none border-x-0 border-t-0 shadow-none">
+      <CardHeader className="py-2 px-4">
+        <button className="flex items-center justify-between w-full" onClick={() => setOffen(!offen)}>
+          <CardTitle className="text-xs text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+            <Wand2 className="h-3.5 w-3.5" /> Bestuhlung erzeugen
+          </CardTitle>
+          {offen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+      </CardHeader>
+      {offen && (
+        <CardContent className="px-4 pb-3 space-y-3">
+          {leer && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">Vorlagen — in Sekunden startklar:</p>
+              {VORLAGEN.map((v) => (
+                <button key={v.typ} onClick={() => onVorlage(v.typ)}
+                  className="w-full text-left rounded-lg border border-input hover:border-primary/50 hover:bg-accent px-3 py-2.5 transition-colors">
+                  <span className="text-sm font-medium block">{v.label}</span>
+                  <span className="text-xs text-muted-foreground">{v.desc}</span>
+                </button>
+              ))}
+              <div className="flex items-center gap-2 pt-1">
+                <div className="h-px bg-border flex-1" />
+                <span className="text-[10px] text-muted-foreground uppercase">oder eigene</span>
+                <div className="h-px bg-border flex-1" />
+              </div>
+            </div>
+          )}
+          <ZahlInput label="Reihen" value={reihen} min={1} max={30} schritt={1} onChange={setReihen} />
+          <ZahlInput label="Sitze pro Reihe" value={sitze} min={2} max={40} schritt={1} onChange={setSitze} />
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Mittelgang</Label>
+            <button type="button" onClick={() => setGang(!gang)}
+              role="switch" aria-checked={gang}
+              className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${gang ? "bg-primary" : "bg-input"}`}>
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${gang ? "translate-x-4" : "translate-x-0"}`} />
+            </button>
+          </div>
+          <Button size="sm" className="w-full h-9" onClick={() => onErzeugen(reihen, sitze, gang)}>
+            <Rows3 className="h-3.5 w-3.5 mr-1.5" />
+            {reihen * sitze} Plätze erzeugen
+          </Button>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Wird unterhalb der Bühne eingefügt — mit Cmd+Z rückgängig machbar.
+          </p>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
 
 export default function EditorToolbar({
   elemente, buehne, kategorien, raumbreite, raumhoehe, gesamtSitze,
   onHinzufuegen, onBuehneAktualisieren, onKategorienAktualisieren, onRaumgroesseAktualisieren,
+  onBestuhlungErzeugen, onVorlage,
 }: Props) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -243,6 +315,11 @@ export default function EditorToolbar({
 
       {/* Globale Einstellungen */}
       <div className="flex-1 overflow-y-auto divide-y divide-border">
+        <BestuhlungsGenerator
+          leer={elemente.length === 0}
+          onErzeugen={onBestuhlungErzeugen}
+          onVorlage={onVorlage}
+        />
         <RaumgroesseSection breite={raumbreite} hoehe={raumhoehe} onChange={onRaumgroesseAktualisieren} />
         <PreiskategorienEditor kategorien={kategorien} onChange={onKategorienAktualisieren} />
         <BuehneEigenschaften buehne={buehne} onChange={onBuehneAktualisieren} />
