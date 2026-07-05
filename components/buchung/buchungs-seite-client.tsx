@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Loader2, ChevronUp, ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
-import { alleSitze, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
+import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
 import { preisNachRegel, regelLabel } from "@/types/ticket-typ";
 
@@ -53,6 +53,41 @@ type Schritt = "auswahl" | "kasse";
 
 function euro(cent: number) {
   return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+}
+
+/* ─── E-Mail-Tippfehler-Erkennung ──────────────────────────────────────────── */
+const BEKANNTE_DOMAINS = [
+  "gmail.com", "googlemail.com", "web.de", "gmx.de", "gmx.at", "gmx.ch", "gmx.net",
+  "outlook.com", "outlook.de", "hotmail.com", "hotmail.de", "yahoo.com", "yahoo.de",
+  "icloud.com", "t-online.de", "freenet.de", "posteo.de", "protonmail.com", "proton.me",
+];
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 99;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+
+// Liefert eine korrigierte E-Mail wenn die Domain wie ein Tippfehler einer
+// bekannten Domain aussieht ("max@gmail.con" → "max@gmail.com"), sonst null
+function emailKorrektur(email: string): string | null {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return null;
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1).toLowerCase();
+  if (!domain || BEKANNTE_DOMAINS.includes(domain)) return null;
+  let beste: string | null = null;
+  let besteDist = 3;
+  for (const d of BEKANNTE_DOMAINS) {
+    const dist = levenshtein(domain, d);
+    if (dist > 0 && dist < besteDist) { besteDist = dist; beste = d; }
+  }
+  return beste ? `${local}@${beste}` : null;
 }
 
 /* ─── Segmented floor picker ───────────────────────────────────────────────── */
@@ -240,6 +275,8 @@ export default function BuchungsSeiteClient({
   const [agbAkzeptiert, setAgbAkzeptiert] = useState(false);
   const [drawerOffen, setDrawerOffen] = useState(false);
   const [schritt, setSchritt] = useState<Schritt>("auswahl");
+  const [schnellAnzahl, setSchnellAnzahl] = useState(2);
+  const [emailVorschlag, setEmailVorschlag] = useState<string | null>(null);
 
   const desktopContainerRef = useRef<HTMLDivElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
@@ -345,6 +382,47 @@ export default function BuchungsSeiteClient({
     setAusgewaehlt((prev) => prev.filter((s) => !(s.sitzId === sitzId && s.floorId === floorId)));
   }, []);
 
+  // ── Verfügbarkeit ──────────────────────────────────────────────────────────
+  const gesamtPlaetze = floors.reduce((s, f) => s + alleSitze(f.konfiguration).length, 0);
+  const freiePlaetze = Math.max(0, gesamtPlaetze - belegte.size);
+  const wenigePlaetze = freiePlaetze > 0 && freiePlaetze <= Math.max(12, Math.round(gesamtPlaetze * 0.15));
+  const ausverkauft = gesamtPlaetze > 0 && freiePlaetze === 0;
+
+  // ── Schnellauswahl: beste n zusammenhängende Plätze nahe der Bühne ─────────
+  function besteFreiePlaetzeWaehlen(n: number): boolean {
+    const konf = aktiverFloor.konfiguration;
+    const buehne = konf.buehne;
+    let beste: { ids: string[]; score: number } | null = null;
+    for (const el of konf.elemente) {
+      if (el.typ !== "reihe") continue;
+      const ids = elementSitzIds(el);
+      const frei = ids.map(
+        (id) => !belegteAktiverFloor.has(id) && !ausgewaehlteIdsAktiverFloor.has(id)
+      );
+      for (let i = 0; i + n <= ids.length; i++) {
+        let ok = true;
+        for (let j = i; j < i + n; j++) if (!frei[j]) { ok = false; break; }
+        if (!ok) continue;
+        // Nah an der Bühne + möglichst mittig in der Reihe
+        const distanz = Math.hypot(el.x - buehne.x, el.y - buehne.y);
+        const mittenVersatz = Math.abs(i + (n - 1) / 2 - (ids.length - 1) / 2);
+        const score = distanz + mittenVersatz * 20;
+        if (!beste || score < beste.score) beste = { ids: ids.slice(i, i + n), score };
+      }
+    }
+    if (!beste) return false;
+    const floorId = aktiverFloor.id;
+    setAusgewaehlt((prev) => [
+      ...prev,
+      ...beste.ids.map((sitzId) => {
+        const katId = aktiverFloorMap.sitzKategorie.get(sitzId) ?? konf.kategorien[0]?.id ?? "";
+        const kat = aktiverFloorMap.kategorienMap.get(katId) ?? konf.kategorien[0];
+        return { sitzId, floorId, kategorie: kat, ticketTypId: null, extraFelder: {} };
+      }),
+    ]);
+    return true;
+  }
+
   function updateSitzTyp(sitzId: string, typId: string | null) {
     setAusgewaehlt((prev) => prev.map((s) => s.sitzId === sitzId ? { ...s, ticketTypId: typId, extraFelder: {} } : s));
   }
@@ -434,6 +512,21 @@ export default function BuchungsSeiteClient({
     </div>
   );
 
+  // Verknappungs-Banner (echte Zahlen, kein Fake-Marketing)
+  const verfuegbarkeitsBanner = ausverkauft ? (
+    <div className="flex items-center gap-2 rounded-xl bg-destructive/8 border border-destructive/20 px-4 py-2.5">
+      <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
+      <p className="text-sm font-semibold text-destructive">Ausverkauft</p>
+    </div>
+  ) : wenigePlaetze ? (
+    <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
+      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+      <p className="text-sm font-medium text-amber-800">
+        Nur noch <strong>{freiePlaetze}</strong> {freiePlaetze === 1 ? "Platz" : "Plätze"} frei
+      </p>
+    </div>
+  ) : null;
+
   /* ── Step 1: Seat selection ─────────────────────────────────────────────── */
   const sitzAuswahl = (
     <div className="space-y-3">
@@ -490,8 +583,44 @@ export default function BuchungsSeiteClient({
         </div>
       )}
 
-      {ausgewaehlt.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-6">Klicke auf einen freien Platz im Sitzplan.</p>
+      {ausgewaehlt.length === 0 && !ausverkauft && (
+        <div className="py-3 space-y-4">
+          <p className="text-sm text-muted-foreground text-center">Klicke auf einen freien Platz im Sitzplan.</p>
+          {/* Schnellauswahl */}
+          <div className="rounded-xl border border-dashed border-border p-3 space-y-2.5">
+            <p className="text-xs font-medium text-muted-foreground text-center">
+              Oder automatisch nebeneinander:
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button type="button" onClick={() => setSchnellAnzahl((v) => Math.max(1, v - 1))}
+                aria-label="Weniger Plätze"
+                className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30"
+                disabled={schnellAnzahl <= 1}>−</button>
+              <span className="w-16 text-center text-sm font-semibold tabular-nums">
+                {schnellAnzahl} {schnellAnzahl === 1 ? "Platz" : "Plätze"}
+              </span>
+              <button type="button" onClick={() => setSchnellAnzahl((v) => Math.min(8, v + 1))}
+                aria-label="Mehr Plätze"
+                className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30"
+                disabled={schnellAnzahl >= 8}>+</button>
+            </div>
+            <button type="button"
+              onClick={() => {
+                setFehler(null);
+                if (!besteFreiePlaetzeWaehlen(schnellAnzahl)) {
+                  setFehler(`Keine ${schnellAnzahl} zusammenhängenden Plätze mehr frei — bitte manuell wählen.`);
+                }
+              }}
+              className="w-full h-10 rounded-lg border border-primary/40 text-primary text-sm font-medium hover:bg-primary/5 transition-colors">
+              ✨ Beste Plätze wählen
+            </button>
+          </div>
+        </div>
+      )}
+      {ausgewaehlt.length === 0 && ausverkauft && (
+        <p className="text-sm font-medium text-destructive text-center py-6">
+          Dieses Event ist ausverkauft.
+        </p>
       )}
 
       {fehler && <p className="text-xs text-destructive bg-destructive/5 rounded-md px-3 py-2">{fehler}</p>}
@@ -643,10 +772,21 @@ export default function BuchungsSeiteClient({
                 type="email"
                 placeholder={uiStrings.emailPlaceholder}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailVorschlag(null); }}
+                onBlur={() => setEmailVorschlag(emailKorrektur(email.trim()))}
                 className="h-11 rounded-xl text-sm"
                 autoComplete="email"
               />
+              {emailVorschlag && (
+                <button type="button"
+                  onClick={() => { setEmail(emailVorschlag); setEmailVorschlag(null); }}
+                  className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 w-full text-left hover:bg-amber-100 transition-colors">
+                  Meintest du <strong>{emailVorschlag}</strong>? Tippen zum Übernehmen.
+                </button>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Dein Ticket kommt an diese Adresse — bitte genau prüfen.
+              </p>
             </div>
           </div>
         </div>
@@ -730,6 +870,7 @@ export default function BuchungsSeiteClient({
           {/* Desktop */}
           <div className="hidden lg:grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-3">
+              {verfuegbarkeitsBanner}
               {mehrereEbenen && (
                 <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
               )}
@@ -751,11 +892,15 @@ export default function BuchungsSeiteClient({
 
           {/* Mobile */}
           <div className="lg:hidden space-y-3">
+            {verfuegbarkeitsBanner}
             {mehrereEbenen && (
               <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
             )}
             <Legende kategorien={alleKategorien} />
             {canvasWrapper(mobileContainerRef, mobileRenderScale)}
+            <p className="text-[11px] text-muted-foreground text-center">
+              Zwei Finger zum Zoomen · Doppeltippen für Detailansicht
+            </p>
 
             {/* Sticky bottom bar */}
             <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border shadow-2xl">

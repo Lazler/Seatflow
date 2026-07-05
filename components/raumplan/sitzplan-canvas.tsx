@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Group, Line, Transformer } from "react-konva";
 import type Konva from "konva";
+import { ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import {
   type SitzplanElement,
   type ReiheElement,
@@ -27,17 +28,26 @@ const DRAG_MARGIN = 40;
 
 // ── Seat component with smooth hover scale animation ──────────────────────────
 
+export type SeatHoverInfo = {
+  x: number; y: number;           // Content-Koordinaten des Sitzes
+  sitzId: string;
+  kategorieName: string;
+  preisCent: number;
+} | null;
+
 type SitzProps = {
   x: number; y: number;
   sitzId: string; nummer: number;
   kategoriefarbe: string;
+  kategorieName?: string; kategoriePreisCent?: number;
   belegt: boolean; buchungAusgewaehlt: boolean; editorAusgewaehlt: boolean;
   istBuchungsmodus: boolean; elementWinkel: number;
   nummerAusblenden: boolean;
   onSitzKlick?: (id: string) => void;
+  onHoverInfo?: (info: SeatHoverInfo) => void;
 };
 
-function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, onSitzKlick }: SitzProps) {
+function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, onSitzKlick, onHoverInfo }: SitzProps) {
   const istKlickbar = istBuchungsmodus && !belegt;
 
   let fill = kategoriefarbe;
@@ -53,12 +63,22 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, belegt, buchungAusgew
         if (istKlickbar) {
           (e.currentTarget as unknown as Konva.Node).to({ scaleX: 1.15, scaleY: 1.15, duration: 0.1 });
           e.target.getStage()!.container().style.cursor = "pointer";
+          if (onHoverInfo && kategorieName) {
+            // Sitzposition in Content-Koordinaten (Stage-Transform herausrechnen)
+            const node = e.currentTarget as unknown as Konva.Node;
+            const stage = node.getStage()!;
+            const abs = node.getAbsolutePosition();
+            const inv = stage.getAbsoluteTransform().copy().invert();
+            const p = inv.point(abs);
+            onHoverInfo({ x: p.x, y: p.y, sitzId, kategorieName, preisCent: kategoriePreisCent ?? 0 });
+          }
         }
       }}
       onMouseLeave={(e) => {
         if (istKlickbar) {
           (e.currentTarget as unknown as Konva.Node).to({ scaleX: 1, scaleY: 1, duration: 0.1 });
           e.target.getStage()!.container().style.cursor = "default";
+          onHoverInfo?.(null);
         }
       }}
     >
@@ -123,17 +143,19 @@ function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
 // ── Shared element props ──────────────────────────────────────────────────────
 
 type ElementProps<T> = {
-  el: T; kategoriefarbe: string; editorAusgewaehlt: boolean;
+  el: T; kategoriefarbe: string; kategorieName: string; kategoriePreisCent: number;
+  editorAusgewaehlt: boolean;
   belegte: Set<string>; buchungAusgewaehlt: Set<string>;
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
   nummerAusblenden: boolean;
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   onSitzKlick?: (sitzId: string) => void;
+  onHoverInfo?: (info: SeatHoverInfo) => void;
 };
 
 // ── Reihe ─────────────────────────────────────────────────────────────────────
 
-function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick }: ElementProps<ReiheElement>) {
+function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
@@ -160,6 +182,8 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
             elementWinkel={el.winkel}
             nummerAusblenden={nummerAusblenden}
             onSitzKlick={onSitzKlick}
+            kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
+            onHoverInfo={onHoverInfo}
           />
         );
       })}
@@ -178,7 +202,7 @@ function ReiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchu
 
 // ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
-function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick }: ElementProps<TischreiheElement>) {
+function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
   const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
   const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
@@ -225,6 +249,8 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
             belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
             editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
             elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
+            kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
+            onHoverInfo={onHoverInfo}
           />
         );
       })}
@@ -239,6 +265,8 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
             belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
             editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
             elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
+            kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
+            onHoverInfo={onHoverInfo}
           />
         );
       })}
@@ -257,7 +285,7 @@ function TischreiheKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, 
 
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
-function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick }: ElementProps<RundtischElement>) {
+function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
   const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
@@ -307,6 +335,8 @@ function RundtischKomponente({ el, kategoriefarbe, editorAusgewaehlt, belegte, b
             elementWinkel={el.winkel}
             nummerAusblenden={nummerAusblenden}
             onSitzKlick={onSitzKlick}
+            kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
+            onHoverInfo={onHoverInfo}
           />
         );
       })}
@@ -406,7 +436,37 @@ export default function SitzplanCanvas({
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const istBuchungsmodus = modus === "buchung";
-  const scale = Math.min(1, renderScale);
+  // Kein Cap mehr bei 1 — der Editor-Zoom skaliert bewusst über 1 hinaus
+  const scale = renderScale;
+
+  // ── Zoom & Pan (nur Buchungsmodus) ──────────────────────────────────────────
+  const MIN_ZOOM = 1, MAX_ZOOM = 3.5;
+  const [zoom, setZoom] = useState(1);
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const pinchRef = useRef<{ dist: number; center: { x: number; y: number } } | null>(null);
+  const [tooltip, setTooltip] = useState<SeatHoverInfo>(null);
+
+  const viewportW = konfiguration.breite * scale;
+  const viewportH = konfiguration.hoehe * scale;
+
+  const clampPos = useCallback((pos: { x: number; y: number }, z: number) => ({
+    x: Math.min(0, Math.max(viewportW * (1 - z), pos.x)),
+    y: Math.min(0, Math.max(viewportH * (1 - z), pos.y)),
+  }), [viewportW, viewportH]);
+
+  // Zoomt so, dass der Punkt (Viewport-Koordinaten) an Ort und Stelle bleibt
+  const applyZoom = useCallback((point: { x: number; y: number }, zielZoom: number) => {
+    const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zielZoom));
+    if (z === 1) { setZoom(1); setStagePos({ x: 0, y: 0 }); return; }
+    const c = {
+      x: (point.x - stagePos.x) / (scale * zoom),
+      y: (point.y - stagePos.y) / (scale * zoom),
+    };
+    setZoom(z);
+    setStagePos(clampPos({ x: point.x - c.x * scale * z, y: point.y - c.y * scale * z }, z));
+  }, [scale, zoom, stagePos, clampPos]);
+
+  const viewportMitte = { x: viewportW / 2, y: viewportH / 2 };
 
   const shiftHeldRef = useRef(false);
   useEffect(() => {
@@ -439,6 +499,9 @@ export default function SitzplanCanvas({
     const kat = kategorienMap.get(el.kategorie_id);
     const gemeinsam = {
       kategoriefarbe: kat?.farbe ?? "#3b82f6",
+      kategorieName: kat?.name ?? "",
+      kategoriePreisCent: kat?.preis_cent ?? 0,
+      onHoverInfo: istBuchungsmodus ? setTooltip : undefined,
       editorAusgewaehlt: istAusgewaehlt,
       belegte: belegteSitze,
       buchungAusgewaehlt: ausgewaehlteSitze,
@@ -484,12 +547,72 @@ export default function SitzplanCanvas({
     }
   }
 
+  const effektiverZoom = istBuchungsmodus ? zoom : 1;
+
   return (
+    <div
+      className="relative"
+      style={istBuchungsmodus ? { touchAction: zoom > 1 ? "none" : "pan-y" } : undefined}
+    >
     <Stage
       width={raumbreite * scale} height={raumhoehe * scale}
-      scale={{ x: scale, y: scale }}
+      scale={{ x: scale * effektiverZoom, y: scale * effektiverZoom }}
+      x={istBuchungsmodus ? stagePos.x : 0}
+      y={istBuchungsmodus ? stagePos.y : 0}
+      draggable={istBuchungsmodus && zoom > 1}
+      dragBoundFunc={(pos) => clampPos(pos, zoom)}
+      onDragEnd={(e) => {
+        if (istBuchungsmodus && e.target === e.target.getStage()) {
+          setStagePos({ x: e.target.x(), y: e.target.y() });
+        }
+      }}
       role={istBuchungsmodus ? "application" : undefined}
       aria-label={istBuchungsmodus ? "Sitzplan – klicke auf einen Platz um ihn auszuwählen" : "Sitzplan-Editor"}
+      onWheel={(e) => {
+        // Ctrl/Cmd+Scroll und Trackpad-Pinch zoomen; normales Scrollen bleibt Scrollen
+        if (!istBuchungsmodus || (!e.evt.ctrlKey && !e.evt.metaKey)) return;
+        e.evt.preventDefault();
+        const p = e.target.getStage()!.getPointerPosition();
+        if (!p) return;
+        applyZoom(p, zoom * (e.evt.deltaY < 0 ? 1.15 : 1 / 1.15));
+      }}
+      onDblClick={(e) => {
+        if (!istBuchungsmodus) return;
+        const p = e.target.getStage()!.getPointerPosition();
+        if (p) applyZoom(p, zoom > 1 ? 1 : 2);
+      }}
+      onDblTap={(e) => {
+        if (!istBuchungsmodus) return;
+        const p = e.target.getStage()!.getPointerPosition();
+        if (p) applyZoom(p, zoom > 1 ? 1 : 2);
+      }}
+      onTouchMove={(e) => {
+        if (!istBuchungsmodus || e.evt.touches.length !== 2) return;
+        e.evt.preventDefault();
+        const stage = e.target.getStage()!;
+        if (stage.isDragging()) stage.stopDrag();
+        const rect = stage.container().getBoundingClientRect();
+        const [t1, t2] = [e.evt.touches[0], e.evt.touches[1]];
+        const p1 = { x: t1.clientX - rect.left, y: t1.clientY - rect.top };
+        const p2 = { x: t2.clientX - rect.left, y: t2.clientY - rect.top };
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        const prev = pinchRef.current;
+        if (prev) {
+          // Pinch = Zoom um das (bewegte) Fingerzentrum → zoomt und pannt zugleich
+          const c = {
+            x: (prev.center.x - stagePos.x) / (scale * zoom),
+            y: (prev.center.y - stagePos.y) / (scale * zoom),
+          };
+          const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * (dist / prev.dist)));
+          setZoom(z);
+          setStagePos(z === 1
+            ? { x: 0, y: 0 }
+            : clampPos({ x: center.x - c.x * scale * z, y: center.y - c.y * scale * z }, z));
+        }
+        pinchRef.current = { dist, center };
+      }}
+      onTouchEnd={() => { pinchRef.current = null; }}
       onMouseDown={(e) => {
         if (istBuchungsmodus) return;
         const targetId = (e.target as Konva.Shape).id?.() ?? "";
@@ -530,17 +653,19 @@ export default function SitzplanCanvas({
       }}
     >
       <Layer>
-        {/* Background */}
-        <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe} fill="#f5f7fc" />
-        {/* Subtle grid */}
-        {Array.from({ length: Math.ceil(raumhoehe / 40) }, (_, i) => (
+        {/* Background — im Buchungsmodus ohne Baustellen-Raster */}
+        <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe}
+          fill={istBuchungsmodus ? "#fbfcfe" : "#f5f7fc"} />
+        {/* Editor-Raster (nur im Editor sichtbar) */}
+        {!istBuchungsmodus && Array.from({ length: Math.ceil(raumhoehe / 40) }, (_, i) => (
           <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e4e9f2" strokeWidth={0.75} listening={false} />
         ))}
-        {Array.from({ length: Math.ceil(raumbreite / 40) }, (_, i) => (
+        {!istBuchungsmodus && Array.from({ length: Math.ceil(raumbreite / 40) }, (_, i) => (
           <Line key={`v${i}`} points={[i * 40, 0, i * 40, raumhoehe]} stroke="#e4e9f2" strokeWidth={0.75} listening={false} />
         ))}
         {/* Canvas border */}
-        <Rect x={0} y={0} width={raumbreite} height={raumhoehe} stroke="#c8d3e0" strokeWidth={1.5} fill="transparent" listening={false} />
+        <Rect x={0} y={0} width={raumbreite} height={raumhoehe}
+          stroke={istBuchungsmodus ? "#e2e8f0" : "#c8d3e0"} strokeWidth={1.5} fill="transparent" listening={false} />
         {/* Stage / Bühne */}
         <BuehneKomponente
           buehne={konfiguration.buehne} ausgewaehlt={auswahl?.typ === "buehne"}
@@ -576,7 +701,53 @@ export default function SitzplanCanvas({
             }}
           />
         )}
+        {/* Sitz-Tooltip (Desktop-Hover im Buchungsmodus) */}
+        {istBuchungsmodus && tooltip && (() => {
+          const zeile1 = tooltip.sitzId;
+          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`;
+          const W = Math.max(zeile1.length, zeile2.length) * 6.6 + 20;
+          const H = 40;
+          return (
+            <Group x={tooltip.x} y={tooltip.y - SITZ_RADIUS - 10} listening={false}>
+              <Rect x={-W / 2} y={-H} width={W} height={H}
+                fill="#0f172a" cornerRadius={8} opacity={0.94}
+                shadowColor="#0f172a" shadowBlur={12} shadowOpacity={0.25} shadowOffsetY={2} />
+              {/* Pfeilspitze */}
+              <Line points={[-5, 0, 5, 0, 0, 5]} closed fill="#0f172a" opacity={0.94} />
+              <Text x={-W / 2} y={-H + 6} width={W} height={14} text={zeile1}
+                fill="#ffffff" fontSize={12} fontStyle="bold" align="center" />
+              <Text x={-W / 2} y={-H + 21} width={W} height={13} text={zeile2}
+                fill="rgba(255,255,255,0.75)" fontSize={10.5} align="center" />
+            </Group>
+          );
+        })()}
       </Layer>
     </Stage>
+
+    {/* Zoom-Controls (nur Buchungsmodus) */}
+    {istBuchungsmodus && (
+      <div className="absolute right-2.5 top-2.5 flex flex-col gap-1.5">
+        <button type="button" aria-label="Vergrößern"
+          onClick={() => applyZoom(viewportMitte, zoom * 1.5)}
+          disabled={zoom >= MAX_ZOOM}
+          className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
+          <ZoomIn className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label="Verkleinern"
+          onClick={() => applyZoom(viewportMitte, zoom / 1.5)}
+          disabled={zoom <= MIN_ZOOM}
+          className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        {zoom > 1 && (
+          <button type="button" aria-label="Ansicht zurücksetzen"
+            onClick={() => applyZoom(viewportMitte, 1)}
+            className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition">
+            <Maximize className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    )}
+    </div>
   );
 }
