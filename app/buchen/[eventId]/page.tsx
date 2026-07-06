@@ -93,6 +93,8 @@ export default async function BuchungsSeite({
   const addons = ((extras?.addons as EventAddon[] | null) ?? []).filter((a) => a.aktiv && a.name.trim());
 
   // Verkaufsfenster + Buchungslimit
+  // Server Component: läuft einmal pro Request, Date.now() ist hier korrekt
+  // eslint-disable-next-line react-hooks/purity
   const jetzt = Date.now();
   const verkaufAb = extras?.verkauf_ab ? new Date(extras.verkauf_ab as string) : null;
   const verkaufBis = extras?.verkauf_bis ? new Date(extras.verkauf_bis as string) : null;
