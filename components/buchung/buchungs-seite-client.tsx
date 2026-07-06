@@ -5,13 +5,14 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, ChevronUp, ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar } from "lucide-react";
+import { X, Loader2, ChevronUp, ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkles } from "lucide-react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
 import { preisNachRegel, regelLabel } from "@/types/ticket-typ";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import { fruehbucherPreis } from "@/types/event-extras";
+import { BUCHUNG_STRINGS, fmt } from "@/lib/i18n/buchung";
 
 const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canvas"), {
   ssr: false,
@@ -44,6 +45,8 @@ type Props = {
   // Server-validierter, AKTIVER Frühbucher-Rabatt (null wenn abgelaufen/keiner)
   fruehbucher?: Fruehbucher | null;
   addons?: EventAddon[];
+  // Vom Veranstalter konfiguriertes Limit (Default 8)
+  maxProBuchung?: number;
 };
 
 type AusgewaehlterSitz = {
@@ -181,79 +184,9 @@ function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange, display
 export default function BuchungsSeiteClient({
   eventId, eventTitel, eventDatum, venueName,
   floors, belegteSitzIds, serviceGebuehrCent, ticketTypen = [], displayLang,
-  fruehbucher = null, addons = [],
+  fruehbucher = null, addons = [], maxProBuchung = 8,
 }: Props) {
-  const uiStrings = {
-    de: {
-      auswaehlen: "Plätze auswählen",
-      weiter: "Weiter zur Bestellung",
-      schritt1: "Platzauswahl",
-      schritt2: "Bestellung & Zahlung",
-      gesamtpreis: "Gesamtpreis",
-      servicegebuehr: "Servicegebühr",
-      mwst: "inkl. MwSt.",
-      zahlungspflichtig: "Zahlungspflichtig bestellen",
-      agb: "Ich akzeptiere die AGB und Datenschutzerklärung...",
-      name: "Name",
-      email: "E-Mail",
-      namePlaceholder: "Vor- und Nachname",
-      emailPlaceholder: "E-Mail-Adresse",
-      keinSitzplan: "Kein Sitzplan zugewiesen.",
-      belegtPlaetze: "Belegte Plätze",
-      freiePlaetze: "Freie Plätze",
-      ausgewaehlt: "ausgewählt",
-      ticketTyp: "Ticket-Typ",
-      preis: "Preis",
-      sitzplan: "Sitzplan",
-      ebene: "Ebene",
-    },
-    en: {
-      auswaehlen: "Select seats",
-      weiter: "Continue to order",
-      schritt1: "Seat selection",
-      schritt2: "Order & Payment",
-      gesamtpreis: "Total price",
-      servicegebuehr: "Service fee",
-      mwst: "incl. VAT",
-      zahlungspflichtig: "Order with obligation to pay",
-      agb: "I accept the terms and conditions and privacy policy...",
-      name: "Name",
-      email: "Email",
-      namePlaceholder: "First and last name",
-      emailPlaceholder: "Email address",
-      keinSitzplan: "No seating plan assigned.",
-      belegtPlaetze: "Occupied seats",
-      freiePlaetze: "Available seats",
-      ausgewaehlt: "selected",
-      ticketTyp: "Ticket type",
-      preis: "Price",
-      sitzplan: "Seating plan",
-      ebene: "Floor",
-    },
-    hu: {
-      auswaehlen: "Helyek kiválasztása",
-      weiter: "Tovább a rendeléshez",
-      schritt1: "Hely kiválasztása",
-      schritt2: "Rendelés és fizetés",
-      gesamtpreis: "Végösszeg",
-      servicegebuehr: "Kezelési díj",
-      mwst: "ÁFÁ-val együtt",
-      zahlungspflichtig: "Fizetési kötelezettséggel rendelés",
-      agb: "Elfogadom az általános szerződési feltételeket...",
-      name: "Név",
-      email: "E-mail",
-      namePlaceholder: "Keresztnév és vezetéknév",
-      emailPlaceholder: "E-mail-cím",
-      keinSitzplan: "Nincs hozzárendelt ülésrend.",
-      belegtPlaetze: "Foglalt helyek",
-      freiePlaetze: "Szabad helyek",
-      ausgewaehlt: "kiválasztva",
-      ticketTyp: "Jegytípus",
-      preis: "Ár",
-      sitzplan: "Ülésrend",
-      ebene: "Szint",
-    },
-  }[displayLang ?? "de"];
+  const uiStrings = BUCHUNG_STRINGS[displayLang ?? "de"];
   const mehrereEbenen = floors.length > 1;
   const hatTypen = ticketTypen.length > 0;
 
@@ -377,12 +310,17 @@ export default function BuchungsSeiteClient({
     setAusgewaehlt((prev) => {
       const istDrin = prev.some((s) => s.sitzId === sitzId && s.floorId === floorId);
       if (istDrin) return prev.filter((s) => !(s.sitzId === sitzId && s.floorId === floorId));
+      if (prev.length >= maxProBuchung) {
+        setFehler(fmt(BUCHUNG_STRINGS[displayLang ?? "de"].maxErreicht, { n: maxProBuchung }));
+        return prev;
+      }
       const katId = aktiverFloorMap.sitzKategorie.get(sitzId) ?? aktiverFloor.konfiguration.kategorien[0]?.id ?? "";
       const kat = aktiverFloorMap.kategorienMap.get(katId);
       if (!kat) return prev;
+      setFehler(null);
       return [...prev, { sitzId, floorId, kategorie: kat, ticketTypId: null, extraFelder: {} }];
     });
-  }, [aktiverFloor, aktiverFloorMap]);
+  }, [aktiverFloor, aktiverFloorMap, maxProBuchung, displayLang]);
 
   // Explizites Entfernen aus der Auswahlliste — funktioniert unabhängig
   // davon, welche Ebene gerade aktiv ist (anders als onSitzKlicken)
@@ -421,6 +359,10 @@ export default function BuchungsSeiteClient({
       }
     }
     if (!beste) return false;
+    if (ausgewaehlt.length + n > maxProBuchung) {
+      setFehler(fmt(uiStrings.maxErreicht, { n: maxProBuchung }));
+      return true; // Fehlermeldung gesetzt, keine "keine zusammenhängenden"-Meldung
+    }
     const floorId = aktiverFloor.id;
     setAusgewaehlt((prev) => [
       ...prev,
@@ -470,7 +412,7 @@ export default function BuchungsSeiteClient({
       if (!typ) continue;
       for (const feld of typ.pflichtfelder.filter((f) => f.pflicht)) {
         if (!s.extraFelder[feld.label]?.trim()) {
-          return `Pflichtfeld „${feld.label}" für ${s.sitzId} (${typName(typ)}) fehlt.`;
+          return fmt(uiStrings.fehlerPflichtfeld, { feld: feld.label, sitz: s.sitzId, typ: typName(typ) });
         }
       }
     }
@@ -478,7 +420,7 @@ export default function BuchungsSeiteClient({
   }
 
   function weiter() {
-    if (ausgewaehlt.length === 0) { setFehler("Bitte mindestens einen Sitzplatz wählen."); return; }
+    if (ausgewaehlt.length === 0) { setFehler(uiStrings.fehlerMindestens); return; }
     const typFehler = validiereTypFelder();
     if (typFehler) { setFehler(typFehler); return; }
     setFehler(null);
@@ -487,9 +429,9 @@ export default function BuchungsSeiteClient({
   }
 
   async function zahlungspflichtigBestellen() {
-    if (!name.trim()) { setFehler("Bitte deinen Namen eingeben."); return; }
-    if (!email.trim() || !email.includes("@")) { setFehler("Bitte eine gültige E-Mail eingeben."); return; }
-    if (!agbAkzeptiert) { setFehler("Bitte akzeptiere die AGB um fortzufahren."); return; }
+    if (!name.trim()) { setFehler(uiStrings.fehlerName); return; }
+    if (!email.trim() || !email.includes("@")) { setFehler(uiStrings.fehlerEmail); return; }
+    if (!agbAkzeptiert) { setFehler(uiStrings.fehlerAgb); return; }
     setLaedt(true);
     setFehler(null);
     const res = await fetch("/api/checkout", {
@@ -524,7 +466,7 @@ export default function BuchungsSeiteClient({
       }),
     });
     const data = await res.json() as { url?: string; error?: string };
-    if (!res.ok || !data.url) { setFehler(data.error ?? "Fehler beim Starten des Checkouts."); setLaedt(false); return; }
+    if (!res.ok || !data.url) { setFehler(data.error ?? uiStrings.fehlerCheckout); setLaedt(false); return; }
     window.location.assign(data.url);
   }
 
@@ -535,17 +477,28 @@ export default function BuchungsSeiteClient({
       style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
       <SitzplanCanvas konfiguration={aktiverFloor.konfiguration} modus="buchung"
         renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
-        onSitzKlicken={onSitzKlicken} />
+        onSitzKlicken={onSitzKlicken}
+        texte={{
+          zoneFrei: uiStrings.zoneFrei,
+          zoneGewaehlt: uiStrings.zoneGewaehlt,
+          zoneHinzufuegen: uiStrings.zoneHinzufuegen,
+          zoneAusverkauft: uiStrings.zoneAusverkauft,
+          canvasAria: uiStrings.canvasAria,
+        }} />
     </div>
   );
 
   // Frühbucher-Badge (Server hat Gültigkeit bereits geprüft)
   const fruehbucherBadge = fruehbucher ? (
     <div className="flex items-center gap-2 rounded-xl bg-primary/8 border border-primary/25 px-4 py-2.5">
-      <span className="text-base leading-none">⏳</span>
+      <Timer className="h-4 w-4 text-primary shrink-0" />
       <p className="text-sm font-medium text-primary">
-        Frühbucher: <strong>−{fruehbucher.prozent} %</strong> auf alle Plätze
-        bis {new Date(fruehbucher.bis).toLocaleDateString("de-DE", { day: "numeric", month: "long" })}
+        {fmt(uiStrings.fruehbucherBadge, {
+          p: fruehbucher.prozent,
+          datum: new Date(fruehbucher.bis).toLocaleDateString(
+            displayLang === "hu" ? "hu-HU" : displayLang === "en" ? "en-GB" : "de-DE",
+            { day: "numeric", month: "long" }),
+        })}
       </p>
     </div>
   ) : null;
@@ -554,13 +507,13 @@ export default function BuchungsSeiteClient({
   const verfuegbarkeitsBanner = ausverkauft ? (
     <div className="flex items-center gap-2 rounded-xl bg-destructive/8 border border-destructive/20 px-4 py-2.5">
       <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
-      <p className="text-sm font-semibold text-destructive">Ausverkauft</p>
+      <p className="text-sm font-semibold text-destructive">{uiStrings.ausverkauft}</p>
     </div>
   ) : wenigePlaetze ? (
     <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
       <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
       <p className="text-sm font-medium text-amber-800">
-        Nur noch <strong>{freiePlaetze}</strong> {freiePlaetze === 1 ? "Platz" : "Plätze"} frei
+        {freiePlaetze === 1 ? uiStrings.nurNochEin : fmt(uiStrings.nurNoch, { n: freiePlaetze })}
       </p>
     </div>
   ) : null;
@@ -590,7 +543,7 @@ export default function BuchungsSeiteClient({
                     {hatRabatt && <span className="line-through text-muted-foreground text-xs">{euro(s.kategorie.preis_cent)}</span>}
                     <span className="text-sm tabular-nums font-medium">{euro(typPreis)}</span>
                     <button type="button" onClick={() => entferneSitz(s.floorId, s.sitzId)}
-                      aria-label={`Platz ${s.sitzId} entfernen`}
+                      aria-label={fmt(uiStrings.entfernen, { id: s.sitzId })}
                       className="text-muted-foreground/40 hover:text-destructive transition-colors ml-1 p-0.5">
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -623,41 +576,41 @@ export default function BuchungsSeiteClient({
 
       {ausgewaehlt.length === 0 && !ausverkauft && (
         <div className="py-3 space-y-4">
-          <p className="text-sm text-muted-foreground text-center">Klicke auf einen freien Platz im Sitzplan.</p>
+          <p className="text-sm text-muted-foreground text-center">{uiStrings.klickeHinweis}</p>
           {/* Schnellauswahl */}
           <div className="rounded-xl border border-dashed border-border p-3 space-y-2.5">
             <p className="text-xs font-medium text-muted-foreground text-center">
-              Oder automatisch nebeneinander:
+              {uiStrings.schnellauswahl}
             </p>
             <div className="flex items-center justify-center gap-2">
               <button type="button" onClick={() => setSchnellAnzahl((v) => Math.max(1, v - 1))}
-                aria-label="Weniger Plätze"
+                aria-label={uiStrings.wenigerPlaetze}
                 className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30"
                 disabled={schnellAnzahl <= 1}>−</button>
               <span className="w-16 text-center text-sm font-semibold tabular-nums">
-                {schnellAnzahl} {schnellAnzahl === 1 ? "Platz" : "Plätze"}
+                {schnellAnzahl} {schnellAnzahl === 1 ? uiStrings.platz : uiStrings.plaetze}
               </span>
               <button type="button" onClick={() => setSchnellAnzahl((v) => Math.min(8, v + 1))}
-                aria-label="Mehr Plätze"
+                aria-label={uiStrings.mehrPlaetze}
                 className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30"
-                disabled={schnellAnzahl >= 8}>+</button>
+                disabled={schnellAnzahl >= Math.min(8, maxProBuchung)}>+</button>
             </div>
             <button type="button"
               onClick={() => {
                 setFehler(null);
                 if (!besteFreiePlaetzeWaehlen(schnellAnzahl)) {
-                  setFehler(`Keine ${schnellAnzahl} zusammenhängenden Plätze mehr frei — bitte manuell wählen.`);
+                  setFehler(fmt(uiStrings.keineZusammenhaengend, { n: schnellAnzahl }));
                 }
               }}
-              className="w-full h-10 rounded-lg border border-primary/40 text-primary text-sm font-medium hover:bg-primary/5 transition-colors">
-              ✨ Beste Plätze wählen
+              className="w-full h-10 rounded-lg border border-primary/40 text-primary text-sm font-medium hover:bg-primary/5 transition-colors inline-flex items-center justify-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" /> {uiStrings.bestePlaetze}
             </button>
           </div>
         </div>
       )}
       {ausgewaehlt.length === 0 && ausverkauft && (
         <p className="text-sm font-medium text-destructive text-center py-6">
-          Dieses Event ist ausverkauft.
+          {uiStrings.eventAusverkauft}
         </p>
       )}
 
@@ -719,7 +672,7 @@ export default function BuchungsSeiteClient({
         {/* Seats table */}
         <div className="rounded-2xl border border-border bg-background overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border">
-            <p className="text-sm font-semibold">Deine Plätze</p>
+            <p className="text-sm font-semibold">{uiStrings.deinePlaetze}</p>
           </div>
           <div className="divide-y divide-border">
             {ausgewaehlt.map((s) => {
@@ -756,7 +709,7 @@ export default function BuchungsSeiteClient({
           <div className="border-t border-border bg-muted/30 px-5 py-4 space-y-2">
             {serviceGebuehrCent > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Tickets ({ausgewaehlt.length})</span>
+                <span>{uiStrings.tickets} ({ausgewaehlt.length})</span>
                 <span className="tabular-nums">{euro(ticketSummeCent)}</span>
               </div>
             )}
@@ -768,13 +721,13 @@ export default function BuchungsSeiteClient({
             )}
             {addonSummeCent > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Extras</span>
+                <span>{uiStrings.extrasZeile}</span>
                 <span className="tabular-nums">{euro(addonSummeCent)}</span>
               </div>
             )}
             {fruehbucher && ticketSummeCent > 0 && (
               <div className="flex justify-between text-sm text-green-600 font-medium">
-                <span>Frühbucher-Rabatt</span>
+                <span>{uiStrings.fruehbucherRabatt}</span>
                 <span className="tabular-nums">−{fruehbucher.prozent} %</span>
               </div>
             )}
@@ -790,8 +743,8 @@ export default function BuchungsSeiteClient({
         {addons.length > 0 && (
           <div className="rounded-2xl border border-border bg-background overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border">
-              <p className="text-sm font-semibold">Extras hinzufügen</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Optional — direkt mitbestellen und Wartezeit sparen</p>
+              <p className="text-sm font-semibold">{uiStrings.extras}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{uiStrings.extrasHinweis}</p>
             </div>
             <div className="divide-y divide-border">
               {addons.map((a) => {
@@ -800,13 +753,13 @@ export default function BuchungsSeiteClient({
                   <div key={a.id} className="flex items-center gap-3 px-5 py-3.5">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">{euro(a.preis_cent)} / Stück</p>
+                      <p className="text-xs text-muted-foreground">{euro(a.preis_cent)} {uiStrings.proStueck}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button type="button"
                         onClick={() => setzeAddonMenge(a.id, menge - 1)}
                         disabled={menge === 0}
-                        aria-label={`${a.name} entfernen`}
+                        aria-label={`− ${a.name}`}
                         className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30 transition-colors">
                         −
                       </button>
@@ -814,7 +767,7 @@ export default function BuchungsSeiteClient({
                       <button type="button"
                         onClick={() => setzeAddonMenge(a.id, menge + 1)}
                         disabled={menge >= 20}
-                        aria-label={`${a.name} hinzufügen`}
+                        aria-label={`+ ${a.name}`}
                         className="h-9 w-9 rounded-lg border border-input hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30 transition-colors">
                         +
                       </button>
@@ -837,7 +790,7 @@ export default function BuchungsSeiteClient({
           onClick={() => { setSchritt("auswahl"); setFehler(null); setLaedt(false); }}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Zurück zur Sitzauswahl
+          <ArrowLeft className="h-3.5 w-3.5" /> {uiStrings.zurueckZurAuswahl}
         </button>
       </div>
 
@@ -845,8 +798,8 @@ export default function BuchungsSeiteClient({
       <div className="space-y-4">
         <div className="rounded-2xl border border-border bg-background overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border">
-            <p className="text-sm font-semibold">Kontaktdaten</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Dein Ticket wird an diese E-Mail gesendet</p>
+            <p className="text-sm font-semibold">{uiStrings.kontaktdaten}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{uiStrings.kontaktHinweis}</p>
           </div>
           <div className="px-5 py-4 space-y-4">
             <div className="space-y-1.5">
@@ -876,11 +829,11 @@ export default function BuchungsSeiteClient({
                 <button type="button"
                   onClick={() => { setEmail(emailVorschlag); setEmailVorschlag(null); }}
                   className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 w-full text-left hover:bg-amber-100 transition-colors">
-                  Meintest du <strong>{emailVorschlag}</strong>? Tippen zum Übernehmen.
+                  {fmt(uiStrings.meintestDu, { email: emailVorschlag })}
                 </button>
               )}
               <p className="text-[11px] text-muted-foreground">
-                Dein Ticket kommt an diese Adresse — bitte genau prüfen.
+                {uiStrings.emailPruefen}
               </p>
             </div>
           </div>
@@ -903,12 +856,11 @@ export default function BuchungsSeiteClient({
                 className="mt-0.5 h-4 w-4 rounded border-border shrink-0"
               />
               <span className="text-xs text-muted-foreground leading-relaxed">
-                Ich akzeptiere die{" "}
-                <a href="/agb" target="_blank" className="text-primary underline underline-offset-2">AGB</a>{" "}
-                und{" "}
-                <a href="/datenschutz" target="_blank" className="text-primary underline underline-offset-2">Datenschutzerklärung</a>.
-                Ich weise ausdrücklich darauf hin, dass gemäß{" "}
-                <strong>§ 312g Abs. 2 Nr. 9 BGB</strong> kein Widerrufsrecht für Tickets zu Veranstaltungen besteht.
+                {uiStrings.agbTeil1}{" "}
+                <a href="/agb" target="_blank" className="text-primary underline underline-offset-2">{uiStrings.agbLabel}</a>{" "}
+                {uiStrings.und}{" "}
+                <a href="/datenschutz" target="_blank" className="text-primary underline underline-offset-2">{uiStrings.datenschutzLabel}</a>.{" "}
+                {uiStrings.widerruf}
               </span>
             </label>
 
@@ -925,23 +877,21 @@ export default function BuchungsSeiteClient({
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {laedt
-                ? <><Loader2 className="h-5 w-5 animate-spin" /> Weiterleitung…</>
+                ? <><Loader2 className="h-5 w-5 animate-spin" /> {uiStrings.weiterleitung}</>
                 : <><Lock className="h-4 w-4" /> {uiStrings.zahlungspflichtig}</>}
             </button>
 
             <div className="flex items-center justify-center gap-4">
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
-                SSL-verschlüsselt
+                {uiStrings.sslHinweis}
               </span>
-              <span className="text-[11px] text-muted-foreground">Powered by Stripe</span>
+              <span className="text-[11px] text-muted-foreground">{uiStrings.stripeHinweis}</span>
             </div>
           </div>
           <div className="border-t border-border bg-muted/30 px-5 py-3">
             <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
-              Mit dem Klick auf „Zahlungspflichtig bestellen" wirst du zu Stripe weitergeleitet.
-              Deine Plätze sind während der Zahlung <strong>30 Minuten für dich reserviert</strong> —
-              die Buchung wird erst nach erfolgreicher Zahlung bestätigt.
+              {uiStrings.holdHinweis}
             </p>
           </div>
         </div>
@@ -972,7 +922,7 @@ export default function BuchungsSeiteClient({
               )}
               <Legende kategorien={alleKategorien} />
               {canvasWrapper(desktopContainerRef, desktopRenderScale)}
-              <p className="text-xs text-muted-foreground">Sitze werden live gesperrt sobald jemand anderes bucht.</p>
+              <p className="text-xs text-muted-foreground">{uiStrings.liveHinweis}</p>
             </div>
             <div>
               <div className="sticky top-20 rounded-2xl border border-border bg-background overflow-hidden">
@@ -996,7 +946,7 @@ export default function BuchungsSeiteClient({
             <Legende kategorien={alleKategorien} />
             {canvasWrapper(mobileContainerRef, mobileRenderScale)}
             <p className="text-[11px] text-muted-foreground text-center">
-              Zwei Finger zum Zoomen · Doppeltippen für Detailansicht
+              {uiStrings.zoomHinweis}
             </p>
 
             {/* Sticky bottom bar */}
@@ -1006,9 +956,9 @@ export default function BuchungsSeiteClient({
                 onClick={() => ausgewaehlt.length > 0 && setDrawerOffen((v) => !v)}>
                 <div className="flex items-center gap-2">
                   {ausgewaehlt.length === 0
-                    ? <span className="text-sm text-muted-foreground">Platz wählen</span>
+                    ? <span className="text-sm text-muted-foreground">{uiStrings.platzWaehlen}</span>
                     : <>
-                        <span className="text-sm font-semibold">{ausgewaehlt.length} Platz{ausgewaehlt.length > 1 ? "plätze" : ""}</span>
+                        <span className="text-sm font-semibold">{ausgewaehlt.length} {ausgewaehlt.length > 1 ? uiStrings.plaetze : uiStrings.platz}</span>
                         <span className="text-xs text-muted-foreground truncate max-w-[140px]">{ausgewaehlt.map((a) => a.sitzId).join(", ")}</span>
                       </>}
                 </div>

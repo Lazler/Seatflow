@@ -32,9 +32,9 @@ export default function GlobalError({
             borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
             marginBottom: 16,
-            fontSize: 24,
+            fontSize: 22, fontWeight: 800, color: "#dc2626",
           }}>
-            ⚠
+            !
           </div>
           <h1 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, color: "#0f172a" }}>
             Ein Fehler ist aufgetreten

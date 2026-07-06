@@ -13,7 +13,7 @@ import type { TicketTyp, PflichtFeld, PreisRegel } from "@/types/ticket-typ";
 import { regelLabel } from "@/types/ticket-typ";
 
 type Lang = "de" | "en" | "hu";
-const FLAG: Record<Lang, string> = { de: "🇩🇪", en: "🇬🇧", hu: "🇭🇺" };
+const FLAG: Record<Lang, string> = { de: "DE", en: "EN", hu: "HU" };
 
 const NEUER_TYP = (): TicketTyp => ({
   id: crypto.randomUUID(),

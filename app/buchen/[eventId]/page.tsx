@@ -6,6 +6,7 @@ import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";
 import { belegteSitzIdsLaden } from "@/lib/belegte-sitze";
 import { fruehbucherAktiv, type Fruehbucher, type EventAddon } from "@/types/event-extras";
+import { BUCHUNG_STRINGS, fmt } from "@/lib/i18n/buchung";
 import type { TicketTyp } from "@/types/ticket-typ";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
@@ -72,7 +73,7 @@ export default async function BuchungsSeite({
   // existieren erst nach der Migration 20260705120000_fruehbucher_addons
   const extrasPromise = supabase
     .from("events")
-    .select("fruehbucher, addons")
+    .select("fruehbucher, addons, verkauf_ab, verkauf_bis, max_pro_buchung")
     .eq("id", eventId)
     .maybeSingle()
     .then((r) => (r.error ? null : r.data));
@@ -90,6 +91,16 @@ export default async function BuchungsSeite({
 
   const fruehbucher = (extras?.fruehbucher as Fruehbucher | null) ?? null;
   const addons = ((extras?.addons as EventAddon[] | null) ?? []).filter((a) => a.aktiv && a.name.trim());
+
+  // Verkaufsfenster + Buchungslimit
+  const jetzt = Date.now();
+  const verkaufAb = extras?.verkauf_ab ? new Date(extras.verkauf_ab as string) : null;
+  const verkaufBis = extras?.verkauf_bis ? new Date(extras.verkauf_bis as string) : null;
+  const verkaufNochNicht = !!verkaufAb && jetzt < verkaufAb.getTime();
+  const verkaufVorbei = !!verkaufBis && jetzt > verkaufBis.getTime();
+  const maxProBuchung = (extras?.max_pro_buchung as number | null) ?? 8;
+  const strings = BUCHUNG_STRINGS[displayLang];
+  const datumsLocale = displayLang === "de" ? "de-DE" : displayLang === "hu" ? "hu-HU" : "en-GB";
 
   const floors = sitzplanIds
     .map((id, i) => {
@@ -147,7 +158,7 @@ export default async function BuchungsSeite({
             <div className="flex items-center gap-1 shrink-0">
               <Globe className="h-3.5 w-3.5 text-muted-foreground" />
               {eventSprachen.map((lang) => {
-                const flag = lang === "de" ? "🇩🇪" : lang === "en" ? "🇬🇧" : "🇭🇺";
+                const kuerzel = lang.toUpperCase();
                 const isActive = lang === displayLang;
                 return (
                   <Link
@@ -159,7 +170,7 @@ export default async function BuchungsSeite({
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {flag} {LOCALE_LABELS[lang as Locale]}
+                    <span className="font-semibold tabular-nums mr-1">{kuerzel}</span>{LOCALE_LABELS[lang as Locale]}
                   </Link>
                 );
               })}
@@ -200,7 +211,20 @@ export default async function BuchungsSeite({
         </div>
 
         {/* Sitzplan + Checkout */}
-        {floors.length > 0 ? (
+        {verkaufNochNicht || verkaufVorbei ? (
+          <div className="rounded-xl border border-border bg-background p-12 text-center space-y-2">
+            <p className="text-base font-semibold">
+              {verkaufNochNicht
+                ? fmt(strings.verkaufAb, {
+                    datum: verkaufAb!.toLocaleDateString(datumsLocale, {
+                      day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    }),
+                  })
+                : strings.verkaufBeendet}
+            </p>
+            <p className="text-sm text-muted-foreground">{venue?.name}</p>
+          </div>
+        ) : floors.length > 0 ? (
           <BuchungsSeiteClient
             eventId={event.id}
             eventTitel={localizedTitel}
@@ -213,6 +237,7 @@ export default async function BuchungsSeite({
             displayLang={displayLang}
             fruehbucher={fruehbucherAktiv(fruehbucher) ? fruehbucher : null}
             addons={addons}
+            maxProBuchung={maxProBuchung}
           />
         ) : (
           <div className="rounded-xl border border-border bg-background p-12 text-center text-muted-foreground text-sm">
@@ -224,6 +249,26 @@ export default async function BuchungsSeite({
           </div>
         )}
       </div>
+
+      {/* Rechts-Footer: Anbieterkennzeichnung + Pflicht-Links */}
+      <footer className="border-t border-border bg-background mt-10">
+        <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="text-center sm:text-left space-y-0.5">
+            {venue?.name && (
+              <p>
+                {strings.veranstaltetVon} <span className="font-medium text-foreground">{venue.name}</span>
+                {venue.adresse ? `, ${venue.adresse}` : ""}
+              </p>
+            )}
+            <p>{strings.ticketshopVon}</p>
+          </div>
+          <div className="flex items-center gap-4 shrink-0">
+            <Link href="/impressum" className="hover:text-foreground transition-colors">{strings.impressum}</Link>
+            <Link href="/datenschutz" className="hover:text-foreground transition-colors">{strings.datenschutz}</Link>
+            <Link href="/agb" className="hover:text-foreground transition-colors">{strings.agbFooter}</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

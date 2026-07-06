@@ -100,12 +100,30 @@ export async function POST(req: NextRequest) {
   const ticketTypenMap = new Map<string, TicketTyp>();
   ((event.ticket_typen as TicketTyp[] | null) ?? []).forEach((t) => ticketTypenMap.set(t.id, t));
 
-  // Frühbucher + Add-ons (fehler-tolerant — Spalten evtl. noch nicht migriert)
+  // Frühbucher + Add-ons + Verkaufsregeln (fehler-tolerant — Spalten evtl. noch nicht migriert)
   const { data: extras, error: extrasFehler } = await admin
     .from("events")
-    .select("fruehbucher, addons")
+    .select("fruehbucher, addons, verkauf_ab, verkauf_bis, max_pro_buchung")
     .eq("id", eventId)
     .maybeSingle();
+
+  // Verkaufsfenster + Buchungslimit server-seitig durchsetzen
+  if (!extrasFehler && extras) {
+    const jetztMs = Date.now();
+    if (extras.verkauf_ab && jetztMs < new Date(extras.verkauf_ab as string).getTime()) {
+      return NextResponse.json({ error: "Der Vorverkauf hat noch nicht begonnen." }, { status: 403 });
+    }
+    if (extras.verkauf_bis && jetztMs > new Date(extras.verkauf_bis as string).getTime()) {
+      return NextResponse.json({ error: "Der Online-Vorverkauf ist beendet." }, { status: 403 });
+    }
+    const maxProBuchung = (extras.max_pro_buchung as number | null) ?? 8;
+    if (sitzplaetze.length > maxProBuchung) {
+      return NextResponse.json(
+        { error: `Maximal ${maxProBuchung} Plätze pro Buchung.` },
+        { status: 400 }
+      );
+    }
+  }
   const fruehbucher = !extrasFehler && fruehbucherAktiv(extras?.fruehbucher as Fruehbucher | null)
     ? (extras!.fruehbucher as Fruehbucher)
     : null;

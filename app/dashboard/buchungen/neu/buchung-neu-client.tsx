@@ -273,7 +273,7 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
                         : "border-input text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {s === "bezahlt" ? "✓ Bezahlt" : "⏳ Ausstehend"}
+                    {s === "bezahlt" ? "Bezahlt" : "Ausstehend"}
                   </button>
                 ))}
               </div>

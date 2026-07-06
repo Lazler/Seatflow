@@ -93,7 +93,7 @@ export default function DatenschutzPage() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-12 pt-6 border-t border-border">
-          ⚠️ Platzhalter – bitte vor dem Launch durch einen Datenschutzbeauftragten prüfen lassen.
+          Hinweis: Platzhalter – bitte vor dem Launch durch einen Datenschutzbeauftragten prüfen lassen.
         </p>
       </div>
     </div>

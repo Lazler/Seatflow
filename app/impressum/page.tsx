@@ -72,7 +72,7 @@ export default function ImpressumPage() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-12 pt-6 border-t border-border">
-          ⚠️ Platzhalter – bitte vor dem Launch mit echten Angaben ersetzen.
+          Hinweis: Platzhalter – bitte vor dem Launch mit echten Angaben ersetzen.
         </p>
       </div>
     </div>

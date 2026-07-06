@@ -72,7 +72,7 @@ export function LanguageSwitcher() {
 }
 
 const LOCALE_FLAGS: Record<Locale, string> = {
-  de: "🇩🇪",
-  en: "🇬🇧",
-  hu: "🇭🇺",
+  de: "DE",
+  en: "EN",
+  hu: "HU",
 };

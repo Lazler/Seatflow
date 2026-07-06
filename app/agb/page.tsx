@@ -84,7 +84,7 @@ export default function AgbPage() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-12 pt-6 border-t border-border">
-          ⚠️ Platzhalter – vor dem Launch von einem Rechtsanwalt prüfen lassen.
+          Hinweis: Platzhalter – vor dem Launch von einem Rechtsanwalt prüfen lassen.
         </p>
       </div>
     </div>

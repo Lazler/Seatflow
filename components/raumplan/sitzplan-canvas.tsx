@@ -174,6 +174,7 @@ type ElementProps<T> = {
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
   nummerAusblenden: boolean;
   sperrModus?: boolean;
+  zonenTexte: { zoneFrei: string; zoneGewaehlt: string; zoneHinzufuegen: string; zoneAusverkauft: string };
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   onSitzKlick?: (sitzId: string) => void;
   onHoverInfo?: (info: SeatHoverInfo) => void;
@@ -388,7 +389,7 @@ function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
 
 // ── Stehplatz-Zone ────────────────────────────────────────────────────────────
 
-function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd, onSitzKlick }: ElementProps<StehplatzElement>) {
+function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, zonenTexte, onKlick, onDragEnd, onSitzKlick }: ElementProps<StehplatzElement>) {
   const ids = elementSitzIds(el);
   const freie = ids.filter((id) => !belegte.has(id) && !buchungAusgewaehlt.has(id));
   const gewaehlt = ids.filter((id) => buchungAusgewaehlt.has(id)).length;
@@ -428,8 +429,8 @@ function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
           x={-el.breite / 2} y={-2} width={el.breite} height={14}
           text={istBuchungsmodus
             ? (freie.length === 0 && gewaehlt === 0
-                ? "ausverkauft"
-                : `${freie.length} frei${gewaehlt > 0 ? ` · ${gewaehlt} gewählt` : ""}`)
+                ? zonenTexte.zoneAusverkauft
+                : `${freie.length} ${zonenTexte.zoneFrei}${gewaehlt > 0 ? ` · ${gewaehlt} ${zonenTexte.zoneGewaehlt}` : ""}`)
             : `${el.kapazitaet} Personen · ${kategorieName} ${(kategoriePreisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`}
           fill="#64748b" fontSize={10}
           align="center" verticalAlign="middle"
@@ -437,7 +438,7 @@ function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
         {istBuchungsmodus && klickbar && (
           <Text
             x={-el.breite / 2} y={14} width={el.breite} height={13}
-            text="+ Tippen zum Hinzufügen"
+            text={zonenTexte.zoneHinzufuegen}
             fill={kategoriefarbe} fontSize={9.5} fontStyle="bold"
             align="center" verticalAlign="middle"
           />
@@ -561,13 +562,27 @@ type Props = {
   snapRaster?: number;
   // Editor-Sperrmodus: Sitze anklickbar zum Sperren/Entsperren
   sperrModus?: boolean;
+  // Lokalisierte Texte für Buchungsmodus (Stehplatz-Zone, Aria)
+  texte?: {
+    zoneFrei: string; zoneGewaehlt: string;
+    zoneHinzufuegen: string; zoneAusverkauft: string;
+    canvasAria: string;
+  };
+};
+
+const TEXTE_DEFAULT = {
+  zoneFrei: "frei",
+  zoneGewaehlt: "gewählt",
+  zoneHinzufuegen: "+ Tippen zum Hinzufügen",
+  zoneAusverkauft: "ausverkauft",
+  canvasAria: "Sitzplan – klicke auf einen Platz, um ihn auszuwählen",
 };
 
 export default function SitzplanCanvas({
   konfiguration, modus, renderScale = 1,
   auswahl, onAuswaehlen, onElementVerschieben, onMehrereElementeVerschieben, onBuehneVerschieben, onBuehneTransformiert,
   belegteSitze = new Set(), ausgewaehlteSitze = new Set(), onSitzKlicken,
-  snapRaster = 0, sperrModus = false,
+  snapRaster = 0, sperrModus = false, texte = TEXTE_DEFAULT,
 }: Props) {
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
@@ -640,6 +655,7 @@ export default function SitzplanCanvas({
       stageScale: scale,
       snapRaster,
       sperrModus,
+      zonenTexte: texte,
       onHoverInfo: istBuchungsmodus ? setTooltip : undefined,
       editorAusgewaehlt: istAusgewaehlt,
       belegte: belegteSitze,
@@ -708,7 +724,7 @@ export default function SitzplanCanvas({
         }
       }}
       role={istBuchungsmodus ? "application" : undefined}
-      aria-label={istBuchungsmodus ? "Sitzplan – klicke auf einen Platz um ihn auszuwählen" : "Sitzplan-Editor"}
+      aria-label={istBuchungsmodus ? texte.canvasAria : "Sitzplan-Editor"}
       onWheel={(e) => {
         // Ctrl/Cmd+Scroll und Trackpad-Pinch zoomen; normales Scrollen bleibt Scrollen
         if (!istBuchungsmodus || (!e.evt.ctrlKey && !e.evt.metaKey)) return;

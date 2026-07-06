@@ -17,7 +17,7 @@ export type Etage = {
   translations?: Partial<Record<"en" | "hu", { name: string }>>;
 };
 
-const FLAG: Record<Lang, string> = { de: "🇩🇪", en: "🇬🇧", hu: "🇭🇺" };
+const FLAG: Record<Lang, string> = { de: "DE", en: "EN", hu: "HU" };
 
 function etageVonSitzplanId(sitzplanId: string | null): Etage[] {
   if (!sitzplanId) return [];

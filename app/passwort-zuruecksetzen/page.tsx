@@ -40,7 +40,8 @@ export default function PasswortZuruecksetzen() {
           }
         });
     } else {
-      setPhase("error");
+      // Außerhalb des synchronen Effect-Bodys setzen (React-Compiler-Regel)
+      queueMicrotask(() => setPhase("error"));
     }
   }, []);
 

@@ -110,7 +110,7 @@ export default function EventSprachen({
       <CardContent className="space-y-4">
         <div className="flex gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-muted/40 text-xs">
-            <span>🇩🇪</span>
+            <span className="text-[10px] font-bold text-muted-foreground border border-border rounded px-1">DE</span>
             <span className="font-medium">Deutsch</span>
           </div>
           {ADDITIONAL_LOCALES.map((lang) => {
@@ -126,7 +126,7 @@ export default function EventSprachen({
                     : "border-border hover:border-primary/50 text-muted-foreground"
                 }`}
               >
-                <span>{lang === "en" ? "🇬🇧" : "🇭🇺"}</span>
+                <span className="text-[10px] font-bold text-muted-foreground border border-border rounded px-1">{lang.toUpperCase()}</span>
                 {LOCALE_LABELS[lang]}
                 {active ? " ✓" : " +"}
               </button>
@@ -146,7 +146,7 @@ export default function EventSprachen({
                     aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {lang === "de" ? "🇩🇪" : lang === "en" ? "🇬🇧" : "🇭🇺"} {LOCALE_LABELS[lang]}
+                  {lang.toUpperCase()} · {LOCALE_LABELS[lang]}
                   {aktiveSprache === lang && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                 </button>
               ))}

@@ -10,6 +10,7 @@ import TicketTypen from "../ticket-typen";
 import TicketTemplateSelector from "../ticket-template-selector";
 import EventWeiterleitungen from "../event-weiterleitungen";
 import EventExtras from "../event-extras";
+import EventVerkauf from "../event-verkauf";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import EventSprachen from "../event-sprachen";
 import type { TicketTyp } from "@/types/ticket-typ";
@@ -90,6 +91,12 @@ export default async function EventEinstellungen({
         </div>
 
         <div className="space-y-4">
+          <EventVerkauf
+            eventId={event.id}
+            initialVerkaufAb={(event.verkauf_ab as string | null) ?? null}
+            initialVerkaufBis={(event.verkauf_bis as string | null) ?? null}
+            initialMaxProBuchung={(event.max_pro_buchung as number | null) ?? null}
+          />
           <EventSprachen
             eventId={event.id}
             initialSprachen={(event.sprachen as string[] | null) ?? ["de"]}
