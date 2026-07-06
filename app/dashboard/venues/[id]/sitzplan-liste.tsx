@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Trash as Trash2, CircleNotch as Loader2, Warning as AlertTriangle, Copy } from "@phosphor-icons/react";
+import { Trash as Trash2, CircleNotch as Loader2, Copy } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 
 type Plan = { id: string; name: string };
 
@@ -14,12 +15,10 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
   const [confirming, setConfirming] = useState<string | null>(null);
   const [loescht, setLoescht] = useState<string | null>(null);
   const [dupliziert, setDupliziert] = useState<string | null>(null);
-  const [fehler, setFehler] = useState<string | null>(null);
 
   // Kopiert einen Plan samt Konfiguration und öffnet die Kopie im Editor
   async function duplizieren(plan: Plan) {
     setDupliziert(plan.id);
-    setFehler(null);
     const supabase = createClient();
     const { data: original, error: ladeFehler } = await supabase
       .from("sitzplaene")
@@ -27,7 +26,7 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
       .eq("id", plan.id)
       .single();
     if (ladeFehler || !original) {
-      setFehler("Plan konnte nicht geladen werden.");
+      toast.error("Plan konnte nicht geladen werden");
       setDupliziert(null);
       return;
     }
@@ -41,13 +40,13 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
       .select("id")
       .single();
     setDupliziert(null);
-    if (insertFehler || !kopie) { setFehler("Duplizieren fehlgeschlagen."); return; }
+    if (insertFehler || !kopie) { toast.error("Duplizieren fehlgeschlagen"); return; }
+    toast.success("Plan dupliziert", `„${plan.name} (Kopie)" wird im Editor geöffnet.`);
     router.push(`/dashboard/venues/${venueId}/raumplan/${kopie.id}`);
   }
 
   async function loeschen(planId: string) {
     setLoescht(planId);
-    setFehler(null);
     const supabase = createClient();
 
     // Check if any events reference this sitzplan
@@ -57,7 +56,7 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
       .eq("sitzplan_id", planId);
 
     if ((count ?? 0) > 0) {
-      setFehler(`Dieser Plan ist ${count} Event${count === 1 ? "" : "s"} zugewiesen und kann nicht gelöscht werden.`);
+      toast.error("Löschen nicht möglich", `Dieser Plan ist ${count} Event${count === 1 ? "" : "s"} zugewiesen.`);
       setLoescht(null);
       setConfirming(null);
       return;
@@ -66,7 +65,8 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
     const { error } = await supabase.from("sitzplaene").delete().eq("id", planId);
     setLoescht(null);
     setConfirming(null);
-    if (error) { setFehler("Löschen fehlgeschlagen."); return; }
+    if (error) { toast.error("Löschen fehlgeschlagen", error.message); return; }
+    toast.success("Plan gelöscht");
     router.refresh();
   }
 
@@ -83,12 +83,6 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
 
   return (
     <div className="space-y-1">
-      {fehler && (
-        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs text-destructive mb-2">
-          <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          {fehler}
-        </div>
-      )}
       {plaene.map((plan) => (
         <div key={plan.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
           <span className="text-sm font-medium truncate flex-1 min-w-0 mr-2">{plan.name}</span>
@@ -111,14 +105,14 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
                   {loescht === plan.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Löschen"}
                 </Button>
                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
-                  onClick={() => { setConfirming(null); setFehler(null); }}>
+                  onClick={() => setConfirming(null)}>
                   Abbrechen
                 </Button>
               </div>
             ) : (
               <Button size="icon" variant="ghost"
                 className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
-                onClick={() => { setConfirming(plan.id); setFehler(null); }}>
+                onClick={() => setConfirming(plan.id)}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}

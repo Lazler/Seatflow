@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LockKey, Copy, Check, ArrowsClockwise, CircleNotch, X } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 
 // Verwaltung der Scanner-PIN: Link + PIN ans Einlasspersonal geben,
 // ohne den eigenen Account zu teilen.
@@ -23,11 +24,11 @@ export default function ScannerPinVerwaltung({ eventId, initialPin }: {
     setLaedt(true);
     const res = await fetch(`/api/events/${eventId}/scanner-pin`, { method: "POST" });
     setLaedt(false);
-    if (res.ok) {
-      const data = await res.json() as { pin: string };
-      setPin(data.pin);
-      router.refresh();
-    }
+    if (!res.ok) { toast.error("PIN konnte nicht erzeugt werden"); return; }
+    const data = await res.json() as { pin: string };
+    setPin(data.pin);
+    toast.success("Neue Scanner-PIN erzeugt", "Die alte PIN ist ab sofort ungültig.");
+    router.refresh();
   }
 
   async function entfernen() {
@@ -35,6 +36,7 @@ export default function ScannerPinVerwaltung({ eventId, initialPin }: {
     await fetch(`/api/events/${eventId}/scanner-pin`, { method: "DELETE" });
     setLaedt(false);
     setPin(null);
+    toast.success("Scanner-Zugang deaktiviert");
     router.refresh();
   }
 
@@ -42,8 +44,9 @@ export default function ScannerPinVerwaltung({ eventId, initialPin }: {
     try {
       await navigator.clipboard.writeText(`Ticket-Scanner: ${scanUrl}\nPIN: ${pin}`);
       setKopiert(true);
+      toast.success("Kopiert", "Link + PIN liegen in der Zwischenablage.");
       setTimeout(() => setKopiert(false), 2000);
-    } catch { /* Clipboard nicht verfügbar */ }
+    } catch { toast.error("Kopieren nicht möglich", "Zwischenablage ist nicht verfügbar."); }
   }
 
   return (

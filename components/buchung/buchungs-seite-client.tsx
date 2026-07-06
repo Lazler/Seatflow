@@ -735,7 +735,7 @@ export default function BuchungsSeiteClient({
             )}
             <div className="flex justify-between items-center pt-1 border-t border-border">
               <span className="font-bold text-base">{uiStrings.gesamtpreis}</span>
-              <span className="font-bold text-lg tabular-nums">{euro(gesamtPreisCent)}</span>
+              <span key={gesamtPreisCent} className="font-bold text-lg tabular-nums inline-block animate-pop-in">{euro(gesamtPreisCent)}</span>
             </div>
             <p className="text-xs text-muted-foreground">{uiStrings.mwst}</p>
           </div>
@@ -846,7 +846,7 @@ export default function BuchungsSeiteClient({
           <div className="px-5 pt-4 pb-5 space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">{uiStrings.gesamtpreis}</span>
-              <span className="text-xl font-bold tabular-nums">{euro(gesamtPreisCent)}</span>
+              <span key={gesamtPreisCent} className="text-xl font-bold tabular-nums inline-block animate-pop-in">{euro(gesamtPreisCent)}</span>
             </div>
 
             {/* AGB + Widerruf */}
@@ -968,7 +968,7 @@ export default function BuchungsSeiteClient({
                 </div>
                 <div className="flex items-center gap-3">
                   {ausgewaehlt.length > 0 && (
-                    <span className="font-bold text-sm">{euro(gesamtPreisCent)}</span>
+                    <span key={gesamtPreisCent} className="font-bold text-sm inline-block animate-pop-in">{euro(gesamtPreisCent)}</span>
                   )}
                   {ausgewaehlt.length > 0 && (drawerOffen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />)}
                 </div>

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Image as ImageIcon, UploadSimple, Trash, CircleNotch } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 
 // Event-Bild: Hero auf der Buchungsseite. Upload in den öffentlichen
 // Storage-Bucket "event-bilder" (Ordner = eigene User-ID, per RLS erzwungen).
@@ -19,15 +20,13 @@ export default function EventBild({ eventId, userId, initialBildUrl }: {
   const inputRef = useRef<HTMLInputElement>(null);
   const [bildUrl, setBildUrl] = useState(initialBildUrl);
   const [laedt, setLaedt] = useState(false);
-  const [fehler, setFehler] = useState<string | null>(null);
 
   async function hochladen(datei: File) {
-    if (datei.size > 5 * 1024 * 1024) { setFehler("Maximal 5 MB."); return; }
+    if (datei.size > 5 * 1024 * 1024) { toast.error("Bild zu groß", "Maximal 5 MB."); return; }
     if (!["image/jpeg", "image/png", "image/webp"].includes(datei.type)) {
-      setFehler("Nur JPG, PNG oder WebP."); return;
+      toast.error("Format nicht unterstützt", "Nur JPG, PNG oder WebP."); return;
     }
     setLaedt(true);
-    setFehler(null);
     const supabase = createClient();
     const endung = datei.type === "image/png" ? "png" : datei.type === "image/webp" ? "webp" : "jpg";
     const pfad = `${userId}/${eventId}-${crypto.randomUUID().slice(0, 8)}.${endung}`;
@@ -35,7 +34,7 @@ export default function EventBild({ eventId, userId, initialBildUrl }: {
     const { error: uploadFehler } = await supabase.storage
       .from("event-bilder")
       .upload(pfad, datei, { cacheControl: "31536000", upsert: false });
-    if (uploadFehler) { setLaedt(false); setFehler(`Upload fehlgeschlagen: ${uploadFehler.message}`); return; }
+    if (uploadFehler) { setLaedt(false); toast.error("Upload fehlgeschlagen", uploadFehler.message); return; }
 
     const { data: { publicUrl } } = supabase.storage.from("event-bilder").getPublicUrl(pfad);
     const { error: dbFehler } = await supabase
@@ -43,8 +42,9 @@ export default function EventBild({ eventId, userId, initialBildUrl }: {
       .update({ bild_url: publicUrl })
       .eq("id", eventId);
     setLaedt(false);
-    if (dbFehler) { setFehler("Speichern fehlgeschlagen."); return; }
+    if (dbFehler) { toast.error("Speichern fehlgeschlagen", dbFehler.message); return; }
     setBildUrl(publicUrl);
+    toast.success("Bild gespeichert", "Erscheint als Kopfbild auf der Buchungsseite.");
     router.refresh();
   }
 
@@ -55,6 +55,7 @@ export default function EventBild({ eventId, userId, initialBildUrl }: {
     // Datei im Storage bewusst behalten (könnte von Kopien referenziert sein)
     setLaedt(false);
     setBildUrl(null);
+    toast.success("Bild entfernt");
     router.refresh();
   }
 
@@ -108,7 +109,6 @@ export default function EventBild({ eventId, userId, initialBildUrl }: {
           Wird als Kopfbild auf der Buchungsseite angezeigt und macht sie zur
           vollwertigen Veranstaltungsseite.
         </p>
-        {fehler && <p className="text-xs text-destructive bg-destructive/5 rounded-lg px-3 py-2">{fehler}</p>}
       </CardContent>
     </Card>
   );

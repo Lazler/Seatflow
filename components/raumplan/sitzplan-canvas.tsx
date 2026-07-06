@@ -79,13 +79,27 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, katego
   // Im Sperrmodus sind ALLE Sitze klickbar (auch gesperrte, zum Entsperren)
   const istKlickbar = sperrModus || (istBuchungsmodus && !belegt);
 
+  // Auswahl-Puls: kurzes Aufpumpen, wenn der Sitz gewählt wird
+  const gruppeRef = useRef<Konva.Group>(null);
+  const warAusgewaehlt = useRef(buchungAusgewaehlt);
+  useEffect(() => {
+    if (buchungAusgewaehlt && !warAusgewaehlt.current) {
+      const node = gruppeRef.current;
+      node?.to({
+        scaleX: 1.35, scaleY: 1.35, duration: 0.1,
+        onFinish: () => node?.to({ scaleX: 1, scaleY: 1, duration: 0.18 }),
+      });
+    }
+    warAusgewaehlt.current = buchungAusgewaehlt;
+  }, [buchungAusgewaehlt]);
+
   let fill = kategoriefarbe;
   if (belegt)             fill = FARBE_BELEGT;
   else if (buchungAusgewaehlt) fill = FARBE_AUSGEWAEHLT;
   else if (editorAusgewaehlt)  fill = FARBE_ELEMENT_SELEKTIERT;
 
   return (
-    <Group x={x} y={y}
+    <Group x={x} y={y} ref={gruppeRef}
       onClick={istKlickbar ? (e) => { e.cancelBubble = true; onSitzKlick?.(sitzId); } : undefined}
       onTap={istKlickbar ? (e) => { e.cancelBubble = true; onSitzKlick?.(sitzId); } : undefined}
       onMouseEnter={(e) => {

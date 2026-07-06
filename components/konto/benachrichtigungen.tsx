@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BellRinging } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 
 // Opt-in/out für Verkaufs-Benachrichtigungen (E-Mail bei jeder Buchung).
 export default function Benachrichtigungen() {
@@ -29,13 +30,20 @@ export default function Benachrichtigungen() {
     setSpeichert(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    let error = null;
     if (user) {
-      await supabase
+      ({ error } = await supabase
         .from("veranstalter_profile")
         .update({ benachrichtigung_verkauf: neu })
-        .eq("id", user.id);
+        .eq("id", user.id));
     }
     setSpeichert(false);
+    if (!user || error) {
+      setAktiv(!neu); // zurückrollen — Änderung kam nicht in der DB an
+      toast.error("Speichern fehlgeschlagen", error?.message);
+      return;
+    }
+    toast.success(neu ? "Benachrichtigungen aktiviert" : "Benachrichtigungen deaktiviert");
   }
 
   return (

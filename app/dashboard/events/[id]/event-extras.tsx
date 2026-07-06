@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Timer, Gift, Plus, Trash as Trash2, Check } from "@phosphor-icons/react";
+import { Timer, Gift, Plus, Trash as Trash2 } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import { fruehbucherAktiv } from "@/types/event-extras";
 
@@ -29,13 +30,9 @@ export default function EventExtras({
   const [fbAktiviert, setFbAktiviert] = useState(!!initialFruehbucher);
   const [addons, setAddons] = useState<EventAddon[]>(initialAddons);
   const [speichert, setSpeichert] = useState(false);
-  const [gespeichert, setGespeichert] = useState(false);
-  const [fehler, setFehler] = useState<string | null>(null);
 
   async function speichern() {
     setSpeichert(true);
-    setFehler(null);
-    setGespeichert(false);
     const supabase = createClient();
     const { error } = await supabase
       .from("events")
@@ -46,14 +43,15 @@ export default function EventExtras({
       .eq("id", eventId);
     setSpeichert(false);
     if (error) {
-      setFehler(
+      toast.error(
+        "Speichern fehlgeschlagen",
         error.message.includes("column")
           ? "Datenbank-Migration fehlt: supabase/migrations/20260705120000_fruehbucher_addons.sql im SQL-Editor ausführen."
-          : `Speichern fehlgeschlagen: ${error.message}`
+          : error.message
       );
       return;
     }
-    setGespeichert(true);
+    toast.success("Gespeichert", "Frühbucher & Extras aktualisiert.");
     router.refresh();
   }
 
@@ -206,20 +204,9 @@ export default function EventExtras({
           )}
         </div>
 
-        {fehler && (
-          <p className="text-xs text-destructive bg-destructive/5 rounded-lg px-3 py-2">{fehler}</p>
-        )}
-
-        <div className="flex items-center gap-3">
-          <Button size="sm" onClick={speichern} disabled={speichert}>
-            {speichert ? "Speichern…" : "Speichern"}
-          </Button>
-          {gespeichert && (
-            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-              <Check className="h-3.5 w-3.5" /> Gespeichert
-            </span>
-          )}
-        </div>
+        <Button size="sm" onClick={speichern} disabled={speichert}>
+          {speichert ? "Speichern…" : "Speichern"}
+        </Button>
       </CardContent>
     </Card>
   );

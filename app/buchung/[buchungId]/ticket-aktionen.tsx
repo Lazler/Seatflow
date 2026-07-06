@@ -2,20 +2,20 @@
 
 import { useState } from "react";
 import { DownloadSimple, EnvelopeSimple, CalendarPlus, CircleNotch, CheckCircle } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 
 export default function TicketAktionen({ buchungId }: { buchungId: string }) {
   const [sendet, setSendet] = useState(false);
   const [gesendet, setGesendet] = useState<string | null>(null);
-  const [fehler, setFehler] = useState<string | null>(null);
 
   async function erneutSenden() {
     setSendet(true);
-    setFehler(null);
     const res = await fetch(`/api/buchung/${buchungId}/erneut-senden`, { method: "POST" });
     setSendet(false);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setFehler(data.error ?? "Senden fehlgeschlagen."); return; }
+    if (!res.ok) { toast.error("Senden fehlgeschlagen", data.error); return; }
     setGesendet(data.an ?? "");
+    toast.success("E-Mail unterwegs", data.an ? `Tickets wurden an ${data.an} gesendet.` : undefined);
   }
 
   const btn = "flex-1 h-11 rounded-xl border border-input bg-background hover:bg-muted text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors";
@@ -37,9 +37,6 @@ export default function TicketAktionen({ buchungId }: { buchungId: string }) {
           <CalendarPlus className="h-4 w-4" /> Zum Kalender
         </a>
       </div>
-      {fehler && (
-        <p className="text-xs text-destructive bg-destructive/5 rounded-lg px-3 py-2">{fehler}</p>
-      )}
     </div>
   );
 }

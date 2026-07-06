@@ -16,6 +16,7 @@ import {
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { toast } from "@/components/ui/toaster";
 import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
 import Link from "next/link";
 
@@ -180,9 +181,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     if (!bereinigt || bereinigt === planName) { setNameWert(planName); setNameEditModus(false); return; }
     setNameLaedt(true);
     const supabase = createClient();
-    await supabase.from("sitzplaene").update({ name: bereinigt }).eq("id", planId);
+    const { error } = await supabase.from("sitzplaene").update({ name: bereinigt }).eq("id", planId);
     setNameLaedt(false);
     setNameEditModus(false);
+    if (error) { setNameWert(planName); toast.error("Umbenennen fehlgeschlagen", error.message); return; }
+    toast.success("Plan umbenannt", `Heißt jetzt „${bereinigt}".`);
     router.refresh();
   }
 
@@ -400,7 +403,13 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     const supabase = createClient();
     const { error } = await supabase.from("sitzplaene").update({ konfiguration: konfig }).eq("id", planId);
     setSpeichernLaedt(false);
-    if (!error) { setGespeichert(true); router.refresh(); }
+    if (error) {
+      toast.error("Speichern fehlgeschlagen", error.message);
+      return;
+    }
+    setGespeichert(true);
+    toast.success("Plan gespeichert", `${gesamtSitze} ${gesamtSitze === 1 ? "Platz" : "Plätze"} in „${nameWert}".`);
+    router.refresh();
   }
 
   const ausgewaehltesElement =

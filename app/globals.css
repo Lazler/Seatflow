@@ -139,3 +139,41 @@ body {
 .scanner-result-in {
   animation: scanner-result-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
+
+/* Toasts (Radix) */
+@keyframes toast-in {
+  from { transform: translateY(12px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+@keyframes toast-out {
+  from { transform: translateY(0);   opacity: 1; }
+  to   { transform: translateY(8px); opacity: 0; }
+}
+@keyframes toast-swipe-out {
+  from { transform: translateX(var(--radix-toast-swipe-end-x)); opacity: 1; }
+  to   { transform: translateX(calc(100% + 1rem)); opacity: 0; }
+}
+.toast-root[data-state="open"]   { animation: toast-in 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+.toast-root[data-state="closed"] { animation: toast-out 0.15s ease-in; }
+.toast-root[data-swipe="move"]   { transform: translateX(var(--radix-toast-swipe-move-x)); }
+.toast-root[data-swipe="cancel"] { transform: translateX(0); transition: transform 0.2s ease-out; }
+.toast-root[data-swipe="end"]    { animation: toast-swipe-out 0.15s ease-out forwards; }
+
+/* Kleines Aufploppen für Erfolgs-Häkchen, Badges, Zähler */
+@keyframes pop-in {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop-in {
+  animation: pop-in 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* Barrierefreiheit: Bewegung reduzieren, wenn das System es wünscht */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

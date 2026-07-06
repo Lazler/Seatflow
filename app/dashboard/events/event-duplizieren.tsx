@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, Plus, X, CircleNotch, CalendarPlus } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toaster";
 
 // Duplizieren-Dialog: 1 Termin = Kopie, mehrere Termine = Serie.
 // Kopien entstehen immer als Entwurf und werden einzeln veröffentlicht.
@@ -41,6 +42,10 @@ export default function EventDuplizieren({ eventId, eventTitel }: {
     }
     setOffen(false);
     setTermine([""]);
+    toast.success(
+      gueltige.length > 1 ? `${gueltige.length} Termine erstellt` : "Kopie erstellt",
+      "Neue Events starten als Entwurf — einzeln prüfen und veröffentlichen."
+    );
     router.refresh();
   }
 
