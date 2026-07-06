@@ -11,6 +11,16 @@ type EtageRef = { id: string; sitzplan_id: string };
  * Editor Elemente vor destruktiven Änderungen.
  */
 export async function verkaufteSitzIdsFuerPlan(planId: string): Promise<string[]> {
+  // Editor darf nie am Plan-Schutz sterben — Fehler ⇒ kein Schutz, aber Seite lädt
+  try {
+    return await ladeVerkaufteSitzIds(planId);
+  } catch (e) {
+    console.error("verkaufteSitzIdsFuerPlan fehlgeschlagen:", e);
+    return [];
+  }
+}
+
+async function ladeVerkaufteSitzIds(planId: string): Promise<string[]> {
   const admin = createAdminClient();
 
   // Events, die den Plan direkt oder in etagen[] referenzieren

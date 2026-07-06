@@ -13,12 +13,25 @@ export default async function ScannerSeite({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const admin = createAdminClient();
-  const { data: event } = await admin
-    .from("events")
-    .select("id, titel, veranstalter_id, scanner_pin")
-    .eq("id", eventId)
-    .single();
+  // Admin-Client bevorzugt (kennt scanner_pin ohne RLS); wenn er nicht
+  // verfügbar ist (z. B. Service-Key fehlt), Fallback auf Owner-Zugriff.
+  let event: { id: string; titel: string; veranstalter_id: string; scanner_pin: string | null } | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("events")
+      .select("id, titel, veranstalter_id, scanner_pin")
+      .eq("id", eventId)
+      .single();
+    event = data;
+  } catch {
+    const { data } = await supabase
+      .from("events")
+      .select("id, titel, veranstalter_id, scanner_pin")
+      .eq("id", eventId)
+      .single();
+    event = data;
+  }
 
   if (!event) notFound();
 
@@ -33,24 +46,34 @@ export default async function ScannerSeite({
     return <ScannerZugang eventId={event.id} eventTitel={event.titel} />;
   }
 
-  const [{ count: gesamt }, { count: eingelassen }] = await Promise.all([
-    admin
-      .from("tickets")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", eventId),
-    admin
-      .from("tickets")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", eventId)
-      .not("eingeloest_am", "is", null),
-  ]);
+  // Zählerstände: Admin bevorzugt, sonst Owner-RLS
+  let gesamt = 0;
+  let eingelassen = 0;
+  try {
+    const admin = createAdminClient();
+    const [g, e] = await Promise.all([
+      admin.from("tickets").select("id", { count: "exact", head: true }).eq("event_id", eventId),
+      admin.from("tickets").select("id", { count: "exact", head: true })
+        .eq("event_id", eventId).not("eingeloest_am", "is", null),
+    ]);
+    gesamt = g.count ?? 0;
+    eingelassen = e.count ?? 0;
+  } catch {
+    const [g, e] = await Promise.all([
+      supabase.from("tickets").select("id", { count: "exact", head: true }).eq("event_id", eventId),
+      supabase.from("tickets").select("id", { count: "exact", head: true })
+        .eq("event_id", eventId).not("eingeloest_am", "is", null),
+    ]);
+    gesamt = g.count ?? 0;
+    eingelassen = e.count ?? 0;
+  }
 
   return (
     <ScannerClient
       eventId={event.id}
       eventTitel={event.titel}
-      gesamt={gesamt ?? 0}
-      initialEingelassen={eingelassen ?? 0}
+      gesamt={gesamt}
+      initialEingelassen={eingelassen}
     />
   );
 }

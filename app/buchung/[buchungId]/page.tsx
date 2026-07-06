@@ -17,7 +17,13 @@ export default async function MeineTickets({
   const { buchungId } = await params;
   if (!z.string().uuid().safeParse(buchungId).success) notFound();
 
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    // Service-Key fehlt im Deployment → Seite nicht verfügbar statt 500
+    notFound();
+  }
   const { data: buchung } = await admin
     .from("buchungen")
     .select("id, gaest_name, gesamt_cent, status, event_id")

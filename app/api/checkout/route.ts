@@ -166,15 +166,15 @@ export async function POST(req: NextRequest) {
   const angefragteSitzIds = sitzplaetze.map((p) => p.sitzId);
   const { data: bestehende } = await admin
     .from("tickets")
-    .select("id, buchung_id, buchungen!inner(status, created_at)")
+    .select("id, buchung_id, buchungen!inner(status, erstellt_am)")
     .eq("event_id", eventId)
     .in("sitzplatz_id", angefragteSitzIds);
 
   const holdCutoff = Date.now() - HOLD_MINUTEN * 60_000;
   const staleBuchungIds = new Set<string>();
   (bestehende ?? []).forEach((t) => {
-    const b = t.buchungen as unknown as { status: string; created_at: string | null } | null;
-    if (b?.status === "ausstehend" && b.created_at && new Date(b.created_at).getTime() < holdCutoff) {
+    const b = t.buchungen as unknown as { status: string; erstellt_am: string | null } | null;
+    if (b?.status === "ausstehend" && b.erstellt_am && new Date(b.erstellt_am).getTime() < holdCutoff) {
       staleBuchungIds.add(t.buchung_id as string);
     }
   });
