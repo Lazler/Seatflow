@@ -67,6 +67,30 @@ const HU: LandingContent = {
     { value: "€0,50", label: "jegyenként, jutalék nélkül" },
     { value: "100 %", label: "webalapú, nem kell alkalmazás" },
   ],
+  usp: {
+    heading: "A terme.",
+    headingAccent: "Pontosan úgy, ahogy van.",
+    sub: "Ívelt sorok, középső folyosó, asztalok, állóhelyek, zárolt székek — az ülésrend-szerkesztő bármilyen termet élethűen leképez. Próbálja ki: a lenti alaprajz valódi és kattintható.",
+    demo: {
+      badge: "Élő demó — tényleg kattintható",
+      leer: "Kattintson néhány helyre",
+      gewaehlt: "{n} hely kiválasztva · {preis}",
+      zuruecksetzen: "Kijelölés törlése",
+      zoneFrei: "szabad",
+      zoneGewaehlt: "kiválasztva",
+      zoneHinzufuegen: "+ Koppintson a hozzáadáshoz",
+      zoneAusverkauft: "elkelt",
+      canvasAria: "Interaktív ülésrend-demó",
+    },
+    punkte: [
+      { title: "Ívelt sorok és középső folyosó", desc: "Színházi félkör folytatólagos számozással a folyosón át — mint a valódi teremben." },
+      { title: "Asztalok és állóhelyek", desc: "Kerek asztalok kabaréhoz, kapacitás-zónák koncerthez — szabadon kombinálható." },
+      { title: "Árkategóriák színekkel", desc: "Földszint, prémium, páholy — minden kategória saját árral és színnel." },
+      { title: "Egyes helyek zárolása", desc: "Technikai hely, kamerasor, hibás szék — egy kattintással zárolva, sosem kel el véletlenül." },
+      { title: "Sablonok és generátor", desc: "Színházi, kabaré- vagy vegyes elrendezés másodpercek alatt — utána szabadon testreszabható." },
+      { title: "Több szint", desc: "Földszint és erkély külön alaprajzként ugyanabban az eseményben — a vendégek füllel váltanak." },
+    ],
+  },
   steps: {
     heading: "Három lépésben élesben",
     items: [

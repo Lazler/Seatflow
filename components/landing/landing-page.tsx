@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MapPin, Lightning as Zap, QrCode, ChartBar as BarChart3, Check, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import Preisrechner from "@/components/pricing/preisrechner";
+import BuilderDemo, { type BuilderDemoTexte } from "@/components/landing/builder-demo";
 
 export type LandingContent = {
   lang: "de" | "en" | "hu";
@@ -20,6 +21,13 @@ export type LandingContent = {
     items: { num: string; title: string; desc: string }[];
   };
   stats: { value: string; label: string }[];
+  usp: {
+    heading: string;
+    headingAccent: string;
+    sub: string;
+    demo: BuilderDemoTexte;
+    punkte: { title: string; desc: string }[];
+  };
   features: {
     heading: string;
     items: { icon: "map" | "zap" | "qr" | "chart"; title: string; desc: string }[];
@@ -259,8 +267,39 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         </div>
       </section>
 
+      {/* USP: Der Raumplan-Builder — live und klickbar */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
+            {c.usp.heading}{" "}
+            <span className="text-primary italic">{c.usp.headingAccent}</span>
+          </h2>
+          <p className="text-muted-foreground mt-3 leading-relaxed">{c.usp.sub}</p>
+        </div>
+
+        <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
+          {/* Live-Demo: echter Buchungs-Canvas, klickbar */}
+          <BuilderDemo texte={c.usp.demo} />
+
+          {/* Customization-Punkte */}
+          <div className="space-y-1">
+            {c.usp.punkte.map((p, i) => (
+              <div key={i} className="group flex gap-3 rounded-xl px-4 py-3 hover:bg-accent transition-colors">
+                <span className="mt-1 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Check className="h-3 w-3" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold leading-snug">{p.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{p.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How it works */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-20 pt-0">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">{c.steps.heading}</h2>
         <div className="grid sm:grid-cols-3 gap-8 relative">
           {/* Connecting line on desktop */}

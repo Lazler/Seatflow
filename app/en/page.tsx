@@ -67,6 +67,30 @@ const EN: LandingContent = {
     { value: "€0.50", label: "per ticket, no commission" },
     { value: "100 %", label: "web-based, no app download" },
   ],
+  usp: {
+    heading: "Your venue.",
+    headingAccent: "Exactly as it is.",
+    sub: "Curved rows, centre aisles, tables, standing areas, blocked seats — the seat map builder recreates any room faithfully. Try it: the plan below is real and clickable.",
+    demo: {
+      badge: "Live demo — actually clickable",
+      leer: "Click a few seats",
+      gewaehlt: "{n} seats selected · {preis}",
+      zuruecksetzen: "Reset selection",
+      zoneFrei: "free",
+      zoneGewaehlt: "selected",
+      zoneHinzufuegen: "+ Tap to add",
+      zoneAusverkauft: "sold out",
+      canvasAria: "Interactive seating plan demo",
+    },
+    punkte: [
+      { title: "Curved rows & centre aisle", desc: "Theatre arcs with numbering that continues across the aisle — just like the real room." },
+      { title: "Tables & standing areas", desc: "Round tables for cabaret, capacity zones for concerts — combine freely." },
+      { title: "Price categories with colours", desc: "Stalls, premium, box — each category with its own price and colour." },
+      { title: "Block individual seats", desc: "Tech desk, camera aisle, broken seat — blocked with one click, never sold by accident." },
+      { title: "Templates & generator", desc: "Theatre, cabaret or mixed seating in seconds — then customise freely." },
+      { title: "Multiple levels", desc: "Stalls and balcony as separate plans in one event — guests switch via tabs." },
+    ],
+  },
   steps: {
     heading: "Live in three steps",
     items: [

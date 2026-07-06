@@ -67,6 +67,30 @@ const DE: LandingContent = {
     { value: "€0,50", label: "pro Ticket, keine Provision" },
     { value: "100 %", label: "web-basiert, kein App-Download" },
   ],
+  usp: {
+    heading: "Ihr Saal.",
+    headingAccent: "Exakt wie er ist.",
+    sub: "Gebogene Reihen, Mittelgang, Tische, Stehplätze, gesperrte Sitze — der Raumplan-Builder bildet jeden Saal originalgetreu ab. Probieren Sie es aus: Der Plan unten ist echt und klickbar.",
+    demo: {
+      badge: "Live-Demo — echt klickbar",
+      leer: "Klicken Sie ein paar Plätze an",
+      gewaehlt: "{n} Plätze gewählt · {preis}",
+      zuruecksetzen: "Auswahl zurücksetzen",
+      zoneFrei: "frei",
+      zoneGewaehlt: "gewählt",
+      zoneHinzufuegen: "+ Tippen zum Hinzufügen",
+      zoneAusverkauft: "ausverkauft",
+      canvasAria: "Interaktive Sitzplan-Demo",
+    },
+    punkte: [
+      { title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg — wie im echten Saal." },
+      { title: "Tische & Stehplatz-Zonen", desc: "Rundtische fürs Kabarett, Zonen mit Kapazität fürs Konzert — frei kombinierbar." },
+      { title: "Preiskategorien mit Farben", desc: "Parkett, Premium, Loge — jede Kategorie mit eigenem Preis und eigener Farbe." },
+      { title: "Einzelne Plätze sperren", desc: "Technikplatz, Kameragasse, defekter Sitz — per Klick blockiert, nie versehentlich verkauft." },
+      { title: "Vorlagen & Generator", desc: "Theater, Kabarett oder Mischbestuhlung in Sekunden — danach frei anpassen." },
+      { title: "Mehrere Ebenen", desc: "Parkett und Balkon als eigene Pläne im selben Event — Gäste wechseln per Tab." },
+    ],
+  },
   steps: {
     heading: "In drei Schritten live",
     items: [

@@ -159,6 +159,10 @@ export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzId
             onChange={(v) => onChange({ sitzAbstand: v } as Partial<SitzplanElement>)} />
           <Stepper label="Erste Sitznummer" value={el.nummerStart ?? 1} min={1} max={200}
             onChange={(v) => onChange({ nummerStart: v === 1 ? undefined : v } as Partial<SitzplanElement>)} />
+          <Stepper label="Krümmung" value={el.bogen ?? 0} min={0} max={80} schritt={4} einheit="px"
+            onChange={(v) => onChange({ bogen: v === 0 ? undefined : v } as Partial<SitzplanElement>)} />
+          <ToggleRow label="Nummerierung von rechts" value={el.nummerRichtung === "rtl"}
+            onChange={(v) => onChange({ nummerRichtung: v ? "rtl" : undefined } as Partial<SitzplanElement>)} />
         </>)}
 
         {el.typ === "tischreihe" && (<>

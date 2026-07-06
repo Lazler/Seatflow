@@ -33,6 +33,11 @@ export type ReiheElement = BasisElement & {
   nummerStart?: number;
   // Reihen-Label-Chip ausblenden (rechte Hälfte einer geteilten Reihe)
   labelAusblenden?: boolean;
+  // Krümmung als Pfeilhöhe in px (0 = gerade): Reihen-Enden biegen sich
+  // von der Bühne weg — wie im echten Theater-Halbrund
+  bogen?: number;
+  // Nummerierungsrichtung (Default ltr): manche Häuser zählen von rechts
+  nummerRichtung?: "ltr" | "rtl";
 };
 
 export type TischreiheElement = BasisElement & {

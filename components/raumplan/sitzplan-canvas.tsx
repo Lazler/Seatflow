@@ -184,6 +184,14 @@ type ElementProps<T> = {
 
 function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
+  const bogen = el.bogen ?? 0;
+  // Parabel-Approximation eines Kreisbogens: Mitte bei 0, Enden bei -bogen
+  // (negativ = zur Raum-Rückseite hin, von der Bühne weg gewölbt)
+  const bogenY = (i: number) => {
+    if (bogen === 0 || el.anzahlSitze < 2) return 0;
+    const t = (2 * i) / (el.anzahlSitze - 1) - 1; // -1 … 1
+    return bogen * t * t;
+  };
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
       draggable={!istBuchungsmodus && !sperrModus}
@@ -195,14 +203,17 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
     >
       {/* Row label — pill chip, anchored left of first seat */}
       {!el.labelAusblenden && (
-        <LabelChip x={-(SITZ_RADIUS + 20)} y={0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+        <LabelChip x={-(SITZ_RADIUS + 20)} y={bogenY(0)} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       )}
       {Array.from({ length: el.anzahlSitze }, (_, i) => {
-        const nummer = (el.nummerStart ?? 1) + i;
+        // rtl: Hausrechte Zählweise — Nummern laufen von rechts nach links
+        const nummer = (el.nummerRichtung === "rtl")
+          ? (el.nummerStart ?? 1) + (el.anzahlSitze - 1 - i)
+          : (el.nummerStart ?? 1) + i;
         const sitzId = `${el.bezeichnung}-${nummer}`;
         return (
           <SitzKreis key={sitzId}
-            x={i * el.sitzAbstand} y={0}
+            x={i * el.sitzAbstand} y={bogenY(i)}
             sitzId={sitzId} nummer={nummer}
             kategoriefarbe={kategoriefarbe}
             belegt={belegte.has(sitzId)}
@@ -221,7 +232,7 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
       {editorAusgewaehlt && (
         <Rect
           x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
-          width={breite + SITZ_RADIUS * 2 + 20} height={SITZ_RADIUS * 2 + 16}
+          width={breite + SITZ_RADIUS * 2 + 20} height={SITZ_RADIUS * 2 + 16 + bogen}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
           fill="rgba(245,158,11,0.04)" cornerRadius={10}
           dash={[6, 4]} listening={false}
