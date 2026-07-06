@@ -16,7 +16,7 @@ import {
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock } from "@phosphor-icons/react";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -119,6 +119,17 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       return { ...k, gesperrteSitze: [...gesperrt] };
     }, "sperrung");
   }, [mutiere]);
+  // ── Barrierefrei-Modus: Rollstuhlplätze markieren ────────────────────────
+  const [barrierefreiModus, setBarrierefreiModus] = useState(false);
+  const sitzBarrierefreiToggeln = useCallback((sitzId: string) => {
+    mutiere((k) => {
+      const menge = new Set(k.barrierefreieSitze ?? []);
+      if (menge.has(sitzId)) menge.delete(sitzId);
+      else menge.add(sitzId);
+      return { ...k, barrierefreieSitze: [...menge] };
+    }, "barrierefrei");
+  }, [mutiere]);
+
   const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [nameWert, setNameWert] = useState(planName);
   const [nameEditModus, setNameEditModus] = useState(false);
@@ -559,13 +570,21 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               }`}>
               <Magnet className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={() => { setSperrModus((v) => !v); setAuswahl(null); }}
+            <button type="button" onClick={() => { setSperrModus((v) => !v); setBarrierefreiModus(false); setAuswahl(null); }}
               aria-label="Sitze sperren" aria-pressed={sperrModus}
               title="Sperrmodus: einzelne Plätze blockieren"
               className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
                 sperrModus ? "bg-destructive/15 text-destructive" : "hover:bg-muted text-muted-foreground"
               }`}>
               <Ban className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => { setBarrierefreiModus((v) => !v); setSperrModus(false); setAuswahl(null); }}
+              aria-label="Barrierefreie Plätze markieren" aria-pressed={barrierefreiModus}
+              title="Barrierefrei-Modus: Rollstuhlplätze markieren"
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                barrierefreiModus ? "bg-sky-100 text-sky-700" : "hover:bg-muted text-muted-foreground"
+              }`}>
+              <Wheelchair className="h-3.5 w-3.5" />
             </button>
           </div>
           {/* Zoom-Steuerung */}
@@ -627,6 +646,13 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               · {konfig.gesperrteSitze?.length ?? 0} gesperrt
             </div>
           )}
+          {barrierefreiModus && (
+            <div className="flex items-center gap-2 rounded-xl bg-sky-50 border border-sky-200 px-4 py-2 text-sm text-sky-800 font-medium shrink-0">
+              <Wheelchair className="h-4 w-4 shrink-0" />
+              Barrierefrei-Modus: Plätze anklicken zum Markieren
+              · {konfig.barrierefreieSitze?.length ?? 0} markiert
+            </div>
+          )}
           <div
             className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
             style={{ width: konfig.breite * renderScale, minHeight: konfig.hoehe * renderScale }}
@@ -637,9 +663,10 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               modus="editor"
               renderScale={renderScale}
               snapRaster={snapAktiv ? 10 : 0}
-              sperrModus={sperrModus}
+              sperrModus={sperrModus || barrierefreiModus}
               belegteSitze={sperrModus || (konfig.gesperrteSitze?.length ?? 0) > 0 ? new Set(konfig.gesperrteSitze ?? []) : undefined}
-              onSitzKlicken={sperrModus ? sitzSperrungToggeln : undefined}
+              barrierefreieSitze={new Set(konfig.barrierefreieSitze ?? [])}
+              onSitzKlicken={sperrModus ? sitzSperrungToggeln : barrierefreiModus ? sitzBarrierefreiToggeln : undefined}
               auswahl={auswahl}
               onAuswaehlen={waehleAus}
               onElementVerschieben={elementVerschieben}

@@ -84,6 +84,7 @@ const de = {
   zoneHinzufuegen: "+ Tippen zum Hinzufügen",
   zoneAusverkauft: "ausverkauft",
   canvasAria: "Sitzplan – klicke auf einen Platz, um ihn auszuwählen",
+  barrierefrei: "barrierefrei",
 };
 
 export type BuchungsStrings = typeof de;
@@ -164,6 +165,7 @@ const en: BuchungsStrings = {
   zoneHinzufuegen: "+ Tap to add",
   zoneAusverkauft: "sold out",
   canvasAria: "Seating plan – click a seat to select it",
+  barrierefrei: "wheelchair accessible",
 };
 
 const hu: BuchungsStrings = {
@@ -242,6 +244,7 @@ const hu: BuchungsStrings = {
   zoneHinzufuegen: "+ Koppints a hozzáadáshoz",
   zoneAusverkauft: "elkelt",
   canvasAria: "Ülésrend – kattints egy helyre a kiválasztáshoz",
+  barrierefrei: "akadálymentes",
 };
 
 export const BUCHUNG_STRINGS: Record<BuchungsSprache, BuchungsStrings> = { de, en, hu };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Stage, Layer, Rect, Circle, Text, Group, Line, Transformer } from "react-konva";
+import { Stage, Layer, Rect, Circle, Text, Group, Line, Path, Transformer } from "react-konva";
 import type Konva from "konva";
 import { MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, CornersOut as Maximize } from "@phosphor-icons/react";
 import {
@@ -29,6 +29,9 @@ export type Auswahl = { typ: "buehne" } | { typ: "element"; ids: string[] } | nu
 
 const DRAG_MARGIN = 40;
 
+// Rollstuhl-Symbol (Phosphor "Wheelchair", ViewBox 256) für Barrierefrei-Badges
+const ROLLSTUHL_PFAD = "M255.59,189.47a8,8,0,0,0-10.12-5.06l-17.42,5.81-28.9-57.8A8,8,0,0,0,192,128H112V104h56a8,8,0,0,0,0-16H112V79a32,32,0,1,0-16,0V89.81A72,72,0,0,0,112,232c33.52,0,63.69-22.71,71.75-54a8,8,0,1,0-15.5-4C162.09,198,137.91,216,112,216A56,56,0,0,1,96,106.34V136a8,8,0,0,0,8,8h83.05l29.79,59.58a8,8,0,0,0,9.69,4l24-8A8,8,0,0,0,255.59,189.47ZM88,48a16,16,0,1,1,16,16A16,16,0,0,1,88,48Z";
+
 // dragBoundFunc arbeitet in Viewport-Koordinaten (inkl. Stage-Scale).
 // Für Clamping + Raster-Snapping in Content-Koordinaten umrechnen.
 function begrenzeUndSnappe(
@@ -55,6 +58,7 @@ export type SeatHoverInfo = {
   sitzId: string;
   kategorieName: string;
   preisCent: number;
+  barrierefrei?: boolean;
 } | null;
 
 type SitzProps = {
@@ -66,11 +70,12 @@ type SitzProps = {
   istBuchungsmodus: boolean; elementWinkel: number;
   nummerAusblenden: boolean;
   sperrModus?: boolean;
+  barrierefrei?: boolean;
   onSitzKlick?: (id: string) => void;
   onHoverInfo?: (info: SeatHoverInfo) => void;
 };
 
-function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, sperrModus, onSitzKlick, onHoverInfo }: SitzProps) {
+function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, sperrModus, barrierefrei = false, onSitzKlick, onHoverInfo }: SitzProps) {
   // Im Sperrmodus sind ALLE Sitze klickbar (auch gesperrte, zum Entsperren)
   const istKlickbar = sperrModus || (istBuchungsmodus && !belegt);
 
@@ -94,7 +99,7 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, katego
             const abs = node.getAbsolutePosition();
             const inv = stage.getAbsoluteTransform().copy().invert();
             const p = inv.point(abs);
-            onHoverInfo({ x: p.x, y: p.y, sitzId, kategorieName, preisCent: kategoriePreisCent ?? 0 });
+            onHoverInfo({ x: p.x, y: p.y, sitzId, kategorieName, preisCent: kategoriePreisCent ?? 0, barrierefrei });
           }
         }
       }}
@@ -135,6 +140,15 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, katego
           align="center" verticalAlign="middle" listening={false}
         />
       )}
+      {/* Barrierefrei-Badge (Rollstuhl-Symbol, immer aufrecht) */}
+      {barrierefrei && (
+        <Group x={SITZ_RADIUS - 4} y={SITZ_RADIUS - 4} rotation={-elementWinkel} listening={false}>
+          <Circle radius={7} fill="#ffffff" stroke="#0369a1" strokeWidth={1.2}
+            shadowColor="#0f172a" shadowBlur={3} shadowOpacity={0.2} />
+          <Path data={ROLLSTUHL_PFAD} fill="#0369a1"
+            x={-4.5} y={-4.5} scaleX={9 / 256} scaleY={9 / 256} />
+        </Group>
+      )}
     </Group>
   );
 }
@@ -170,7 +184,7 @@ type ElementProps<T> = {
   el: T; kategoriefarbe: string; kategorieName: string; kategoriePreisCent: number;
   stageScale: number; snapRaster: number;
   editorAusgewaehlt: boolean;
-  belegte: Set<string>; buchungAusgewaehlt: Set<string>;
+  belegte: Set<string>; buchungAusgewaehlt: Set<string>; barrierefreie: Set<string>;
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
   nummerAusblenden: boolean;
   sperrModus?: boolean;
@@ -182,7 +196,7 @@ type ElementProps<T> = {
 
 // ── Reihe ─────────────────────────────────────────────────────────────────────
 
-function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
+function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
   const bogen = el.bogen ?? 0;
   // Parabel-Approximation eines Kreisbogens: Mitte bei 0, Enden bei -bogen
@@ -225,6 +239,7 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
             onSitzKlick={onSitzKlick}
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
             sperrModus={sperrModus}
+            barrierefrei={barrierefreie.has(sitzId)}
             onHoverInfo={onHoverInfo}
           />
         );
@@ -244,7 +259,7 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
 
 // ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
-function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
+function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
   const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
   const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
@@ -293,6 +308,7 @@ function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePrei
             elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
             sperrModus={sperrModus}
+            barrierefrei={barrierefreie.has(sitzId)}
             onHoverInfo={onHoverInfo}
           />
         );
@@ -310,6 +326,7 @@ function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePrei
             elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
             sperrModus={sperrModus}
+            barrierefrei={barrierefreie.has(sitzId)}
             onHoverInfo={onHoverInfo}
           />
         );
@@ -329,7 +346,7 @@ function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePrei
 
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
-function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
+function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
   const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
@@ -381,6 +398,7 @@ function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
             onSitzKlick={onSitzKlick}
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
             sperrModus={sperrModus}
+            barrierefrei={barrierefreie.has(sitzId)}
             onHoverInfo={onHoverInfo}
           />
         );
@@ -569,6 +587,8 @@ type Props = {
   onBuehneTransformiert?: (breite: number, hoehe: number, x: number, y: number, winkel: number) => void;
   belegteSitze?: Set<string>;
   ausgewaehlteSitze?: Set<string>;
+  // Barrierefreie Plätze — Badge im Canvas, Hinweis im Tooltip
+  barrierefreieSitze?: Set<string>;
   onSitzKlicken?: (sitzId: string) => void;
   snapRaster?: number;
   // Editor-Sperrmodus: Sitze anklickbar zum Sperren/Entsperren
@@ -577,7 +597,7 @@ type Props = {
   texte?: {
     zoneFrei: string; zoneGewaehlt: string;
     zoneHinzufuegen: string; zoneAusverkauft: string;
-    canvasAria: string;
+    canvasAria: string; barrierefrei: string;
   };
 };
 
@@ -587,13 +607,14 @@ const TEXTE_DEFAULT = {
   zoneHinzufuegen: "+ Tippen zum Hinzufügen",
   zoneAusverkauft: "ausverkauft",
   canvasAria: "Sitzplan – klicke auf einen Platz, um ihn auszuwählen",
+  barrierefrei: "barrierefrei",
 };
 
 export default function SitzplanCanvas({
   konfiguration, modus, renderScale = 1,
   auswahl, onAuswaehlen, onElementVerschieben, onMehrereElementeVerschieben, onBuehneVerschieben, onBuehneTransformiert,
   belegteSitze = new Set(), ausgewaehlteSitze = new Set(), onSitzKlicken,
-  snapRaster = 0, sperrModus = false, texte = TEXTE_DEFAULT,
+  barrierefreieSitze = new Set(), snapRaster = 0, sperrModus = false, texte = TEXTE_DEFAULT,
 }: Props) {
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
@@ -671,6 +692,7 @@ export default function SitzplanCanvas({
       editorAusgewaehlt: istAusgewaehlt,
       belegte: belegteSitze,
       buchungAusgewaehlt: ausgewaehlteSitze,
+      barrierefreie: barrierefreieSitze,
       istBuchungsmodus,
       raumbreite,
       raumhoehe,
@@ -879,7 +901,7 @@ export default function SitzplanCanvas({
         {/* Sitz-Tooltip (Desktop-Hover im Buchungsmodus) */}
         {istBuchungsmodus && tooltip && (() => {
           const zeile1 = tooltip.sitzId;
-          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`;
+          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}${tooltip.barrierefrei ? ` · ${texte.barrierefrei}` : ""}`;
           const W = Math.max(zeile1.length, zeile2.length) * 6.6 + 20;
           const H = 40;
           return (

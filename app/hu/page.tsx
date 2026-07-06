@@ -81,6 +81,7 @@ const HU: LandingContent = {
       zoneHinzufuegen: "+ Koppintson a hozzáadáshoz",
       zoneAusverkauft: "elkelt",
       canvasAria: "Interaktív ülésrend-demó",
+      barrierefrei: "akadálymentes",
     },
     punkte: [
       { title: "Ívelt sorok és középső folyosó", desc: "Színházi félkör folytatólagos számozással a folyosón át — mint a valódi teremben." },

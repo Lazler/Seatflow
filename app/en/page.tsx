@@ -81,6 +81,7 @@ const EN: LandingContent = {
       zoneHinzufuegen: "+ Tap to add",
       zoneAusverkauft: "sold out",
       canvasAria: "Interactive seating plan demo",
+      barrierefrei: "wheelchair accessible",
     },
     punkte: [
       { title: "Curved rows & centre aisle", desc: "Theatre arcs with numbering that continues across the aisle — just like the real room." },

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, CircleNotch as Loader2, CaretUp as ChevronUp, CaretDown as ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkle as Sparkles } from "@phosphor-icons/react";
+import { X, CircleNotch as Loader2, CaretUp as ChevronUp, CaretDown as ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkle as Sparkles, Wheelchair } from "@phosphor-icons/react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
@@ -478,12 +478,14 @@ export default function BuchungsSeiteClient({
       <SitzplanCanvas konfiguration={aktiverFloor.konfiguration} modus="buchung"
         renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
         onSitzKlicken={onSitzKlicken}
+        barrierefreieSitze={new Set(aktiverFloor.konfiguration.barrierefreieSitze ?? [])}
         texte={{
           zoneFrei: uiStrings.zoneFrei,
           zoneGewaehlt: uiStrings.zoneGewaehlt,
           zoneHinzufuegen: uiStrings.zoneHinzufuegen,
           zoneAusverkauft: uiStrings.zoneAusverkauft,
           canvasAria: uiStrings.canvasAria,
+          barrierefrei: uiStrings.barrierefrei,
         }} />
     </div>
   );
@@ -920,7 +922,8 @@ export default function BuchungsSeiteClient({
               {mehrereEbenen && (
                 <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
               )}
-              <Legende kategorien={alleKategorien} />
+              <Legende kategorien={alleKategorien}
+                barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
               {canvasWrapper(desktopContainerRef, desktopRenderScale)}
               <p className="text-xs text-muted-foreground">{uiStrings.liveHinweis}</p>
             </div>
@@ -943,7 +946,8 @@ export default function BuchungsSeiteClient({
             {mehrereEbenen && (
               <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
             )}
-            <Legende kategorien={alleKategorien} />
+            <Legende kategorien={alleKategorien}
+              barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
             {canvasWrapper(mobileContainerRef, mobileRenderScale)}
             <p className="text-[11px] text-muted-foreground text-center">
               {uiStrings.zoomHinweis}
@@ -992,7 +996,11 @@ export default function BuchungsSeiteClient({
   );
 }
 
-function Legende({ kategorien }: { kategorien: { id: string; name: string; farbe: string; preis_cent: number }[] }) {
+function Legende({ kategorien, barrierefreiLabel }: {
+  kategorien: { id: string; name: string; farbe: string; preis_cent: number }[];
+  // Label anzeigen, wenn der Plan barrierefreie Plätze hat (sonst undefined)
+  barrierefreiLabel?: string;
+}) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
       {kategorien.map((k) => (
@@ -1003,6 +1011,12 @@ function Legende({ kategorien }: { kategorien: { id: string; name: string; farbe
       ))}
       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-slate-300" />Belegt</span>
       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-green-500" />Ausgewählt</span>
+      {barrierefreiLabel && (
+        <span className="flex items-center gap-1.5">
+          <Wheelchair className="w-3.5 h-3.5 text-sky-700 shrink-0" />
+          {barrierefreiLabel}
+        </span>
+      )}
     </div>
   );
 }

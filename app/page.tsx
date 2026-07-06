@@ -81,6 +81,7 @@ const DE: LandingContent = {
       zoneHinzufuegen: "+ Tippen zum Hinzufügen",
       zoneAusverkauft: "ausverkauft",
       canvasAria: "Interaktive Sitzplan-Demo",
+      barrierefrei: "barrierefrei",
     },
     punkte: [
       { title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg — wie im echten Saal." },

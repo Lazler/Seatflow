@@ -87,6 +87,8 @@ export type SitzplanKonfiguration = {
   elemente: SitzplanElement[];
   // Einzeln gesperrte Plätze (Technik, Kamera, defekt) — nicht buchbar
   gesperrteSitze?: string[];
+  // Barrierefreie Plätze (Rollstuhl) — buchbar, mit Symbol gekennzeichnet
+  barrierefreieSitze?: string[];
 };
 
 // --- Konstanten ---
@@ -201,6 +203,7 @@ export function migrierteKonfiguration(raw: unknown): SitzplanKonfiguration {
     hoehe:  (k.hoehe  as number) || LEERE_KONFIGURATION.hoehe,
     kategorien: (k.kategorien as Preiskategorie[]) || DEFAULT_KATEGORIEN,
     gesperrteSitze: Array.isArray(k.gesperrteSitze) ? (k.gesperrteSitze as string[]) : [],
+    barrierefreieSitze: Array.isArray(k.barrierefreieSitze) ? (k.barrierefreieSitze as string[]) : [],
   };
   if (k.buehne) {
     const b = k.buehne as Record<string, unknown>;

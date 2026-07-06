@@ -22,6 +22,7 @@ export type BuilderDemoTexte = {
   zoneHinzufuegen: string;
   zoneAusverkauft: string;
   canvasAria: string;
+  barrierefrei: string;
 };
 
 // Zeigt bewusst die Bandbreite des Builders: gebogene Reihen, Mittelgang,
@@ -117,6 +118,7 @@ export default function BuilderDemo({ texte }: { texte: BuilderDemoTexte }) {
             modus="buchung"
             renderScale={scale}
             belegteSitze={new Set(BELEGT)}
+            barrierefreieSitze={new Set(["C-1", "C-10"])}
             ausgewaehlteSitze={gewaehlt}
             onSitzKlicken={(id) =>
               setGewaehlt((prev) => {
@@ -132,6 +134,7 @@ export default function BuilderDemo({ texte }: { texte: BuilderDemoTexte }) {
               zoneHinzufuegen: texte.zoneHinzufuegen,
               zoneAusverkauft: texte.zoneAusverkauft,
               canvasAria: texte.canvasAria,
+              barrierefrei: texte.barrierefrei,
             }}
           />
         )}
