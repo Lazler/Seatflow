@@ -515,9 +515,9 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-border flex items-center px-4 gap-3 shrink-0">
+      <div className="border-b border-border flex items-center px-4 gap-3 shrink-0 h-14" style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}>
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/dashboard/venues/${venueId}`}><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
@@ -698,9 +698,9 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       {/* Mobile Bottom Sheet (< lg) */}
       <Dialog.Root open={mobilePanelOffen} onOpenChange={(open) => { if (!open) mobilePanelSchliessen(); }}>
         <Dialog.Portal>
-          <Dialog.Overlay className="drawer-overlay fixed inset-0 bg-black/40 z-30 lg:hidden" />
+          <Dialog.Overlay className="drawer-overlay fixed inset-0 bg-black/40 z-[60] lg:hidden" />
           <Dialog.Content
-            className="bottom-sheet fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-card rounded-t-2xl shadow-2xl flex flex-col focus:outline-none"
+            className="bottom-sheet fixed bottom-0 left-0 right-0 z-[70] lg:hidden bg-card rounded-t-2xl shadow-2xl flex flex-col focus:outline-none"
             style={{ maxHeight: "78vh" }}
             aria-describedby={undefined}
           >
