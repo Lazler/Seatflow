@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Calendar, Plus } from "@phosphor-icons/react/dist/ssr";
+import EventDuplizieren from "./event-duplizieren";
 
 export default async function EventsSeite() {
   const [t, supabase] = await Promise.all([getServerDict(), createClient()]);
@@ -72,6 +73,7 @@ export default async function EventsSeite() {
                   >
                     {STATUS_LABEL[event.status] ?? event.status}
                   </Badge>
+                  <EventDuplizieren eventId={event.id} eventTitel={event.titel} />
                   <Button variant="ghost" size="sm" asChild>
                     <Link href={`/dashboard/events/${event.id}`}>{t.events.details}</Link>
                   </Button>

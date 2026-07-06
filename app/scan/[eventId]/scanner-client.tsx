@@ -77,11 +77,14 @@ export default function ScannerClient({
   eventTitel,
   gesamt,
   initialEingelassen,
+  pin = null,
 }: {
   eventId: string;
   eventTitel: string;
   gesamt: number;
   initialEingelassen: number;
+  // Scanner-PIN des Einlasspersonals (null = Veranstalter-Session)
+  pin?: string | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
@@ -106,7 +109,7 @@ export default function ScannerClient({
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, eventId }),
+        body: JSON.stringify({ code, eventId, ...(pin ? { pin } : {}) }),
       });
       result = await res.json();
     } catch {
@@ -129,7 +132,7 @@ export default function ScannerClient({
       cooldownRef.current = false;
       setLetzterScan(null);
     }, 2500);
-  }, [eventId]);
+  }, [eventId, pin]);
 
   const startScanner = useCallback(async () => {
     if (!videoRef.current) return;

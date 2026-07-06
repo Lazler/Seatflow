@@ -6,30 +6,34 @@ import { z } from "zod";
 const ScanSchema = z.object({
   code: z.string().min(1).max(200),
   eventId: z.string().uuid(),
+  // Alternative zur Veranstalter-Session: Scanner-PIN fürs Einlasspersonal
+  pin: z.string().regex(/^\d{6}$/).optional(),
 });
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
 
   const parsed = ScanSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Ungültige Eingabe" }, { status: 400 });
 
-  const { code, eventId } = parsed.data;
+  const { code, eventId, pin } = parsed.data;
 
-  // Verify organizer owns the event
-  const { data: event } = await supabase
+  // Autorisierung: Veranstalter-Session ODER gültige Scanner-PIN
+  const admin = createAdminClient();
+  const { data: event } = await admin
     .from("events")
-    .select("id, veranstalter_id, titel")
+    .select("id, veranstalter_id, titel, scanner_pin")
     .eq("id", eventId)
     .single();
 
-  if (!event || event.veranstalter_id !== user.id) {
+  if (!event) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
+
+  const istBesitzer = !!user && event.veranstalter_id === user.id;
+  const pinGueltig = !!pin && !!event.scanner_pin && pin === event.scanner_pin;
+  if (!istBesitzer && !pinGueltig) {
     return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
   }
-
-  const admin = createAdminClient();
 
   // The QR code is either the ticket's qr_code field or the buchung_id
   // Try qr_code first, then fall back to buchung_id lookup

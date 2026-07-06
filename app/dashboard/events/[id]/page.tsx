@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, Ticket, ArrowSquareOut as ExternalLink, Users, Gear as Settings } from "@phosphor-icons/react/dist/ssr";
 import EventStatusAktion from "./event-status-aktion";
+import ScannerPinVerwaltung from "./scanner-pin-verwaltung";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -203,6 +204,12 @@ export default async function EventDetail({
                     <Ticket className="h-3.5 w-3.5 mr-1.5" /> Ticket-Scanner öffnen
                   </Link>
                 </Button>
+              )}
+              {event.status === "veroeffentlicht" && (
+                <ScannerPinVerwaltung
+                  eventId={event.id}
+                  initialPin={(event.scanner_pin as string | null) ?? null}
+                />
               )}
             </CardContent>
           </Card>

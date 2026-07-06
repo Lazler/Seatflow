@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import ScannerClient from "./scanner-client";
+import ScannerZugang from "./scanner-zugang";
 
 export default async function ScannerSeite({
   params,
@@ -11,18 +12,27 @@ export default async function ScannerSeite({
   const { eventId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/anmelden");
 
-  const { data: event } = await supabase
+  const admin = createAdminClient();
+  const { data: event } = await admin
     .from("events")
-    .select("id, titel, veranstalter_id")
+    .select("id, titel, veranstalter_id, scanner_pin")
     .eq("id", eventId)
-    .eq("veranstalter_id", user.id)
     .single();
 
   if (!event) notFound();
 
-  const admin = createAdminClient();
+  const istBesitzer = !!user && event.veranstalter_id === user.id;
+
+  // Kein Besitzer + keine PIN vergeben → kein Zugang möglich
+  if (!istBesitzer && !event.scanner_pin) notFound();
+
+  if (!istBesitzer) {
+    // Einlasspersonal: PIN-Gate (Zählerstände kommen nach PIN-Prüfung,
+    // damit nichts an Unbefugte leakt)
+    return <ScannerZugang eventId={event.id} eventTitel={event.titel} />;
+  }
+
   const [{ count: gesamt }, { count: eingelassen }] = await Promise.all([
     admin
       .from("tickets")
