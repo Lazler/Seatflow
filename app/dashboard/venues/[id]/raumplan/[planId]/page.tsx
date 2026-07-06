@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import SitzplanEditor from "@/components/raumplan/sitzplan-editor";
 import type { SitzplanKonfiguration } from "@/types/sitzplan";
+import { verkaufteSitzIdsFuerPlan } from "@/lib/verkaufte-sitze";
 
 export default async function RaumplanEditor({
   params,
@@ -30,6 +31,9 @@ export default async function RaumplanEditor({
 
   if (!venue || venue.veranstalter_id !== user!.id) notFound();
 
+  // Verkaufte Plätze schützen den Plan vor destruktiven Änderungen
+  const verkaufteSitzIds = await verkaufteSitzIdsFuerPlan(planId);
+
   return (
     <SitzplanEditor
       planId={plan.id}
@@ -37,6 +41,7 @@ export default async function RaumplanEditor({
       venueId={venueId}
       venueName={venue.name}
       initialKonfiguration={plan.konfiguration as SitzplanKonfiguration}
+      verkaufteSitzIds={verkaufteSitzIds}
     />
   );
 }

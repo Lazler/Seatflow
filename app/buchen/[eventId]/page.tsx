@@ -29,7 +29,7 @@ export default async function BuchungsSeite({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, titel, beschreibung, datum, service_gebuehr_cent, status, sitzplan_id, etagen, ticket_typen, cancel_url, sprachen, translations, venues(name, adresse)"
+      "id, titel, beschreibung, datum, bild_url, service_gebuehr_cent, status, sitzplan_id, etagen, ticket_typen, cancel_url, sprachen, translations, venues(name, adresse)"
     )
     .eq("id", eventId)
     .eq("status", "veroeffentlicht")
@@ -182,6 +182,16 @@ export default async function BuchungsSeite({
       </nav>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+        {/* Hero-Bild (optional) */}
+        {event.bild_url && (
+          <div className="relative w-full aspect-[3/1] rounded-2xl overflow-hidden border border-border bg-muted -mb-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={event.bild_url as string} alt="" aria-hidden
+              className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
+          </div>
+        )}
+
         {/* Event-Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold mb-1.5">{localizedTitel}</h1>

@@ -16,7 +16,7 @@ import {
 } from "@/types/sitzplan";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban } from "@phosphor-icons/react";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock } from "@phosphor-icons/react";
 import Link from "next/link";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
@@ -31,9 +31,11 @@ const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
 type Props = {
   planId: string; planName: string; venueId: string; venueName: string;
   initialKonfiguration: unknown;
+  // Bereits verkaufte Sitz-IDs (plan-lokal) — Elemente damit sind geschützt
+  verkaufteSitzIds?: string[];
 };
 
-export default function SitzplanEditor({ planId, planName, venueId, venueName, initialKonfiguration }: Props) {
+export default function SitzplanEditor({ planId, planName, venueId, venueName, initialKonfiguration, verkaufteSitzIds = [] }: Props) {
   const router = useRouter();
   const [konfig, setKonfig] = useState<SitzplanKonfiguration>(migrierteKonfiguration(initialKonfiguration));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
@@ -175,6 +177,28 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   const gesamtSitze = konfig.elemente.reduce((s, e) => s + elementSitzIds(e).length, 0);
 
+  // ── Plan-Schutz: Elemente mit verkauften Plätzen dürfen nicht gelöscht
+  // oder strukturell verändert werden (Sitz-IDs müssen stabil bleiben) ──
+  // Lazy-Init statt useRef.current im Render (React-Compiler-Regel)
+  const [verkauft] = useState(() => new Set(verkaufteSitzIds));
+  const [schutzHinweis, setSchutzHinweis] = useState<string | null>(null);
+
+  function istGeschuetzt(el: SitzplanElement): boolean {
+    return elementSitzIds(el).some((id) => verkauft.has(id));
+  }
+
+  function schutzMelden(el: SitzplanElement) {
+    const n = elementSitzIds(el).filter((id) => verkauft.has(id)).length;
+    setSchutzHinweis(`„${el.bezeichnung}" hat ${n} verkaufte${n === 1 ? "n" : ""} Platz${n === 1 ? "" : "..."} — Löschen und Struktur-Änderungen sind gesperrt. Verschieben ist erlaubt.`.replace("Platz...", "Plätze"));
+    setTimeout(() => setSchutzHinweis(null), 5000);
+  }
+
+  // Felder, deren Änderung Sitz-IDs verschieben/entfernen würde
+  const STRUKTUR_FELDER = new Set([
+    "bezeichnung", "anzahlSitze", "nummerStart", "nummerRichtung",
+    "sitzeProSeite", "sitzeOben", "sitzeUnten", "kapazitaet",
+  ]);
+
   function naechstesY(): number {
     if (konfig.elemente.length === 0) return Math.round(konfig.hoehe * 0.4);
     const maxY = Math.max(...konfig.elemente.map((e) => e.y));
@@ -293,6 +317,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   }
 
   function elementLoeschen(id: string) {
+    const el = konfig.elemente.find((e) => e.id === id);
+    if (el && istGeschuetzt(el)) { schutzMelden(el); return; }
     mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
     setAuswahl(null);
   }
@@ -313,6 +339,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   }
 
   function elementAktualisieren(id: string, delta: Partial<SitzplanElement>) {
+    const el = konfig.elemente.find((e) => e.id === id);
+    if (el && istGeschuetzt(el) && Object.keys(delta).some((k) => STRUKTUR_FELDER.has(k))) {
+      schutzMelden(el);
+      return;
+    }
     mutiere((k) => ({
       ...k,
       elemente: k.elemente.map((e) => (e.id === id ? ({ ...e, ...delta } as SitzplanElement) : e)),
@@ -392,6 +423,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         if (inInput) return;
         const ids = auswahl?.typ === "element" ? auswahl.ids : [];
         if (ids.length === 0) return;
+        const geschuetzt = konfigRef.current.elemente.find((el) => ids.includes(el.id) && istGeschuetzt(el));
+        if (geschuetzt) { schutzMelden(geschuetzt); return; }
         mutiere((k) => ({ ...k, elemente: k.elemente.filter((el) => !ids.includes(el.id)) }));
         setAuswahl(null);
       }
@@ -426,6 +459,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           <div className="px-4 py-3 border-t border-border">
             <button type="button"
               onClick={() => {
+                const geschuetzt = konfig.elemente.find((e) => auswahlIds.includes(e.id) && istGeschuetzt(e));
+                if (geschuetzt) { schutzMelden(geschuetzt); return; }
                 mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
                 setAuswahl(null);
                 onClose?.();
@@ -574,6 +609,17 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           ref={canvasContainerRef}
           className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center gap-3 bg-slate-100"
         >
+          {verkauft.size > 0 && (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800 font-medium shrink-0">
+              <Lock className="h-4 w-4 shrink-0" />
+              {verkauft.size} verkaufte Plätze — betroffene Elemente sind gegen Löschen und Umbenennen geschützt
+            </div>
+          )}
+          {schutzHinweis && (
+            <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
+              {schutzHinweis}
+            </div>
+          )}
           {sperrModus && (
             <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
               <Ban className="h-4 w-4 shrink-0" />

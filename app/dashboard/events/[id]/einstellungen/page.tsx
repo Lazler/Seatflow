@@ -11,6 +11,7 @@ import TicketTemplateSelector from "../ticket-template-selector";
 import EventWeiterleitungen from "../event-weiterleitungen";
 import EventExtras from "../event-extras";
 import EventVerkauf from "../event-verkauf";
+import EventBild from "../event-bild";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import EventSprachen from "../event-sprachen";
 import type { TicketTyp } from "@/types/ticket-typ";
@@ -91,6 +92,11 @@ export default async function EventEinstellungen({
         </div>
 
         <div className="space-y-4">
+          <EventBild
+            eventId={event.id}
+            userId={user!.id}
+            initialBildUrl={(event.bild_url as string | null) ?? null}
+          />
           <EventVerkauf
             eventId={event.id}
             initialVerkaufAb={(event.verkauf_ab as string | null) ?? null}
