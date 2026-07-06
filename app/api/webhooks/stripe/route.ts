@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { sendTicketMail } from "@/lib/email";
+import { sendTicketMail, sendeVerkaufsBenachrichtigung } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { effectivePlan } from "@/lib/plan";
 import type Stripe from "stripe";
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
   // Check organizer plan for email branding
   const { data: profil } = await admin
     .from("veranstalter_profile")
-    .select("plan, abo_bis")
+    .select("plan, abo_bis, benachrichtigung_verkauf")
     .eq("id", ev.veranstalter_id)
     .single();
   const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
@@ -198,6 +198,32 @@ export async function POST(req: NextRequest) {
     sprache,
     poweredBySeatflow: plan === "free",
   });
+
+  // Verkaufs-Benachrichtigung an den Veranstalter (best effort, abschaltbar)
+  if (profil?.benachrichtigung_verkauf !== false) {
+    try {
+      const { data: veranstalter } = await admin.auth.admin.getUserById(ev.veranstalter_id);
+      const veranstalterEmail = veranstalter?.user?.email;
+      if (veranstalterEmail) {
+        const { count: verkauftGesamt } = await admin
+          .from("tickets")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", eventId);
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://seatflow.app";
+        await sendeVerkaufsBenachrichtigung({
+          to: veranstalterEmail,
+          eventTitel: ev.titel,
+          gastName: buchung.gaest_name,
+          anzahlTickets: tickets.length,
+          gesamtCent: buchung.gesamt_cent,
+          verkauftGesamt: verkauftGesamt ?? tickets.length,
+          dashboardLink: `${appUrl}/dashboard/buchungen/${buchungId}`,
+        });
+      }
+    } catch {
+      // Benachrichtigung darf die Ticket-Zustellung nie gefährden
+    }
+  }
 
   return NextResponse.json({ received: true });
 }

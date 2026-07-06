@@ -178,3 +178,93 @@ export async function sendTicketMail(params: TicketMailParams) {
     ],
   });
 }
+
+// ── Veranstalter-Rundmail an alle Gäste eines Events ─────────────────────────
+
+function htmlEscape(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+export async function sendeRundmail(params: {
+  to: string;
+  betreff: string;
+  nachricht: string;       // Klartext des Veranstalters
+  eventTitel: string;
+  veranstalterName: string;
+  buchungLink?: string;    // "Meine Tickets"-Link des Empfängers
+}) {
+  const { to, betreff, nachricht, eventTitel, veranstalterName, buchungLink } = params;
+  const absaetze = htmlEscape(nachricht)
+    .split(/\n{2,}/)
+    .map((a) => `<p style="margin:0 0 14px;font-size:14px;line-height:1.6">${a.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="de"><body style="margin:0;padding:0;background:#f1f5f9;font-family:system-ui,-apple-system,sans-serif">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px">
+    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="background:#1e293b;padding:20px 28px">
+        <p style="margin:0;color:#f8fafc;font-weight:700;font-size:15px">${htmlEscape(eventTitel)}</p>
+        <p style="margin:2px 0 0;color:#94a3b8;font-size:12px">Nachricht vom Veranstalter</p>
+      </div>
+      <div style="padding:28px">
+        ${absaetze}
+        ${buchungLink ? `<p style="margin:20px 0 0"><a href="${buchungLink}" style="font-size:13px;color:#c2670b;text-decoration:none;font-weight:600">Deine Tickets ansehen →</a></p>` : ""}
+      </div>
+      <div style="padding:14px 28px;background:#f8fafc;border-top:1px solid #e2e8f0">
+        <p style="margin:0;font-size:11px;color:#94a3b8">
+          Gesendet über SeatFlow im Auftrag von ${htmlEscape(veranstalterName)}.
+          Du erhältst diese E-Mail, weil du Tickets für dieses Event gebucht hast.
+        </p>
+      </div>
+    </div>
+  </div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "tickets@seatflow.de",
+    to,
+    subject: betreff,
+    html,
+  });
+}
+
+// ── Verkaufs-Benachrichtigung an den Veranstalter ─────────────────────────────
+
+export async function sendeVerkaufsBenachrichtigung(params: {
+  to: string;
+  eventTitel: string;
+  gastName: string;
+  anzahlTickets: number;
+  gesamtCent: number;
+  verkauftGesamt: number;
+  dashboardLink: string;
+}) {
+  const { to, eventTitel, gastName, anzahlTickets, gesamtCent, verkauftGesamt, dashboardLink } = params;
+  const summe = (gesamtCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+
+  const html = `<!DOCTYPE html>
+<html lang="de"><body style="margin:0;padding:0;background:#f1f5f9;font-family:system-ui,-apple-system,sans-serif">
+  <div style="max-width:520px;margin:0 auto;padding:32px 16px">
+    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:28px">
+      <p style="margin:0 0 4px;font-size:13px;color:#16a34a;font-weight:700">Neue Buchung</p>
+      <p style="margin:0 0 16px;font-size:17px;font-weight:700;color:#0f172a">${htmlEscape(eventTitel)}</p>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr><td style="padding:4px 0;color:#64748b">Gast</td><td style="padding:4px 0;text-align:right;font-weight:600">${htmlEscape(gastName)}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b">Tickets</td><td style="padding:4px 0;text-align:right;font-weight:600">${anzahlTickets}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b">Betrag</td><td style="padding:4px 0;text-align:right;font-weight:600">${summe}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;border-top:1px solid #e2e8f0">Verkauft gesamt</td><td style="padding:4px 0;text-align:right;font-weight:700;border-top:1px solid #e2e8f0">${verkauftGesamt} Tickets</td></tr>
+      </table>
+      <p style="margin:20px 0 0"><a href="${dashboardLink}" style="display:inline-block;padding:10px 18px;border-radius:8px;background:#c2670b;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none">Buchung ansehen</a></p>
+      <p style="margin:16px 0 0;font-size:11px;color:#94a3b8">Abschaltbar in den SeatFlow-Einstellungen (Abo &amp; Konto).</p>
+    </div>
+  </div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "tickets@seatflow.de",
+    to,
+    subject: `Neue Buchung: ${anzahlTickets}× ${eventTitel} (${summe})`,
+    html,
+  });
+}
