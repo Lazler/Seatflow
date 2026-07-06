@@ -36,6 +36,8 @@ export async function sendTicketMail(params: TicketMailParams) {
       preis: "Preis",
       gesamt: "Gesamt",
       qrHinweis: "QR-Code für den Einlass (auch im PDF-Anhang):",
+      onlineAnsehen: "Tickets online ansehen",
+      onlineHinweis: "Jederzeit abrufbar — erneut herunterladen, zusenden oder in den Kalender übernehmen.",
       fragen: "Bei Fragen wende dich an den Veranstalter.",
     },
     en: {
@@ -46,6 +48,8 @@ export async function sendTicketMail(params: TicketMailParams) {
       preis: "Price",
       gesamt: "Total",
       qrHinweis: "QR code for entry (also in the PDF attachment):",
+      onlineAnsehen: "View tickets online",
+      onlineHinweis: "Available any time — re-download, resend or add to your calendar.",
       fragen: "If you have any questions, please contact the organiser.",
     },
     hu: {
@@ -56,9 +60,13 @@ export async function sendTicketMail(params: TicketMailParams) {
       preis: "Ár",
       gesamt: "Összesen",
       qrHinweis: "QR-kód a belépéshez (a PDF-mellékletben is megtalálható):",
+      onlineAnsehen: "Jegyek megtekintése online",
+      onlineHinweis: "Bármikor elérhető — újraletöltés, újraküldés vagy naptárba mentés.",
       fragen: "Kérdés esetén forduljon a szervezőhöz.",
     },
   }[lang];
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://seatflow.app";
 
   // Generate QR for the inline email image (using buchungId)
   const qrDataUrl = await QRCode.toDataURL(buchungId, { width: 200, margin: 1 });
@@ -107,6 +115,15 @@ export async function sendTicketMail(params: TicketMailParams) {
         <p style="font-size:13px;color:#64748b;margin-bottom:12px">${emailStrings.qrHinweis}</p>
         <img src="cid:qrcode" alt="QR-Code Ticket" style="width:160px;height:160px;border:1px solid #e2e8f0;border-radius:8px" />
         <p style="font-size:11px;color:#94a3b8;margin-top:8px;font-family:monospace">${buchungId}</p>
+      </div>
+
+      <!-- Self-Service: Tickets jederzeit online abrufbar -->
+      <div style="text-align:center;margin-bottom:24px">
+        <a href="${appUrl}/buchung/${buchungId}"
+          style="display:inline-block;padding:12px 24px;border-radius:8px;background:#c2670b;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">
+          ${emailStrings.onlineAnsehen}
+        </a>
+        <p style="font-size:11px;color:#94a3b8;margin-top:8px">${emailStrings.onlineHinweis}</p>
       </div>
 
       <p style="font-size:12px;color:#94a3b8;text-align:center;margin:0">

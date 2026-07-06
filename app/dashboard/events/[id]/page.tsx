@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Ticket, ArrowSquareOut as ExternalLink, Users, Gear as Settings } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, Calendar, MapPin, Ticket, ArrowSquareOut as ExternalLink, Users, Gear as Settings , ListChecks } from "@phosphor-icons/react/dist/ssr";
 import EventStatusAktion from "./event-status-aktion";
 import ScannerPinVerwaltung from "./scanner-pin-verwaltung";
 
@@ -205,6 +205,11 @@ export default async function EventDetail({
                   </Link>
                 </Button>
               )}
+              <Button size="sm" variant="outline" className="w-full" asChild>
+                <Link href={`/dashboard/events/${event.id}/gaesteliste`}>
+                  <ListChecks className="h-3.5 w-3.5 mr-1.5" /> Gästeliste & Export
+                </Link>
+              </Button>
               {event.status === "veroeffentlicht" && (
                 <ScannerPinVerwaltung
                   eventId={event.id}

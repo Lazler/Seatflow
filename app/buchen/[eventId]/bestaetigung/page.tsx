@@ -119,6 +119,12 @@ export default async function BestaetigungsSeite({
                     <span>{tickets.map((t) => t.sitzplatz_bezeichnung || t.sitzplatz_id).join(", ")}</span>
                   </span>
                 )}
+                <span className="pt-2">
+                  <a href={`/buchung/${buchungId}`}
+                    className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">
+                    Tickets online ansehen
+                  </a>
+                </span>
               </div>
             </div>
 

@@ -63,7 +63,8 @@ function demoKonfiguration(): SitzplanKonfiguration {
 const BELEGT = ["A-4", "B-8", "C-2", "D-7", "E-10", "T1-3", "S-1", "S-2", "S-3"];
 
 export default function BuilderDemo({ texte }: { texte: BuilderDemoTexte }) {
-  const konfig = useRef(demoKonfiguration()).current;
+  // Lazy-Init statt useRef.current im Render (React-Compiler-Regel)
+  const [konfig] = useState(demoKonfiguration);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set());
