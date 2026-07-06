@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2, AlertTriangle, Copy } from "lucide-react";
+import { Trash as Trash2, CircleNotch as Loader2, Warning as AlertTriangle, Copy } from "@phosphor-icons/react";
 
 type Plan = { id: string; name: string };
 

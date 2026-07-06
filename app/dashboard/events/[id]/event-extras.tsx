@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Timer, Gift, Plus, Trash2, Check } from "lucide-react";
+import { Timer, Gift, Plus, Trash as Trash2, Check } from "@phosphor-icons/react";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import { fruehbucherAktiv } from "@/types/event-extras";
 

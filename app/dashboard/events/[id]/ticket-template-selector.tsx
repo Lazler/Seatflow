@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Palette, ExternalLink, Check } from "lucide-react";
+import { Palette, ArrowSquareOut as ExternalLink, Check } from "@phosphor-icons/react";
 import Link from "next/link";
 import type { TicketDesign } from "@/types/ticket-design";
 

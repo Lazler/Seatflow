@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { notFound } from "next/navigation";
-import { CheckCircle, Calendar, MapPin, Ticket, Download } from "lucide-react";
+import { CheckCircle, Calendar, MapPin, Ticket, DownloadSimple as Download } from "@phosphor-icons/react/dist/ssr";
 import { Card, CardContent } from "@/components/ui/card";
 import QRCode from "qrcode";
 import Image from "next/image";

@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  AlignJustify, Armchair, CircleDot, Trash2, Minus, Plus,
-  RotateCcw, ChevronLeft, Users, Check, Copy, Type,
-} from "lucide-react";
+import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Trash as Trash2, Minus, Plus, ArrowCounterClockwise as RotateCcw, CaretLeft as ChevronLeft, Users, Check, Copy, TextT as Type } from "@phosphor-icons/react";
 import {
   type SitzplanElement, type Preiskategorie, type ElementTyp,
   FARBE_ELEMENT_SELEKTIERT, elementSitzIds,

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { EuroIcon, Ticket, TrendingUp, CalendarCheck, Plus, ArrowRight, Clock } from "lucide-react";
+import { CurrencyEur as EuroIcon, Ticket, TrendUp as TrendingUp, CalendarCheck, Plus, ArrowRight, Clock } from "@phosphor-icons/react/dist/ssr";
 import { migrierteKonfiguration, elementSitzIds } from "@/types/sitzplan";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {

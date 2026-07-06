@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Stage, Layer, Rect, Circle, Text, Group, Line, Transformer } from "react-konva";
 import type Konva from "konva";
-import { ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, CornersOut as Maximize } from "@phosphor-icons/react";
 import {
   type SitzplanElement,
   type ReiheElement,

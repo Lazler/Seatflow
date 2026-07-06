@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowRight, ReceiptText, Plus } from "lucide-react";
+import { MagnifyingGlass as Search, ArrowRight, Receipt as ReceiptText, Plus } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
 
 type Buchung = {

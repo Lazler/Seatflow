@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getServerDict } from "@/lib/i18n/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { EuroIcon, Ticket, TrendingUp, Users } from "lucide-react";
+import { CurrencyEur as EuroIcon, Ticket, TrendUp as TrendingUp, Users } from "@phosphor-icons/react/dist/ssr";
 import AnalyticsClient from "./analytics-client";
 
 function euro(cent: number) {

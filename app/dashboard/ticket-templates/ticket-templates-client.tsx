@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Check, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash as Trash2, Check, PencilSimple as Pencil, CaretDown as ChevronDown, CaretUp as ChevronUp } from "@phosphor-icons/react";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import type { TicketTemplate } from "./page";

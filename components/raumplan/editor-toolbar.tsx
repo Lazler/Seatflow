@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AlignJustify, Armchair, CircleDot, Minus, Plus,
-  RotateCw, Theater, ChevronDown, ChevronUp, Tags, Pencil, Check, X, Maximize2,
-  Users, Type, Rows3, Wand2,
-} from "lucide-react";
+import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, ArrowClockwise as RotateCw, MaskHappy as Theater, CaretDown as ChevronDown, CaretUp as ChevronUp, Tag as Tags, PencilSimple as Pencil, Check, X, ArrowsOutSimple as Maximize2, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2 } from "@phosphor-icons/react";
 import {
   type SitzplanElement, type Buehne, type ElementTyp, type Preiskategorie,
 } from "@/types/sitzplan";

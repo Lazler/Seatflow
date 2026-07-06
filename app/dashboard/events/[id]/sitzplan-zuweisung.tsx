@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Map, Plus, Trash2 } from "lucide-react";
+import { MapTrifold as Map, Plus, Trash as Trash2 } from "@phosphor-icons/react";
 
 type Sitzplan = { id: string; name: string };
 type Lang = "de" | "en" | "hu";

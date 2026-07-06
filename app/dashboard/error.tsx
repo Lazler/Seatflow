@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import Link from "next/link";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { Warning as AlertTriangle, ArrowCounterClockwise as RotateCcw } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardError({

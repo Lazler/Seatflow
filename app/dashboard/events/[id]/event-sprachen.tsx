@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Globe, Loader2, Check } from "lucide-react";
+import { Globe, CircleNotch as Loader2, Check } from "@phosphor-icons/react";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
 type LangContent = { titel: string; beschreibung: string };

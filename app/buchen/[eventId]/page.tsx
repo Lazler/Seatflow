@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { Calendar, MapPin, ArrowLeft, Globe } from "lucide-react";
+import { Calendar, MapPin, ArrowLeft, Globe } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import BuchungsSeiteClient from "@/components/buchung/buchungs-seite-client";
 import { migrierteKonfiguration } from "@/types/sitzplan";

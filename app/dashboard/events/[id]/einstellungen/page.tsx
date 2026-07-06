@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { getServerDict } from "@/lib/i18n/server";
 import SitzplanZuweisung, { type Etage } from "../sitzplan-zuweisung";
 import TicketTypen from "../ticket-typen";

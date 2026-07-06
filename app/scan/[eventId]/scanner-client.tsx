@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
-import {
-  CheckCircle, XCircle, AlertCircle,
-  Camera, CameraOff, RotateCcw,
-  Zap, ZapOff, ChevronUp, ChevronDown, X,
-} from "lucide-react";
+import { CheckCircle, XCircle, WarningCircle as AlertCircle, Camera, CameraSlash as CameraOff, ArrowCounterClockwise as RotateCcw, Lightning as Zap, LightningSlash as ZapOff, CaretUp as ChevronUp, CaretDown as ChevronDown, X } from "@phosphor-icons/react";
 
 type ScanStatus = "ok" | "ungueltig" | "bereits_eingeloest";
 

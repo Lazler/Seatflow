@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus } from "@phosphor-icons/react/dist/ssr";
 
 export default async function EventsSeite() {
   const [t, supabase] = await Promise.all([getServerDict(), createClient()]);

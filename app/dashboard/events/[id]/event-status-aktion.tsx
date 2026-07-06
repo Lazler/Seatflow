@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, EyeOff, XCircle, Loader2 } from "lucide-react";
+import { Globe, EyeSlash as EyeOff, XCircle, CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
 
 type Status = "entwurf" | "veroeffentlicht" | "abgesagt" | "beendet";

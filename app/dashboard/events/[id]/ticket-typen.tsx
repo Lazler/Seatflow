@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ChevronDown, ChevronUp, Tickets, GripVertical, X } from "lucide-react";
+import { Plus, Trash as Trash2, CaretDown as ChevronDown, CaretUp as ChevronUp, Ticket as Tickets, DotsSixVertical as GripVertical, X } from "@phosphor-icons/react";
 import type { TicketTyp, PflichtFeld, PreisRegel } from "@/types/ticket-typ";
 import { regelLabel } from "@/types/ticket-typ";
 

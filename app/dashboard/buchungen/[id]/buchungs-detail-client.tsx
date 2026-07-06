@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sitzAnzeige } from "@/types/sitzplan";
-import { ArrowLeft, Pencil, Check, X, Send, Loader2, Ticket, Download, RotateCcw, RefreshCw } from "lucide-react";
+import { ArrowLeft, PencilSimple as Pencil, Check, X, PaperPlaneTilt as Send, CircleNotch as Loader2, Ticket, DownloadSimple as Download, ArrowCounterClockwise as RotateCcw, ArrowsClockwise as RefreshCw } from "@phosphor-icons/react";
 
 type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
 

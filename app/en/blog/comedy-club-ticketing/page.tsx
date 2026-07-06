@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata: Metadata = {
   title: "Comedy Club Ticket Shop Setup: Live in One Hour",

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { MapPin, Plus } from "lucide-react";
+import { MapPin, Plus } from "@phosphor-icons/react/dist/ssr";
 import { getServerDict } from "@/lib/i18n/server";
 
 export default async function VenuesSeite() {

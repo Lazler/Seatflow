@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { effectivePlan, type Plan } from "@/lib/plan";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Crown, Link2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Check, Lightning as Zap, Crown, LinkSimple as Link2, Warning as AlertTriangle, CheckCircle as CheckCircle2 } from "@phosphor-icons/react";
 
 type ProfilData = {
   plan: string;

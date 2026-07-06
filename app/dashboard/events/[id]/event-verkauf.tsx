@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarClock, Check } from "lucide-react";
+import { CalendarBlank as CalendarClock, Check } from "@phosphor-icons/react";
 
 // timestamptz → Wert für <input type="datetime-local"> (lokale Zeit)
 function zuLocalInput(iso: string | null): string {

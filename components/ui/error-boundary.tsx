@@ -2,7 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 import * as Sentry from "@sentry/nextjs";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { Warning as AlertTriangle, ArrowCounterClockwise as RotateCcw } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
 interface Props {

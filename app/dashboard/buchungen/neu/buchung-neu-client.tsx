@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, UserPlus } from "lucide-react";
+import { ArrowLeft, CircleNotch as Loader2, UserPlus } from "@phosphor-icons/react";
 import { migrierteKonfiguration, elementSitzIds, type SitzplanKonfiguration } from "@/types/sitzplan";
 
 type EventRow = { id: string; titel: string; datum: string; sitzplan_id: string | null; service_gebuehr_cent: number | null };

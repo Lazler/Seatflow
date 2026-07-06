@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { MapPin, Zap, QrCode, BarChart3, Check, ArrowRight } from "lucide-react";
+import { MapPin, Lightning as Zap, QrCode, ChartBar as BarChart3, Check, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import Preisrechner from "@/components/pricing/preisrechner";
 
 export type LandingContent = {

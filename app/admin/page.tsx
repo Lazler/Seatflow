@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { effectivePlan } from "@/lib/plan";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EuroIcon, Users, Ticket, TrendingUp, Link2, AlertTriangle } from "lucide-react";
+import { CurrencyEur as EuroIcon, Users, Ticket, TrendUp as TrendingUp, LinkSimple as Link2, Warning as AlertTriangle } from "@phosphor-icons/react/dist/ssr";
 
 function euro(cent: number) {
   return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });

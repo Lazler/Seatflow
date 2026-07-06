@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Ticket, ExternalLink, Users, Settings } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Ticket, ArrowSquareOut as ExternalLink, Users, Gear as Settings } from "@phosphor-icons/react/dist/ssr";
 import EventStatusAktion from "./event-status-aktion";
 
 const STATUS_LABEL: Record<string, string> = {
