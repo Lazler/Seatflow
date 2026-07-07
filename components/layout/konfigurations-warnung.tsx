@@ -25,8 +25,10 @@ export function KonfigurationsWarnung() {
         <div className="min-w-0 text-sm">
           <p className="font-semibold">Deine Installation ist unvollständig konfiguriert</p>
           <p className="mt-0.5 text-amber-800">
-            Folgende Umgebungsvariablen fehlen im Deployment. Setze sie in deinem Hosting
-            (z. B. Vercel → Project → Settings → Environment Variables) und deploye neu:
+            Folgende Umgebungsvariablen fehlen im Deployment. Setze sie dort, wo diese App
+            läuft (in den Environment-Variablen deiner Hosting-Plattform bzw. deiner
+            <code className="font-mono text-xs bg-amber-100 rounded px-1 py-0.5 mx-0.5">.env</code>),
+            und deploye neu:
           </p>
           <ul className="mt-2 space-y-1">
             {fehlend.map((f) => (
