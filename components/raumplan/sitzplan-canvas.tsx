@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, memo } from "react";
 import { Stage, Layer, Rect, Circle, Text, Group, Line, Path, Transformer } from "react-konva";
 import type Konva from "konva";
 import { MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, CornersOut as Maximize } from "@phosphor-icons/react";
@@ -28,6 +28,9 @@ import {
 export type Auswahl = { typ: "buehne" } | { typ: "element"; ids: string[] } | null;
 
 const DRAG_MARGIN = 40;
+
+// Stabile No-Op-Referenz für memoisierte Element-Props im Buchungsmodus
+const NOOP = () => {};
 
 // Rollstuhl-Symbol (Phosphor "Wheelchair", ViewBox 256) für Barrierefrei-Badges
 const ROLLSTUHL_PFAD = "M255.59,189.47a8,8,0,0,0-10.12-5.06l-17.42,5.81-28.9-57.8A8,8,0,0,0,192,128H112V104h56a8,8,0,0,0,0-16H112V79a32,32,0,1,0-16,0V89.81A72,72,0,0,0,112,232c33.52,0,63.69-22.71,71.75-54a8,8,0,1,0-15.5-4C162.09,198,137.91,216,112,216A56,56,0,0,1,96,106.34V136a8,8,0,0,0,8,8h83.05l29.79,59.58a8,8,0,0,0,9.69,4l24-8A8,8,0,0,0,255.59,189.47ZM88,48a16,16,0,1,1,16,16A16,16,0,0,1,88,48Z";
@@ -75,7 +78,7 @@ type SitzProps = {
   onHoverInfo?: (info: SeatHoverInfo) => void;
 };
 
-function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, sperrModus, barrierefrei = false, onSitzKlick, onHoverInfo }: SitzProps) {
+const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, sperrModus, barrierefrei = false, onSitzKlick, onHoverInfo }: SitzProps) {
   // Im Sperrmodus sind ALLE Sitze klickbar (auch gesperrte, zum Entsperren)
   const istKlickbar = sperrModus || (istBuchungsmodus && !belegt);
 
@@ -165,7 +168,7 @@ function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, katego
       )}
     </Group>
   );
-}
+});
 
 // ── Label chip — always upright, always readable ──────────────────────────────
 
@@ -210,7 +213,7 @@ type ElementProps<T> = {
 
 // ── Reihe ─────────────────────────────────────────────────────────────────────
 
-function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
+const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
   const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
   const bogen = el.bogen ?? 0;
   // Parabel-Approximation eines Kreisbogens: Mitte bei 0, Enden bei -bogen
@@ -269,11 +272,11 @@ function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent
       )}
     </Group>
   );
-}
+});
 
 // ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
-function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
+const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
   const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
   const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
@@ -356,11 +359,11 @@ function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePrei
       )}
     </Group>
   );
-}
+});
 
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
-function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
+const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
   const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
@@ -427,12 +430,12 @@ function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
       )}
     </Group>
   );
-}
+});
 
 
 // ── Stehplatz-Zone ────────────────────────────────────────────────────────────
 
-function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, zonenTexte, onKlick, onDragEnd, onSitzKlick }: ElementProps<StehplatzElement>) {
+const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, editorAusgewaehlt, belegte, buchungAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, zonenTexte, onKlick, onDragEnd, onSitzKlick }: ElementProps<StehplatzElement>) {
   const ids = elementSitzIds(el);
   const freie = ids.filter((id) => !belegte.has(id) && !buchungAusgewaehlt.has(id));
   const gewaehlt = ids.filter((id) => buchungAusgewaehlt.has(id)).length;
@@ -494,7 +497,7 @@ function StehplatzKomponente({ el, kategoriefarbe, kategorieName, kategoriePreis
       )}
     </Group>
   );
-}
+});
 
 // ── Text-Annotation ───────────────────────────────────────────────────────────
 
@@ -640,6 +643,12 @@ export default function SitzplanCanvas({
   const MIN_ZOOM = 1, MAX_ZOOM = 3.5;
   const [zoom, setZoom] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  // Laufende Wahrheit während einer Geste — ohne React-Render pro Frame.
+  // Der State (zoom/stagePos) wird erst am Gestenende committet.
+  const zoomRef = useRef(1);
+  const posRef = useRef({ x: 0, y: 0 });
+  const stageRef = useRef<Konva.Stage>(null);
+  const commitTimerRef = useRef<number | null>(null);
   const pinchRef = useRef<{ dist: number; center: { x: number; y: number } } | null>(null);
   const [tooltip, setTooltip] = useState<SeatHoverInfo>(null);
 
@@ -651,17 +660,47 @@ export default function SitzplanCanvas({
     y: Math.min(0, Math.max(viewportH * (1 - z), pos.y)),
   }), [viewportW, viewportH]);
 
-  // Zoomt so, dass der Punkt (Viewport-Koordinaten) an Ort und Stelle bleibt
-  const applyZoom = useCallback((point: { x: number; y: number }, zielZoom: number) => {
+  // Zoom/Pan imperativ auf den Stage-Node schreiben (60 fps, kein Re-Render).
+  const liveApply = useCallback((z: number, pos: { x: number; y: number }) => {
+    zoomRef.current = z;
+    posRef.current = pos;
+    const st = stageRef.current;
+    if (!st) return;
+    st.scale({ x: scale * z, y: scale * z });
+    st.position(pos);
+    st.batchDraw();
+  }, [scale]);
+
+  // Ref-Werte in den React-State übernehmen (einmalig, am Gestenende)
+  const commit = useCallback(() => {
+    setZoom(zoomRef.current);
+    setStagePos(posRef.current);
+  }, []);
+
+  useEffect(() => () => { if (commitTimerRef.current) window.clearTimeout(commitTimerRef.current); }, []);
+
+  // Zoomt so, dass der Punkt (Viewport-Koordinaten) an Ort und Stelle bleibt.
+  // defer=true committet verzögert (Wheel/Trackpad feuert in schneller Folge).
+  const applyZoom = useCallback((point: { x: number; y: number }, zielZoom: number, defer = false) => {
     const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zielZoom));
-    if (z === 1) { setZoom(1); setStagePos({ x: 0, y: 0 }); return; }
-    const c = {
-      x: (point.x - stagePos.x) / (scale * zoom),
-      y: (point.y - stagePos.y) / (scale * zoom),
-    };
-    setZoom(z);
-    setStagePos(clampPos({ x: point.x - c.x * scale * z, y: point.y - c.y * scale * z }, z));
-  }, [scale, zoom, stagePos, clampPos]);
+    if (z === 1) {
+      liveApply(1, { x: 0, y: 0 });
+    } else {
+      const curZoom = zoomRef.current;
+      const curPos = posRef.current;
+      const c = {
+        x: (point.x - curPos.x) / (scale * curZoom),
+        y: (point.y - curPos.y) / (scale * curZoom),
+      };
+      liveApply(z, clampPos({ x: point.x - c.x * scale * z, y: point.y - c.y * scale * z }, z));
+    }
+    if (defer) {
+      if (commitTimerRef.current) window.clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = window.setTimeout(commit, 140);
+    } else {
+      commit();
+    }
+  }, [scale, clampPos, liveApply, commit]);
 
   const viewportMitte = { x: viewportW / 2, y: viewportH / 2 };
 
@@ -711,7 +750,10 @@ export default function SitzplanCanvas({
       raumbreite,
       raumhoehe,
       nummerAusblenden: el.nummerAusblenden ?? false,
-      onKlick: () => {
+      // Im Buchungsmodus sind Elemente nicht klick-/ziehbar — stabile NOOPs,
+      // damit die memoisierten Element-Komponenten nicht bei jedem Render neue
+      // Callback-Identitäten sehen (sonst greift memo nicht).
+      onKlick: istBuchungsmodus ? NOOP : () => {
         const shift = shiftHeldRef.current;
         const currentIds = auswahl?.typ === "element" ? auswahl.ids : [];
         if (shift) {
@@ -724,7 +766,7 @@ export default function SitzplanCanvas({
           onAuswaehlen?.(alreadySingle ? null : { typ: "element", ids: [el.id] });
         }
       },
-      onDragEnd: (x: number, y: number) => {
+      onDragEnd: istBuchungsmodus ? NOOP : (x: number, y: number) => {
         const selectedIds = auswahl?.typ === "element" ? auswahl.ids : [];
         if (selectedIds.length > 1 && selectedIds.includes(el.id)) {
           const dx = x - el.x; const dy = y - el.y;
@@ -759,15 +801,18 @@ export default function SitzplanCanvas({
       style={istBuchungsmodus ? { touchAction: zoom > 1 ? "none" : "pan-y" } : undefined}
     >
     <Stage
+      ref={stageRef}
       width={raumbreite * scale} height={raumhoehe * scale}
       scale={{ x: scale * effektiverZoom, y: scale * effektiverZoom }}
       x={istBuchungsmodus ? stagePos.x : 0}
       y={istBuchungsmodus ? stagePos.y : 0}
       draggable={istBuchungsmodus && zoom > 1}
-      dragBoundFunc={(pos) => clampPos(pos, zoom)}
+      dragBoundFunc={(pos) => clampPos(pos, zoomRef.current)}
       onDragEnd={(e) => {
         if (istBuchungsmodus && e.target === e.target.getStage()) {
-          setStagePos({ x: e.target.x(), y: e.target.y() });
+          const pos = { x: e.target.x(), y: e.target.y() };
+          posRef.current = pos;
+          setStagePos(pos);
         }
       }}
       role={istBuchungsmodus ? "application" : undefined}
@@ -778,7 +823,7 @@ export default function SitzplanCanvas({
         e.evt.preventDefault();
         const p = e.target.getStage()!.getPointerPosition();
         if (!p) return;
-        applyZoom(p, zoom * (e.evt.deltaY < 0 ? 1.15 : 1 / 1.15));
+        applyZoom(p, zoomRef.current * (e.evt.deltaY < 0 ? 1.15 : 1 / 1.15), true);
       }}
       onDblClick={(e) => {
         if (!istBuchungsmodus) return;
@@ -787,14 +832,14 @@ export default function SitzplanCanvas({
         const tid = (e.target as Konva.Shape).id?.() ?? "";
         if (e.target !== e.target.getStage() && tid !== "bg") return;
         const p = e.target.getStage()!.getPointerPosition();
-        if (p) applyZoom(p, zoom > 1 ? 1 : 2);
+        if (p) applyZoom(p, zoomRef.current > 1 ? 1 : 2);
       }}
       onDblTap={(e) => {
         if (!istBuchungsmodus) return;
         const tid = (e.target as Konva.Shape).id?.() ?? "";
         if (e.target !== e.target.getStage() && tid !== "bg") return;
         const p = e.target.getStage()!.getPointerPosition();
-        if (p) applyZoom(p, zoom > 1 ? 1 : 2);
+        if (p) applyZoom(p, zoomRef.current > 1 ? 1 : 2);
       }}
       onTouchMove={(e) => {
         if (!istBuchungsmodus || e.evt.touches.length !== 2) return;
@@ -809,20 +854,25 @@ export default function SitzplanCanvas({
         const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
         const prev = pinchRef.current;
         if (prev) {
-          // Pinch = Zoom um das (bewegte) Fingerzentrum → zoomt und pannt zugleich
+          // Pinch = Zoom um das (bewegte) Fingerzentrum → zoomt und pannt zugleich.
+          // Rein imperativ (liveApply) — kein React-Render pro Frame.
+          const curZoom = zoomRef.current;
+          const curPos = posRef.current;
           const c = {
-            x: (prev.center.x - stagePos.x) / (scale * zoom),
-            y: (prev.center.y - stagePos.y) / (scale * zoom),
+            x: (prev.center.x - curPos.x) / (scale * curZoom),
+            y: (prev.center.y - curPos.y) / (scale * curZoom),
           };
-          const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * (dist / prev.dist)));
-          setZoom(z);
-          setStagePos(z === 1
+          const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, curZoom * (dist / prev.dist)));
+          liveApply(z, z === 1
             ? { x: 0, y: 0 }
             : clampPos({ x: center.x - c.x * scale * z, y: center.y - c.y * scale * z }, z));
         }
         pinchRef.current = { dist, center };
       }}
-      onTouchEnd={() => { pinchRef.current = null; }}
+      onTouchEnd={() => {
+        // Erst am Gestenende in den React-State übernehmen (ein Render)
+        if (pinchRef.current) { pinchRef.current = null; commit(); }
+      }}
       onMouseDown={(e) => {
         if (istBuchungsmodus) return;
         const targetId = (e.target as Konva.Shape).id?.() ?? "";

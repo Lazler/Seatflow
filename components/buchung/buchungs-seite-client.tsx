@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -284,26 +284,29 @@ export default function BuchungsSeiteClient({
     return () => { supabase.removeChannel(channel); };
   }, [eventId, floors.length]);
 
-  const floorMaps = floors.map((floor) => ({
+  // Stabil über Renders — sonst würde onSitzKlicken (Dep) und damit die
+  // Sitz-Memoisierung im Canvas bei jedem Render neu erzeugt.
+  const floorMaps = useMemo(() => floors.map((floor) => ({
     id: floor.id,
     kategorienMap: new Map<string, Preiskategorie>(floor.konfiguration.kategorien.map((k) => [k.id, k])),
     sitzKategorie: new Map<string, string>(alleSitze(floor.konfiguration).map(({ sitzId, kategorieId }) => [sitzId, kategorieId])),
-  }));
+  })), [floors]);
 
   const aktiverFloorMap = floorMaps[aktiverFloorIdx];
-  const ausgewaehlteIdsAktiverFloor = new Set(
-    ausgewaehlt.filter((s) => s.floorId === aktiverFloor.id).map((s) => s.sitzId)
+  const ausgewaehlteIdsAktiverFloor = useMemo(
+    () => new Set(ausgewaehlt.filter((s) => s.floorId === aktiverFloor.id).map((s) => s.sitzId)),
+    [ausgewaehlt, aktiverFloor.id],
   );
 
   // Belegte Sitze der aktiven Ebene (DB-IDs können floor-präfixiert sein;
   // Legacy-IDs ohne Präfix blockieren auf allen Ebenen).
   // Vom Veranstalter gesperrte Plätze zählen ebenfalls als belegt.
-  const belegteAktiverFloor = new Set([
+  const belegteAktiverFloor = useMemo(() => new Set([
     ...[...belegte]
       .filter((id) => sitzGehoertZuFloor(id, aktiverFloor.id))
       .map((id) => (id.includes(":") ? id.slice(id.lastIndexOf(":") + 1) : id)),
     ...(aktiverFloor.konfiguration.gesperrteSitze ?? []),
-  ]);
+  ]), [belegte, aktiverFloor]);
 
   const onSitzKlicken = useCallback((sitzId: string) => {
     const floorId = aktiverFloor.id;
@@ -472,21 +475,29 @@ export default function BuchungsSeiteClient({
 
   const alleKategorien = aktiverFloor.konfiguration.kategorien;
 
+  // Stabile Prop-Identitäten für den Canvas — sonst re-rendern bei jedem
+  // Eltern-Render alle Sitze/Elemente (Memoisierung liefe ins Leere).
+  const barrierefreieSitze = useMemo(
+    () => new Set(aktiverFloor.konfiguration.barrierefreieSitze ?? []),
+    [aktiverFloor],
+  );
+  const canvasTexte = useMemo(() => ({
+    zoneFrei: uiStrings.zoneFrei,
+    zoneGewaehlt: uiStrings.zoneGewaehlt,
+    zoneHinzufuegen: uiStrings.zoneHinzufuegen,
+    zoneAusverkauft: uiStrings.zoneAusverkauft,
+    canvasAria: uiStrings.canvasAria,
+    barrierefrei: uiStrings.barrierefrei,
+  }), [uiStrings]);
+
   const canvasWrapper = (ref: React.RefObject<HTMLDivElement | null>, scale: number) => (
     <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-hidden"
       style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
       <SitzplanCanvas konfiguration={aktiverFloor.konfiguration} modus="buchung"
         renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
         onSitzKlicken={onSitzKlicken}
-        barrierefreieSitze={new Set(aktiverFloor.konfiguration.barrierefreieSitze ?? [])}
-        texte={{
-          zoneFrei: uiStrings.zoneFrei,
-          zoneGewaehlt: uiStrings.zoneGewaehlt,
-          zoneHinzufuegen: uiStrings.zoneHinzufuegen,
-          zoneAusverkauft: uiStrings.zoneAusverkauft,
-          canvasAria: uiStrings.canvasAria,
-          barrierefrei: uiStrings.barrierefrei,
-        }} />
+        barrierefreieSitze={barrierefreieSitze}
+        texte={canvasTexte} />
     </div>
   );
 
