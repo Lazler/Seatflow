@@ -24,7 +24,16 @@ export async function POST(
     return NextResponse.json({ error: "Ungültige Eingabe" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    console.error("[erstatten] SUPABASE_SERVICE_ROLE_KEY fehlt im Deployment");
+    return NextResponse.json(
+      { error: "Server ist nicht vollständig konfiguriert (Service-Key fehlt)." },
+      { status: 503 },
+    );
+  }
 
   const { data: buchung } = await admin
     .from("buchungen")
@@ -59,10 +68,20 @@ export async function POST(
       metadata: { buchung_id: id, grund: parsed.data.grund ?? "" },
     });
 
-    await admin
+    const { error: updateFehler } = await admin
       .from("buchungen")
       .update({ status: "erstattet" })
       .eq("id", id);
+
+    if (updateFehler) {
+      // Geld ist zurück, aber der Status konnte nicht gesetzt werden — das
+      // muss der Admin wissen (sonst erscheint die Buchung weiter als bezahlt)
+      console.error("[erstatten] Status-Update nach Refund fehlgeschlagen:", updateFehler, "refund:", refund.id);
+      return NextResponse.json(
+        { error: "Die Erstattung wurde bei Stripe ausgelöst, aber der Buchungsstatus konnte nicht aktualisiert werden. Bitte Support kontaktieren.", refund_id: refund.id },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ refund_id: refund.id, status: refund.status });
   } catch (err: unknown) {

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CircleNotch as Loader2, UserPlus } from "@phosphor-icons/react";
 import { migrierteKonfiguration, elementSitzIds, type SitzplanKonfiguration } from "@/types/sitzplan";
+import { toast } from "@/components/ui/toaster";
 
 type EventRow = { id: string; titel: string; datum: string; sitzplan_id: string | null; service_gebuehr_cent: number | null };
 
@@ -131,8 +132,15 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
       }),
     });
 
-    const data = await res.json() as { id?: string; error?: string };
-    if (!res.ok || !data.id) { setFehler(data.error ?? "Fehler beim Anlegen."); setLaedt(false); return; }
+    const data = await res.json().catch(() => ({})) as { id?: string; error?: string };
+    if (!res.ok || !data.id) {
+      const msg = data.error ?? "Buchung konnte nicht angelegt werden.";
+      setFehler(msg);
+      toast.error("Buchung fehlgeschlagen", msg);
+      setLaedt(false);
+      return;
+    }
+    toast.success("Buchung angelegt", `${ausgewaehlteSitze.length} ${ausgewaehlteSitze.length === 1 ? "Platz" : "Plätze"} für ${name.trim()}.`);
     router.push(`/dashboard/buchungen/${data.id}`);
   }
 

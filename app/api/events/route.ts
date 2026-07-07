@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { PLAN_EVENT_LIMIT, effectivePlan } from "@/lib/plan";
+import { dbFehlerMeldung } from "@/lib/db-fehler";
 import { z } from "zod";
 
 const EventSchema = z.object({
@@ -67,7 +68,11 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Event konnte nicht gespeichert werden." }, { status: 500 });
+    console.error("[events] Insert fehlgeschlagen:", error);
+    return NextResponse.json(
+      { error: dbFehlerMeldung(error, "Event konnte nicht gespeichert werden.") },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ id: event.id }, { status: 201 });
