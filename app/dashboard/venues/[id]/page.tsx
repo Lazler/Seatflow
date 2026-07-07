@@ -63,25 +63,41 @@ export default async function VenueDetail({
         <div className="lg:col-span-2 space-y-6">
           <VenueBearbeiten venue={venue} />
 
-          {/* Raumpläne */}
-          <Card>
+          {/* Saalpläne */}
+          <Card className={(sitzplaene ?? []).length === 0 ? "border-primary/30 bg-primary/[0.02]" : undefined}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Map className="h-4 w-4" /> Raumpläne
+                  <Map className="h-4 w-4" /> Saalpläne
                 </CardTitle>
                 <CardDescription>
-                  Sitzplan-Layouts für dieses Venue
+                  Sitzplan-Layouts für diesen Veranstaltungsort
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" asChild>
-                <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
-                  <Plus className="h-4 w-4 mr-1" /> Neuer Plan
-                </Link>
-              </Button>
+              {(sitzplaene ?? []).length > 0 && (
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
+                    <Plus className="h-4 w-4 mr-1" /> Neuer Plan
+                  </Link>
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
-              <SitzplanListe venueId={id} plaene={sitzplaene ?? []} />
+              {(sitzplaene ?? []).length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-sm font-medium">Nächster Schritt: Saalplan erstellen</p>
+                  <p className="text-sm text-muted-foreground mt-1 mb-4">
+                    Platziere Reihen, Tische oder Stehplatz-Zonen — erst danach kannst du Tickets verkaufen.
+                  </p>
+                  <Button size="sm" asChild>
+                    <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
+                      <Plus className="h-4 w-4 mr-1.5" /> Saalplan erstellen
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <SitzplanListe venueId={id} plaene={sitzplaene ?? []} />
+              )}
             </CardContent>
           </Card>
         </div>
@@ -101,9 +117,16 @@ export default async function VenueDetail({
             </CardHeader>
             <CardContent>
               {(events ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Noch keine Events an diesem Venue.
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">Noch keine Events hier.</p>
+                  {(sitzplaene ?? []).length > 0 && (
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/dashboard/events/neu?venue=${id}`}>
+                        <Plus className="h-4 w-4 mr-1.5" /> Event hier anlegen
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-3">
                   {events?.map((event) => (

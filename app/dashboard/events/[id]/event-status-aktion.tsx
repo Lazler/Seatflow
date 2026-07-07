@@ -14,10 +14,13 @@ export default function EventStatusAktion({
   eventId,
   status,
   bezahlteAnzahl,
+  harteBlocker = 0,
 }: {
   eventId: string;
   status: string;
   bezahlteAnzahl?: number;
+  // Anzahl offener Pflicht-Anforderungen — sperrt „Veröffentlichen"
+  harteBlocker?: number;
 }) {
   const t = useT();
   const router = useRouter();
@@ -92,21 +95,31 @@ export default function EventStatusAktion({
             <p>{t.events.kaeuferBenachrichtigt.replace("{n}", String(absageergebnis.notified))}</p>
           </div>
         ) : (
-          aktionen.map((aktion) => (
-            <Button
-              key={aktion.naechsterStatus}
-              variant={aktion.variant}
-              size="sm"
-              className="w-full justify-start"
-              disabled={laedt}
-              onClick={() => statusAendern(aktion.naechsterStatus)}
-            >
-              {laedt
-                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                : <aktion.icon className="h-4 w-4 mr-2" />}
-              {aktion.label}
-            </Button>
-          ))
+          aktionen.map((aktion) => {
+            // Veröffentlichen sperren, solange Pflicht-Anforderungen offen sind
+            const gesperrt = aktion.naechsterStatus === "veroeffentlicht" && harteBlocker > 0;
+            return (
+              <div key={aktion.naechsterStatus}>
+                <Button
+                  variant={aktion.variant}
+                  size="sm"
+                  className="w-full justify-start"
+                  disabled={laedt || gesperrt}
+                  onClick={() => statusAendern(aktion.naechsterStatus)}
+                >
+                  {laedt
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <aktion.icon className="h-4 w-4 mr-2" />}
+                  {aktion.label}
+                </Button>
+                {gesperrt && (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Bitte zuerst die {harteBlocker === 1 ? "offene Pflicht-Angabe" : `${harteBlocker} offenen Pflicht-Angaben`} oben erledigen.
+                  </p>
+                )}
+              </div>
+            );
+          })
         )}
         {fehler && <p className="text-xs text-destructive">{fehler}</p>}
       </CardContent>

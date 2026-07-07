@@ -45,7 +45,7 @@ export default function NeuesVenue() {
       .single();
 
     if (error) {
-      setFehler("Venue konnte nicht gespeichert werden.");
+      setFehler("Veranstaltungsort konnte nicht gespeichert werden.");
       setLaedt(false);
       return;
     }
@@ -62,16 +62,16 @@ export default function NeuesVenue() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Neues Venue</h1>
-          <p className="text-muted-foreground text-sm">Veranstaltungsort anlegen</p>
+          <h1 className="text-2xl font-bold">Neuer Veranstaltungsort</h1>
+          <p className="text-muted-foreground text-sm">Bühne, Saal oder Location anlegen</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Angaben zum Venue</CardTitle>
+          <CardTitle className="text-base">Angaben zum Veranstaltungsort</CardTitle>
           <CardDescription>
-            Du kannst den Raumplan danach im Venue-Detail anlegen.
+            Den Saalplan legst du danach direkt hier an.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,7 +112,7 @@ export default function NeuesVenue() {
 
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={laedt}>
-                {laedt ? "Wird gespeichert..." : "Venue anlegen"}
+                {laedt ? "Wird gespeichert..." : "Veranstaltungsort anlegen"}
               </Button>
               <Button variant="outline" asChild>
                 <Link href="/dashboard/venues">Abbrechen</Link>

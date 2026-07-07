@@ -152,7 +152,7 @@ export default function SitzplanZuweisung({
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
           <Map className="h-4 w-4" />
-          {mehrereEbenen ? "Sitzpläne / Ebenen" : "Sitzplan"}
+          {mehrereEbenen ? "Saalpläne / Ebenen" : "Saalplan"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -210,7 +210,7 @@ export default function SitzplanZuweisung({
                     value={etage.sitzplan_id}
                     onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
                   >
-                    <option value="">— Kein Sitzplan —</option>
+                    <option value="">— Kein Saalplan —</option>
                     {sitzplaene.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}

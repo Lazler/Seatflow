@@ -21,9 +21,17 @@ export default async function NeuesEvent({
     .eq("veranstalter_id", user.id)
     .order("name");
 
+  // Welche Venues haben schon einen Saalplan? (für den Hinweis im Formular)
+  const venueIds = (venues ?? []).map((v) => v.id);
+  const { data: plaene } = venueIds.length > 0
+    ? await supabase.from("sitzplaene").select("venue_id").in("venue_id", venueIds)
+    : { data: [] };
+  const venuesMitPlan = new Set((plaene ?? []).map((p) => p.venue_id));
+  const venuesAngereichert = (venues ?? []).map((v) => ({ ...v, hatPlan: venuesMitPlan.has(v.id) }));
+
   return (
     <NeuesEventFormular
-      venues={venues ?? []}
+      venues={venuesAngereichert}
       vorausgewaehlteVenueId={vorausgewaehlteVenueId}
     />
   );

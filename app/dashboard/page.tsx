@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { CurrencyEur as EuroIcon, Ticket, TrendUp as TrendingUp, CalendarCheck, Plus, ArrowRight, Clock } from "@phosphor-icons/react/dist/ssr";
+import { CurrencyEur as EuroIcon, Ticket, TrendUp as TrendingUp, CalendarCheck, Plus, ArrowRight, Clock, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { migrierteKonfiguration, elementSitzIds } from "@/types/sitzplan";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -57,6 +57,21 @@ export default async function Dashboard() {
 
   const eventIds = (alleEvents ?? []).map((e) => e.id);
   const sitzplanIds = [...new Set((alleEvents ?? []).map((e) => e.sitzplan_id).filter(Boolean) as string[])];
+
+  // ── Setup-Fortschritt (geführtes Onboarding) ──────────────────────────────
+  const { data: meineVenues } = await supabase
+    .from("venues")
+    .select("id")
+    .eq("veranstalter_id", user!.id);
+  const venueIds = (meineVenues ?? []).map((v) => v.id);
+  const { count: plaeneCount } = venueIds.length > 0
+    ? await supabase.from("sitzplaene").select("id", { count: "exact", head: true }).in("venue_id", venueIds)
+    : { count: 0 };
+  const hatVenue = venueIds.length > 0;
+  const hatPlan = (plaeneCount ?? 0) > 0;
+  const hatEvent = (alleEvents ?? []).length > 0;
+  const hatLive = (alleEvents ?? []).some((e) => e.status === "veroeffentlicht");
+  const ersteVenueId = venueIds[0] ?? null;
 
   const [buchungenRes, ticketsRes, sitzplaeneRes] = await Promise.all([
     eventIds.length > 0
@@ -119,8 +134,6 @@ export default async function Dashboard() {
 
   const recentBuchungen = buchungen.slice(0, 8);
   const eventTitel = new Map((alleEvents ?? []).map((e) => [e.id, e.titel]));
-
-  const hatDaten = buchungen.length > 0;
 
   return (
     <div className="space-y-8">
@@ -202,50 +215,71 @@ export default async function Dashboard() {
         </Card>
       </div>
 
-      {/* ── Keine Daten: Onboarding ── */}
-      {!hatDaten && (alleEvents ?? []).length === 0 && (
-        <Card className="border-primary/20 bg-primary/[0.02]">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Ticket className="h-5 w-5 text-primary" />
+      {/* ── Geführtes Onboarding (bis zur ersten Veröffentlichung) ── */}
+      {!hatLive && (() => {
+        const schritte = [
+          { done: hatVenue, titel: "Veranstaltungsort anlegen", desc: "Bühne, Saal oder Location", href: "/dashboard/venues/neu" },
+          { done: hatPlan, titel: "Saalplan erstellen", desc: "Reihen, Tische oder Zonen platzieren",
+            href: ersteVenueId ? `/dashboard/venues/${ersteVenueId}` : "/dashboard/venues/neu" },
+          { done: hatEvent, titel: "Event anlegen", desc: "Datum, Preis und Saalplan zuweisen", href: "/dashboard/events/neu" },
+          { done: hatLive, titel: "Veröffentlichen & teilen", desc: "Buchungslink an dein Publikum geben", href: "/dashboard/events" },
+        ];
+        const erledigte = schritte.filter((s) => s.done).length;
+        const naechsterIdx = schritte.findIndex((s) => !s.done);
+
+        return (
+          <Card className="border-primary/20 bg-primary/[0.02]">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Ticket className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">In 4 Schritten startklar</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">{erledigte} von 4 erledigt — so richtest du deinen Ticketverkauf ein.</p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-base">{t.dashboard.nochKeineEvents}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">{t.dashboard.erstelleErstesEvent}</p>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="space-y-2">
+                {schritte.map((step, i) => {
+                  const istNaechster = i === naechsterIdx;
+                  return (
+                    <Link
+                      key={i}
+                      href={step.href}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors group ${
+                        istNaechster
+                          ? "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/20"
+                          : "border-border bg-background hover:border-primary/30"
+                      }`}
+                    >
+                      {step.done ? (
+                        <CheckCircle weight="fill" className="h-6 w-6 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
+                          istNaechster ? "border-primary bg-primary text-primary-foreground" : "border-primary/30 text-primary"
+                        }`}>
+                          {i + 1}
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium leading-none ${step.done ? "text-muted-foreground line-through" : ""}`}>{step.titel}</p>
+                        {!step.done && <p className="text-xs text-muted-foreground mt-1">{step.desc}</p>}
+                      </div>
+                      {istNaechster && (
+                        <span className="text-xs font-medium text-primary flex items-center gap-0.5 shrink-0">
+                          Jetzt <ArrowRight className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-2">
-            <div className="space-y-2 mb-5">
-              {[
-                { num: "1", label: t.nav.venues, href: "/dashboard/venues", desc: "Bühne, Saal oder Location anlegen" },
-                { num: "2", label: t.nav.events, href: "/dashboard/events/neu", desc: "Event erstellen und konfigurieren" },
-                { num: "3", label: t.dashboard.neuesEvent, href: "/dashboard/events", desc: "Buchungslink an Ihr Publikum teilen" },
-              ].map((step) => (
-                <Link
-                  key={step.num}
-                  href={step.href}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:border-primary/30 hover:bg-primary/[0.02] transition-colors group"
-                >
-                  <span className="w-6 h-6 rounded-full border-2 border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors">
-                    {step.num}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-none">{step.desc}</p>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                </Link>
-              ))}
-            </div>
-            <Button asChild size="sm">
-              <Link href="/dashboard/venues">
-                <Plus className="h-4 w-4 mr-1.5" /> Venue anlegen
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* ── Events + Auslastung ── */}
       {eventsTabelle.length > 0 && (

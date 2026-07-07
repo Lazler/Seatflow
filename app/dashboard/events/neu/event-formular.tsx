@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Info } from "@phosphor-icons/react";
+import { ArrowLeft, Info, CaretDown, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
-type Venue = { id: string; name: string };
+type Venue = { id: string; name: string; hatPlan?: boolean };
 type LangContent = { titel: string; beschreibung: string };
 
 const ADDITIONAL_LOCALES: Locale[] = ["en", "hu"];
@@ -35,41 +35,32 @@ export default function NeuesEventFormular({
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
 
-  // Multilingual content
-  const [zusatzSprachen, setZusatzSprachen] = useState<Locale[]>([]);
-  const [aktiveSprache, setAktiveSprache] = useState<Locale>("de");
+  // Mehrsprachige Inhalte — DE ist immer sichtbar, Übersetzungen optional
   const [deContent, setDeContent] = useState<LangContent>({ titel: "", beschreibung: "" });
+  const [zusatzSprachen, setZusatzSprachen] = useState<Locale[]>([]);
   const [translations, setTranslations] = useState<Partial<Record<Locale, LangContent>>>({});
+  const [sprachenOffen, setSprachenOffen] = useState(false);
 
   const alleSprachen: Locale[] = ["de", ...zusatzSprachen];
+  const gewaehlteVenue = venues.find((v) => v.id === venueId);
+  const venueOhnePlan = !!gewaehlteVenue && gewaehlteVenue.hatPlan === false;
 
   function toggleSprache(lang: Locale) {
     setZusatzSprachen((prev) =>
       prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
     );
-    // Remove content if language deactivated
     setTranslations((prev) => {
       const next = { ...prev };
       if (translations[lang]) delete next[lang];
       return next;
     });
-    if (aktiveSprache === lang) setAktiveSprache("de");
   }
 
-  function setContent(lang: Locale, field: keyof LangContent, value: string) {
-    if (lang === "de") {
-      setDeContent((prev) => ({ ...prev, [field]: value }));
-    } else {
-      setTranslations((prev) => ({
-        ...prev,
-        [lang]: { ...((prev[lang] as LangContent) ?? { titel: "", beschreibung: "" }), [field]: value },
-      }));
-    }
-  }
-
-  function getContent(lang: Locale): LangContent {
-    if (lang === "de") return deContent;
-    return (translations[lang] as LangContent) ?? { titel: "", beschreibung: "" };
+  function setTranslation(lang: Locale, field: keyof LangContent, value: string) {
+    setTranslations((prev) => ({
+      ...prev,
+      [lang]: { ...((prev[lang] as LangContent) ?? { titel: "", beschreibung: "" }), [field]: value },
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -86,8 +77,8 @@ export default function NeuesEventFormular({
 
     const translationsClean: Record<string, { titel: string; beschreibung: string }> = {};
     for (const lang of zusatzSprachen) {
-      const c = getContent(lang);
-      if (c.titel.trim()) translationsClean[lang] = { titel: c.titel.trim(), beschreibung: c.beschreibung.trim() };
+      const c = translations[lang];
+      if (c?.titel.trim()) translationsClean[lang] = { titel: c.titel.trim(), beschreibung: c.beschreibung.trim() };
     }
 
     const res = await fetch("/api/events", {
@@ -107,17 +98,13 @@ export default function NeuesEventFormular({
     });
 
     const json = await res.json();
-
     if (!res.ok) {
       setFehler(json.error ?? "Event konnte nicht gespeichert werden.");
       setLaedt(false);
       return;
     }
-
     router.push(`/dashboard/events/${json.id}`);
   }
-
-  const content = getContent(aktiveSprache);
 
   return (
     <div className="space-y-6 max-w-lg">
@@ -149,72 +136,15 @@ export default function NeuesEventFormular({
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Language selection */}
-            <div className="space-y-2">
-              <Label className="text-sm">{t.eventForm.sprachenLabel}</Label>
-              <p className="text-xs text-muted-foreground">{t.eventForm.sprachenHinweis}</p>
-              <div className="flex gap-3 flex-wrap">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/40 text-sm">
-                  <span className="text-[10px] font-bold text-muted-foreground border border-border rounded px-1">DE</span>
-                  <span className="font-medium">Deutsch</span>
-                  <span className="text-xs text-muted-foreground">(aktiv)</span>
-                </div>
-                {ADDITIONAL_LOCALES.map((lang) => {
-                  const active = zusatzSprachen.includes(lang);
-                  return (
-                    <button
-                      key={lang}
-                      type="button"
-                      onClick={() => toggleSprache(lang)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
-                        active
-                          ? "border-primary bg-primary/10 text-primary font-medium"
-                          : "border-border hover:border-primary/50 text-muted-foreground"
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold text-muted-foreground border border-border rounded px-1">{lang.toUpperCase()}</span>
-                      {LOCALE_LABELS[lang]}
-                      {active ? " ✓" : " +"}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Language tabs for content fields */}
-            {alleSprachen.length > 1 && (
-              <div className="flex gap-0.5 border-b border-border">
-                {alleSprachen.map((lang) => (
-                  <button
-                    key={lang}
-                    type="button"
-                    onClick={() => setAktiveSprache(lang)}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors relative ${
-                      aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {lang.toUpperCase()} · {LOCALE_LABELS[lang]}
-                    {aktiveSprache === lang && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {alleSprachen.length > 1 && (
-              <p className="text-xs text-muted-foreground -mt-2">
-                {t.eventForm.uebersetzungTabHinweis.replace("{lang}", LOCALE_LABELS[aktiveSprache])}
-              </p>
-            )}
-
+            {/* ── Kern-Felder ── */}
             <div className="space-y-2">
               <Label htmlFor="titel">{t.eventForm.titelLabel}</Label>
               <Input
                 id="titel"
-                placeholder={aktiveSprache === "de" ? t.eventForm.titelPlaceholder : ""}
-                value={content.titel}
-                onChange={(e) => setContent(aktiveSprache, "titel", e.target.value)}
-                required={aktiveSprache === "de"}
+                placeholder={t.eventForm.titelPlaceholder}
+                value={deContent.titel}
+                onChange={(e) => setDeContent((p) => ({ ...p, titel: e.target.value }))}
+                required
               />
             </div>
 
@@ -223,9 +153,9 @@ export default function NeuesEventFormular({
               <textarea
                 id="beschreibung"
                 className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder={aktiveSprache === "de" ? t.eventForm.beschreibungPlaceholder : ""}
-                value={content.beschreibung}
-                onChange={(e) => setContent(aktiveSprache, "beschreibung", e.target.value)}
+                placeholder={t.eventForm.beschreibungPlaceholder}
+                value={deContent.beschreibung}
+                onChange={(e) => setDeContent((p) => ({ ...p, beschreibung: e.target.value }))}
               />
             </div>
 
@@ -240,6 +170,12 @@ export default function NeuesEventFormular({
                 <option value="">{t.eventForm.keinVenueOption}</option>
                 {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
+              {venueOhnePlan && (
+                <p className="flex items-start gap-1.5 text-xs text-amber-600">
+                  <WarningCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  Dieser Ort hat noch keinen Saalplan. Du kannst das Event trotzdem anlegen und den Plan später zuweisen — verkaufen kannst du erst mit Saalplan.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -272,6 +208,65 @@ export default function NeuesEventFormular({
                 />
                 <p className="text-xs text-muted-foreground">{t.eventForm.maxHinweis}</p>
               </div>
+            </div>
+
+            {/* ── Weitere Sprachen (optional, eingeklappt) ── */}
+            <div className="border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={() => setSprachenOffen((v) => !v)}
+                className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <CaretDown className={`h-4 w-4 transition-transform ${sprachenOffen ? "rotate-180" : ""}`} />
+                {t.eventForm.sprachenLabel} <span className="text-xs font-normal">(optional)</span>
+                {zusatzSprachen.length > 0 && (
+                  <span className="text-xs font-normal text-primary">· {zusatzSprachen.map((l) => l.toUpperCase()).join(", ")}</span>
+                )}
+              </button>
+
+              {sprachenOffen && (
+                <div className="mt-3 space-y-4">
+                  <p className="text-xs text-muted-foreground">{t.eventForm.sprachenHinweis}</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {ADDITIONAL_LOCALES.map((lang) => {
+                      const active = zusatzSprachen.includes(lang);
+                      return (
+                        <button
+                          key={lang}
+                          type="button"
+                          onClick={() => toggleSprache(lang)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                            active
+                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              : "border-border hover:border-primary/50 text-muted-foreground"
+                          }`}
+                        >
+                          <span className="text-[10px] font-bold border border-border rounded px-1">{lang.toUpperCase()}</span>
+                          {LOCALE_LABELS[lang]}{active ? " ✓" : " +"}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {zusatzSprachen.map((lang) => (
+                    <div key={lang} className="space-y-2 p-3 rounded-lg bg-muted/40 border border-border">
+                      <p className="text-xs font-semibold">{LOCALE_LABELS[lang]}</p>
+                      <Input
+                        placeholder={`${t.eventForm.titelLabel} (${lang.toUpperCase()})`}
+                        value={translations[lang]?.titel ?? ""}
+                        onChange={(e) => setTranslation(lang, "titel", e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                      <textarea
+                        placeholder={`${t.eventForm.beschreibungLabel} (${lang.toUpperCase()})`}
+                        value={translations[lang]?.beschreibung ?? ""}
+                        onChange={(e) => setTranslation(lang, "beschreibung", e.target.value)}
+                        className="flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {fehler && <p className="text-sm text-destructive">{fehler}</p>}

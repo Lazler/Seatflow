@@ -8,6 +8,9 @@ import { ArrowLeft, Calendar, MapPin, Ticket, ArrowSquareOut as ExternalLink, Us
 import EventStatusAktion from "./event-status-aktion";
 import ScannerPinVerwaltung from "./scanner-pin-verwaltung";
 import EventRundmail from "./event-rundmail";
+import { VeroeffentlichungsCheck } from "@/components/events/veroeffentlichungs-check";
+import { pruefeVeroeffentlichung } from "@/lib/event-bereitschaft";
+import { migrierteKonfiguration, elementSitzIds } from "@/types/sitzplan";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -56,6 +59,32 @@ export default async function EventDetail({
   const buchungsUrl = `/buchen/${event.id}`;
   const bezahlteBuchungen = (buchungen ?? []).filter((b) => b.status === "bezahlt");
   const gesamteinnahmenCent = bezahlteBuchungen.reduce((s, b) => s + b.gesamt_cent, 0);
+
+  // ── Veröffentlichungs-Bereitschaft ──────────────────────────────────────────
+  const etagen = (event.etagen as { sitzplan_id: string }[] | null) ?? null;
+  const planIds = [
+    ...(event.sitzplan_id ? [event.sitzplan_id as string] : []),
+    ...(etagen?.map((e) => e.sitzplan_id).filter(Boolean) ?? []),
+  ];
+  const hatSaalplan = planIds.length > 0;
+  let buchbarePlaetze = 0;
+  if (hatSaalplan) {
+    const { data: plaene } = await supabase
+      .from("sitzplaene")
+      .select("konfiguration")
+      .in("id", [...new Set(planIds)]);
+    for (const p of plaene ?? []) {
+      const konf = migrierteKonfiguration(p.konfiguration);
+      buchbarePlaetze += konf.elemente.reduce((s, el) => s + elementSitzIds(el).length, 0);
+    }
+  }
+  const { anforderungen, harteBlocker } = pruefeVeroeffentlichung({
+    eventId: event.id,
+    hatVenue: !!venue,
+    hatSaalplan,
+    buchbarePlaetze,
+    hatBild: !!event.bild_url,
+  });
 
   return (
     <div className="space-y-6">
@@ -180,8 +209,18 @@ export default async function EventDetail({
 
         {/* Seitenleiste */}
         <div className="space-y-4">
+          {/* Bereitschaft vor dem Veröffentlichen */}
+          {event.status === "entwurf" && (
+            <VeroeffentlichungsCheck anforderungen={anforderungen} />
+          )}
+
           {/* Aktionen */}
-          <EventStatusAktion eventId={event.id} status={event.status} bezahlteAnzahl={bezahlteBuchungen.length} />
+          <EventStatusAktion
+            eventId={event.id}
+            status={event.status}
+            bezahlteAnzahl={bezahlteBuchungen.length}
+            harteBlocker={event.status === "entwurf" ? harteBlocker : 0}
+          />
 
           {/* Einstellungen */}
           <Card>
@@ -256,7 +295,7 @@ export default async function EventDetail({
               )}
               {venue && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Venue</p>
+                  <p className="text-muted-foreground text-xs mb-1">Veranstaltungsort</p>
                   <Link
                     href={`/dashboard/venues/${venue.id}`}
                     className="text-primary hover:underline"

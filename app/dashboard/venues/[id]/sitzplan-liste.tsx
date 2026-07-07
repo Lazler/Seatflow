@@ -73,9 +73,9 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
   if (plaene.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-sm text-muted-foreground mb-3">Noch kein Raumplan angelegt.</p>
+        <p className="text-sm text-muted-foreground mb-3">Noch kein Saalplan angelegt.</p>
         <Button size="sm" asChild>
-          <Link href={`/dashboard/venues/${venueId}/raumplan/neu`}>Ersten Raumplan erstellen</Link>
+          <Link href={`/dashboard/venues/${venueId}/raumplan/neu`}>Ersten Saalplan erstellen</Link>
         </Button>
       </div>
     );
