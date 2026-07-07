@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapTrifold as Map, Plus, Trash as Trash2 } from "@phosphor-icons/react";
+import Link from "next/link";
 
 type Sitzplan = { id: string; name: string };
 type Lang = "de" | "en" | "hu";
@@ -26,12 +27,14 @@ function etageVonSitzplanId(sitzplanId: string | null): Etage[] {
 
 export default function SitzplanZuweisung({
   eventId,
+  venueId,
   aktuellerSitzplanId,
   aktuelleEtagen,
   sitzplaene,
   eventSprachen = ["de"],
 }: {
   eventId: string;
+  venueId: string | null;
   aktuellerSitzplanId: string | null;
   aktuelleEtagen: Etage[] | null;
   sitzplaene: Sitzplan[];
@@ -112,7 +115,34 @@ export default function SitzplanZuweisung({
     router.refresh();
   }
 
-  if (sitzplaene.length === 0) return null;
+  // Leerzustände nicht verschlucken — sonst Sackgasse ohne Sitzplan
+  if (sitzplaene.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Map className="h-4 w-4" /> Sitzplan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {venueId ? (
+            <div className="text-xs text-muted-foreground space-y-2">
+              <p>Dieser Veranstaltungsort hat noch keinen Sitzplan.</p>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/dashboard/venues/${venueId}/raumplan/neu`}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Sitzplan erstellen
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Ordne dem Event zuerst oben einen Veranstaltungsort zu — dann kannst du hier den Sitzplan wählen.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   const mehrereEbenen = etagen.length > 1;
   const alleSprachen: Lang[] = ["de", ...zusatzSprachen];

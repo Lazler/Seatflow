@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { getServerDict } from "@/lib/i18n/server";
 import SitzplanZuweisung, { type Etage } from "../sitzplan-zuweisung";
+import VenueZuweisung from "../venue-zuweisung";
 import TicketTypen from "../ticket-typen";
 import TicketTemplateSelector from "../ticket-template-selector";
 import EventWeiterleitungen from "../event-weiterleitungen";
@@ -30,7 +31,7 @@ export default async function EventEinstellungen({
 
   await getServerDict();
 
-  const [{ data: event }, { data: templates }] = await Promise.all([
+  const [{ data: event }, { data: templates }, { data: alleVenues }] = await Promise.all([
     supabase
       .from("events")
       .select("*, venues(id, name, adresse)")
@@ -42,11 +43,24 @@ export default async function EventEinstellungen({
       .select("id, name, design")
       .eq("veranstalter_id", user!.id)
       .order("erstellt_am", { ascending: false }),
+    supabase
+      .from("venues")
+      .select("id, name")
+      .eq("veranstalter_id", user!.id)
+      .order("name"),
   ]);
 
   if (!event) notFound();
 
   const venue = event.venues as { id: string; name: string; adresse: string | null } | null;
+
+  // Venue-Wechsel sperren, sobald bezahlte Buchungen existieren (verkaufte
+  // Sitzplätze dürfen nicht ins Leere zeigen)
+  const { count: bezahlteAnzahl } = await supabase
+    .from("buchungen")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", id)
+    .eq("status", "bezahlt");
 
   const { data: sitzplaene } = venue
     ? await supabase
@@ -72,8 +86,15 @@ export default async function EventEinstellungen({
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <VenueZuweisung
+            eventId={event.id}
+            venues={alleVenues ?? []}
+            aktuelleVenueId={venue?.id ?? null}
+            gesperrt={(bezahlteAnzahl ?? 0) > 0}
+          />
           <SitzplanZuweisung
             eventId={event.id}
+            venueId={venue?.id ?? null}
             aktuellerSitzplanId={event.sitzplan_id ?? null}
             aktuelleEtagen={(event.etagen as Etage[] | null) ?? null}
             sitzplaene={sitzplaene ?? []}
