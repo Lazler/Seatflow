@@ -82,27 +82,16 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
   // Im Sperrmodus sind ALLE Sitze klickbar (auch gesperrte, zum Entsperren)
   const istKlickbar = sperrModus || (istBuchungsmodus && !belegt);
 
-  // Auswahl-Puls: kurzes Aufpumpen, wenn der Sitz gewählt wird
-  const gruppeRef = useRef<Konva.Group>(null);
-  const warAusgewaehlt = useRef(buchungAusgewaehlt);
-  useEffect(() => {
-    if (buchungAusgewaehlt && !warAusgewaehlt.current) {
-      const node = gruppeRef.current;
-      node?.to({
-        scaleX: 1.35, scaleY: 1.35, duration: 0.1,
-        onFinish: () => node?.to({ scaleX: 1, scaleY: 1, duration: 0.18 }),
-      });
-    }
-    warAusgewaehlt.current = buchungAusgewaehlt;
-  }, [buchungAusgewaehlt]);
-
   let fill = kategoriefarbe;
   if (belegt)             fill = FARBE_BELEGT;
   else if (buchungAusgewaehlt) fill = FARBE_AUSGEWAEHLT;
   else if (editorAusgewaehlt)  fill = FARBE_ELEMENT_SELEKTIERT;
 
   return (
-    <Group x={x} y={y} ref={gruppeRef}
+    <Group x={x} y={y}
+      // Nicht-klickbare Sitze (belegt, oder Editor ohne Sperr-/BF-Modus) aus
+      // dem Hit-Graph nehmen → Klicks fallen auf die Reihe durch, schnelleres Zeichnen
+      listening={istKlickbar}
       onClick={istKlickbar ? (e) => { e.cancelBubble = true; onSitzKlick?.(sitzId); } : undefined}
       onTap={istKlickbar ? (e) => { e.cancelBubble = true; onSitzKlick?.(sitzId); } : undefined}
       onMouseEnter={(e) => {
@@ -130,22 +119,23 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
     >
       {/* Emerald glow ring when selected */}
       {buchungAusgewaehlt && (
-        <Circle radius={SITZ_RADIUS + 5} fill={FARBE_AUSGEWAEHLT} opacity={0.22} listening={false} />
+        <Circle radius={SITZ_RADIUS + 5} fill={FARBE_AUSGEWAEHLT} opacity={0.22} listening={false} perfectDrawEnabled={false} />
       )}
       <Circle
         radius={SITZ_RADIUS}
         fill={fill}
         stroke={belegt ? "transparent" : "rgba(255,255,255,0.6)"}
         strokeWidth={1.5}
-        shadowColor={
-          belegt ? "transparent" :
-          buchungAusgewaehlt ? FARBE_AUSGEWAEHLT :
-          "#0f172a"
-        }
-        shadowBlur={buchungAusgewaehlt ? 10 : 4}
-        shadowOpacity={buchungAusgewaehlt ? 0.35 : 0.18}
-        shadowOffsetY={buchungAusgewaehlt ? 0 : 1}
+        // Schatten NUR auf ausgewählten Sitzen — auf allen wäre es der teuerste
+        // Posten beim Layer-Neuzeichnen (killt Zoom/Tap-Performance)
+        shadowColor={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT : undefined}
+        shadowBlur={buchungAusgewaehlt ? 10 : 0}
+        shadowOpacity={buchungAusgewaehlt ? 0.35 : 0}
+        shadowEnabled={buchungAusgewaehlt}
+        shadowForStrokeEnabled={false}
         opacity={belegt ? 0.5 : 1}
+        perfectDrawEnabled={false}
+        hitStrokeWidth={0}
       />
       {!belegt && !nummerAusblenden && (
         <Text
@@ -155,15 +145,15 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
           text={String(nummer)}
           fill="rgba(255,255,255,0.92)" fontSize={9} fontStyle="bold"
           align="center" verticalAlign="middle" listening={false}
+          perfectDrawEnabled={false}
         />
       )}
       {/* Barrierefrei-Badge (Rollstuhl-Symbol, immer aufrecht) */}
       {barrierefrei && (
         <Group x={SITZ_RADIUS - 4} y={SITZ_RADIUS - 4} rotation={-elementWinkel} listening={false}>
-          <Circle radius={7} fill="#ffffff" stroke="#0369a1" strokeWidth={1.2}
-            shadowColor="#0f172a" shadowBlur={3} shadowOpacity={0.2} />
+          <Circle radius={7} fill="#ffffff" stroke="#0369a1" strokeWidth={1.2} perfectDrawEnabled={false} />
           <Path data={ROLLSTUHL_PFAD} fill="#0369a1"
-            x={-4.5} y={-4.5} scaleX={9 / 256} scaleY={9 / 256} />
+            x={-4.5} y={-4.5} scaleX={9 / 256} scaleY={9 / 256} perfectDrawEnabled={false} />
         </Group>
       )}
     </Group>
@@ -185,6 +175,7 @@ function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
         stroke={kategoriefarbe} strokeWidth={1.5}
         cornerRadius={H / 2}
         shadowColor="#0f172a" shadowBlur={6} shadowOpacity={0.12} shadowOffsetY={1}
+        perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
       <Text
         x={-W / 2} y={-H / 2} width={W} height={H}
@@ -302,6 +293,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
         stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
         strokeWidth={1.5} cornerRadius={6}
         shadowColor={kategoriefarbe} shadowBlur={8} shadowOpacity={0.18} shadowOffsetY={2}
+        perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
       {/* Table label — on the surface, always upright (like Rundtisch) */}
       <Text
@@ -386,6 +378,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
         shadowBlur={10}
         shadowOpacity={0.12}
         shadowOffsetY={2}
+        perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
       {/* Table label — always upright */}
       <Text
@@ -573,6 +566,7 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
         shadowBlur={20}
         shadowOpacity={0.32}
         shadowOffsetY={4}
+        perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
       {/* Stage label — counter-rotated, bounded to visual footprint */}
       <Text
@@ -675,6 +669,30 @@ export default function SitzplanCanvas({
   const commit = useCallback(() => {
     setZoom(zoomRef.current);
     setStagePos(posRef.current);
+  }, []);
+
+  // ── Layer-Caching während Gesten ────────────────────────────────────────────
+  // Der Flaschenhals ist die Node-Zahl (Hunderte Sitze × Kreis+Text). Beim
+  // Pinch/Pan rastern wir den Layer EINMAL zu einer Bitmap — danach wird nur
+  // noch dieses eine Bild transformiert (unabhängig von der Sitzanzahl). Am
+  // Gestenende wird der Cache verworfen → wieder gestochen scharf.
+  const layerRef = useRef<Konva.Layer>(null);
+  const cacheAktivRef = useRef(false);
+  const layerCachen = useCallback(() => {
+    const l = layerRef.current;
+    if (l && !cacheAktivRef.current) {
+      // moderater pixelRatio: scharf genug nahe Basiszoom, günstig zu erzeugen
+      l.cache({ pixelRatio: 1.5 });
+      cacheAktivRef.current = true;
+    }
+  }, []);
+  const layerEntcachen = useCallback(() => {
+    const l = layerRef.current;
+    if (l && cacheAktivRef.current) {
+      l.clearCache();
+      cacheAktivRef.current = false;
+      l.batchDraw();
+    }
   }, []);
 
   useEffect(() => () => { if (commitTimerRef.current) window.clearTimeout(commitTimerRef.current); }, []);
@@ -808,10 +826,12 @@ export default function SitzplanCanvas({
       y={istBuchungsmodus ? stagePos.y : 0}
       draggable={istBuchungsmodus && zoom > 1}
       dragBoundFunc={(pos) => clampPos(pos, zoomRef.current)}
+      onDragStart={(e) => { if (istBuchungsmodus && e.target === e.target.getStage()) layerCachen(); }}
       onDragEnd={(e) => {
         if (istBuchungsmodus && e.target === e.target.getStage()) {
           const pos = { x: e.target.x(), y: e.target.y() };
           posRef.current = pos;
+          layerEntcachen();
           setStagePos(pos);
         }
       }}
@@ -840,6 +860,10 @@ export default function SitzplanCanvas({
         if (e.target !== e.target.getStage() && tid !== "bg") return;
         const p = e.target.getStage()!.getPointerPosition();
         if (p) applyZoom(p, zoomRef.current > 1 ? 1 : 2);
+      }}
+      onTouchStart={(e) => {
+        // Zwei-Finger-Start → Layer für die Pinch-Geste cachen
+        if (istBuchungsmodus && e.evt.touches.length === 2) layerCachen();
       }}
       onTouchMove={(e) => {
         if (!istBuchungsmodus || e.evt.touches.length !== 2) return;
@@ -871,7 +895,7 @@ export default function SitzplanCanvas({
       }}
       onTouchEnd={() => {
         // Erst am Gestenende in den React-State übernehmen (ein Render)
-        if (pinchRef.current) { pinchRef.current = null; commit(); }
+        if (pinchRef.current) { pinchRef.current = null; layerEntcachen(); commit(); }
       }}
       onMouseDown={(e) => {
         if (istBuchungsmodus) return;
@@ -912,7 +936,7 @@ export default function SitzplanCanvas({
         if (e.target === e.target.getStage() || targetId === "bg") onAuswaehlen?.(null);
       }}
     >
-      <Layer>
+      <Layer ref={layerRef}>
         {/* Background — im Buchungsmodus ohne Baustellen-Raster */}
         <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe}
           fill={istBuchungsmodus ? "#fbfcfe" : "#f5f7fc"} />
