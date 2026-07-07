@@ -97,7 +97,9 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
 
   const styles = StyleSheet.create({
     page: {
-      backgroundColor: "#f1f5f9",
+      // Weiß statt Grau — viele drucken das PDF aus; ein flächiger grauer
+      // Seitenhintergrund wäre reine Toner-/Tintenverschwendung.
+      backgroundColor: "#ffffff",
       padding: 24,
       fontFamily: "Helvetica",
     },
@@ -109,7 +111,9 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       borderRadius: 10,
       overflow: "hidden",
       flexDirection: "row",
-      border: "1pt solid #e2e8f0",
+      // Kräftigere Kante, damit das weiße Ticket auf weißem Papier klar
+      // abgegrenzt ist (dient zugleich als Schnittkante).
+      border: "1pt solid #cbd5e1",
     },
     leftAccent: {
       width: 8,
@@ -218,7 +222,7 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       textAlign: "center",
     },
     ticketFooter: {
-      backgroundColor: "#f8fafc",
+      backgroundColor: "#ffffff",
       borderTop: "1pt solid #e2e8f0",
       padding: "8pt 20pt",
       flexDirection: "row",

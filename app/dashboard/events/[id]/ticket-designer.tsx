@@ -101,7 +101,7 @@ function TicketVorschau({
       {/* Footer */}
       <div
         className="px-5 py-2 flex items-center justify-between border-t"
-        style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}
+        style={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0" }}
       >
         {design.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
