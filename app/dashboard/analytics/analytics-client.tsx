@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Dict } from "@/lib/i18n";
 
@@ -24,15 +24,23 @@ function BarChart({
   color?: string;
   emptyLabel: string;
 }) {
+  // Balken beim Erscheinen von 0 hochwachsen lassen
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
+
   if (maxValue === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">{emptyLabel}</p>;
   }
   return (
-    <div className="flex items-end gap-1 h-32">
+    <div className="flex gap-1 h-32">
       {data.map((d, i) => {
         const pct = maxValue > 0 ? (d.value / maxValue) * 100 : 0;
+        const zielHoehe = Math.max(pct, d.value > 0 ? 2 : 0);
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative h-full">
             {d.value > 0 && (
               <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-popover border border-border text-[10px] px-1.5 py-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                 {valueFn ? valueFn(d.value) : d.value}
@@ -40,8 +48,8 @@ function BarChart({
             )}
             <div className="w-full flex-1 flex items-end">
               <div
-                className={`w-full ${color} rounded-t transition-all`}
-                style={{ height: `${Math.max(pct, d.value > 0 ? 2 : 0)}%` }}
+                className={`w-full ${color} rounded-t transition-[height] duration-700 ease-out`}
+                style={{ height: `${mounted ? zielHoehe : 0}%`, transitionDelay: `${i * 22}ms` }}
               />
             </div>
             <span className="text-[9px] text-muted-foreground truncate w-full text-center">{d.label}</span>
@@ -68,6 +76,11 @@ export default function AnalyticsClient({
   t: Dict["analytics"];
 }) {
   const [zeitraum, setZeitraum] = useState<7 | 14 | 30>(30);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
 
   const sichtbareDaten = chartDaten.slice(-zeitraum);
   const maxCent = Math.max(...sichtbareDaten.map((d) => d.cent), 1);
@@ -123,14 +136,15 @@ export default function AnalyticsClient({
               <p className="text-sm text-muted-foreground text-center py-8">{t.nochKeineDaten}</p>
             ) : (
               <div className="space-y-3">
-                {topEvents.map((e) => (
+                {topEvents.map((e, i) => (
                   <div key={e.id} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="truncate max-w-[180px] font-medium">{e.titel}</span>
                       <span className="text-muted-foreground tabular-nums shrink-0 ml-2">{euro(e.cent)}</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round((e.cent / maxTopEvent) * 100)}%` }} />
+                      <div className="h-full bg-blue-500 rounded-full transition-[width] duration-700 ease-out"
+                        style={{ width: `${mounted ? Math.round((e.cent / maxTopEvent) * 100) : 0}%`, transitionDelay: `${i * 40}ms` }} />
                     </div>
                   </div>
                 ))}
