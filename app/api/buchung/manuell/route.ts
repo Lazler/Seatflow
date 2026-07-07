@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   } catch {
     console.error("[buchung/manuell] SUPABASE_SERVICE_ROLE_KEY fehlt im Deployment");
     return NextResponse.json(
-      { error: "Server ist nicht vollständig konfiguriert (Service-Key fehlt). Bitte Support kontaktieren." },
+      { error: "SUPABASE_SERVICE_ROLE_KEY fehlt im Deployment — setze die Variable in deinem Hosting und deploye neu. Details unter /api/health." },
       { status: 503 },
     );
   }

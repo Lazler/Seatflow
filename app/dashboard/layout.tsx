@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardNavigation } from "@/components/layout/dashboard-navigation";
+import { KonfigurationsWarnung } from "@/components/layout/konfigurations-warnung";
 import { LanguageProvider } from "@/components/i18n-provider";
 import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
 
@@ -37,7 +38,10 @@ export default async function DashboardLayout({
       <div className="flex min-h-screen bg-background">
         <DashboardNavigation />
         <main className="flex-1 overflow-auto">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pt-20 pb-24 lg:pt-8 lg:pb-8">{children}</div>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pt-20 pb-24 lg:pt-8 lg:pb-8">
+            <KonfigurationsWarnung />
+            {children}
+          </div>
         </main>
       </div>
     </LanguageProvider>
