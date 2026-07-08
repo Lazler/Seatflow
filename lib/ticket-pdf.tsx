@@ -95,6 +95,9 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
   const design = tickets[0]?.design;
   if (!design || tickets.length === 0) return null;
 
+  // Heller (druckoptimierter) Header: weißer Grund, dunkler Titel, Akzentlinie
+  const hellHeader = design.headerStil === "hell";
+
   const styles = StyleSheet.create({
     page: {
       // Weiß statt Grau — viele drucken das PDF aus; ein flächiger grauer
@@ -124,14 +127,15 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       padding: 0,
     },
     header: {
-      backgroundColor: design.headerFarbe,
+      backgroundColor: hellHeader ? "#ffffff" : design.headerFarbe,
+      borderBottom: hellHeader ? `2pt solid ${design.akzentFarbe}` : "none",
       padding: "14pt 20pt",
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
     },
     headerTitle: {
-      color: "#ffffff",
+      color: hellHeader ? design.textFarbe : "#ffffff",
       fontSize: 14,
       fontFamily: "Helvetica-Bold",
       maxWidth: 280,
@@ -182,10 +186,12 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
     seatRow: {
       flexDirection: "row",
       justifyContent: "space-between",
+      alignItems: "center",
       marginBottom: 4,
     },
+    // Der Sitzplatz ist die wichtigste Info am Einlass → am prominentesten
     seatId: {
-      fontSize: 13,
+      fontSize: 20,
       fontFamily: "Helvetica-Bold",
       color: design.akzentFarbe,
       letterSpacing: 0.5,
@@ -193,17 +199,36 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
     seatLabel: {
       fontSize: 10,
       color: "#64748b",
+      marginTop: 1,
     },
+    // Preis bewusst dezent — auf dem Ticket zweitrangig
     seatPrice: {
       fontSize: 10,
-      color: "#64748b",
+      color: "#94a3b8",
     },
     qrSection: {
       width: 96,
       alignItems: "center",
       justifyContent: "center",
-      borderLeft: "1pt dashed #e2e8f0",
-      paddingLeft: 14,
+      paddingLeft: 16,
+      position: "relative",
+    },
+    // Perforation als Abriss-Optik zwischen Ticket und QR-Kontrollabschnitt
+    perforation: {
+      position: "absolute",
+      left: 0,
+      top: 6,
+      bottom: 6,
+      width: 3,
+      flexDirection: "column",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    perfDot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: "#cbd5e1",
     },
     qrImage: {
       width: 80,
@@ -310,6 +335,11 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
 
                   {design.zeigeQrCode && (
                     <View style={styles.qrSection}>
+                      <View style={styles.perforation}>
+                        {Array.from({ length: 16 }, (_, i) => (
+                          <View key={i} style={styles.perfDot} />
+                        ))}
+                      </View>
                       <Image src={ticket.qrCodeDataUrl} style={styles.qrImage} />
                       <Text style={styles.qrLabel}>Einlass-QR</Text>
                       <Text style={styles.bookingId}>{ticket.buchungId.slice(0, 8).toUpperCase()}</Text>

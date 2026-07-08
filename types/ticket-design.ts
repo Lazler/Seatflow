@@ -3,6 +3,10 @@ export type TicketDesign = {
   akzentFarbe: string;
   hintergrundFarbe: string;
   textFarbe: string;
+  // Header-Stil: "farbig" = vollflächiger Farb-Header (Standard),
+  // "hell" = weißer Header mit dunklem Titel + Akzentlinie (druckoptimiert,
+  // spart Toner). Undefined = "farbig" (Abwärtskompatibilität).
+  headerStil?: "farbig" | "hell";
   logoUrl?: string;
   fusszeile?: string;
   kleingedrucktes?: string;

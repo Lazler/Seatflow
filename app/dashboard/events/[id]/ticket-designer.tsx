@@ -27,6 +27,7 @@ function TicketVorschau({
     weekday: "short", day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+  const hellHeader = design.headerStil === "hell";
 
   return (
     <div
@@ -39,13 +40,19 @@ function TicketVorschau({
       {/* Header */}
       <div
         className="px-5 py-3 flex items-center justify-between"
-        style={{ backgroundColor: design.headerFarbe }}
+        style={{
+          backgroundColor: hellHeader ? "#ffffff" : design.headerFarbe,
+          borderBottom: hellHeader ? `2px solid ${design.akzentFarbe}` : undefined,
+        }}
       >
         <div>
-          <p className="text-white font-bold text-base leading-tight truncate max-w-[220px]">
+          <p
+            className="font-bold text-base leading-tight truncate max-w-[220px]"
+            style={{ color: hellHeader ? design.textFarbe : "#ffffff" }}
+          >
             {eventTitel || "Eventname"}
           </p>
-          <p className="text-white/60 text-xs mt-0.5">{datumText}</p>
+          <p className="text-xs mt-0.5" style={{ color: hellHeader ? "#94a3b8" : "rgba(255,255,255,0.6)" }}>{datumText}</p>
         </div>
         <div className="rounded px-2 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: design.akzentFarbe }}>
           TICKET
@@ -68,21 +75,24 @@ function TicketVorschau({
           <div className="border-t border-dashed" style={{ borderColor: "#e2e8f0" }} />
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-base font-bold font-mono" style={{ color: design.akzentFarbe }}>A-12</p>
+              <p className="text-2xl font-bold font-mono leading-none" style={{ color: design.akzentFarbe }}>A-12</p>
               {design.zeigeKategorie && (
-                <p className="text-xs" style={{ color: "#64748b" }}>Parkett</p>
+                <p className="text-xs mt-1" style={{ color: "#64748b" }}>Parkett</p>
               )}
             </div>
-            <p className="text-sm" style={{ color: "#64748b" }}>29,00 €</p>
+            <p className="text-sm" style={{ color: "#94a3b8" }}>29,00 €</p>
           </div>
         </div>
 
         {/* QR section */}
         {design.zeigeQrCode && (
-          <div
-            className="w-24 flex flex-col items-center justify-center py-4 px-3 border-l border-dashed"
-            style={{ borderColor: "#e2e8f0" }}
-          >
+          <div className="w-24 flex flex-col items-center justify-center py-4 px-3 relative">
+            {/* Perforation (Abriss-Optik) */}
+            <div className="absolute left-0 top-3 bottom-3 flex flex-col justify-between items-center">
+              {Array.from({ length: 12 }, (_, i) => (
+                <span key={i} className="w-[3px] h-[3px] rounded-full" style={{ background: "#cbd5e1" }} />
+              ))}
+            </div>
             {/* Fake QR grid */}
             <div className="w-16 h-16 rounded grid grid-cols-8 gap-px p-1" style={{ backgroundColor: "#f1f5f9" }}>
               {Array.from({ length: 64 }, (_, i) => (
@@ -191,12 +201,16 @@ export default function TicketDesigner({
   }
 
   const PRESETS: { name: string; design: Partial<TicketDesign> }[] = [
-    { name: "Dunkel", design: { headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Indigo", design: { headerFarbe: "#4338ca", akzentFarbe: "#818cf8", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Emerald", design: { headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Rot", design: { headerFarbe: "#991b1b", akzentFarbe: "#ef4444", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Gold", design: { headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#fffbeb", textFarbe: "#1e293b" } },
-    { name: "Nacht", design: { headerFarbe: "#1e1b4b", akzentFarbe: "#a855f7", hintergrundFarbe: "#faf5ff", textFarbe: "#1e1b4b" } },
+    { name: "Dunkel", design: { headerStil: "farbig", headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Indigo", design: { headerStil: "farbig", headerFarbe: "#4338ca", akzentFarbe: "#818cf8", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Emerald", design: { headerStil: "farbig", headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Rot", design: { headerStil: "farbig", headerFarbe: "#991b1b", akzentFarbe: "#ef4444", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Gold", design: { headerStil: "farbig", headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#fffbeb", textFarbe: "#1e293b" } },
+    { name: "Nacht", design: { headerStil: "farbig", headerFarbe: "#1e1b4b", akzentFarbe: "#a855f7", hintergrundFarbe: "#faf5ff", textFarbe: "#1e1b4b" } },
+    // Druckoptimiert: weißer Header + Akzentlinie (spart Toner)
+    { name: "Minimal", design: { headerStil: "hell", headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
+    { name: "Linie Grün", design: { headerStil: "hell", headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
+    { name: "Linie Amber", design: { headerStil: "hell", headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
   ];
 
   return (
@@ -231,7 +245,9 @@ export default function TicketDesigner({
               >
                 <span
                   className="w-3 h-3 rounded-full shrink-0 border border-black/10"
-                  style={{ background: `linear-gradient(135deg, ${p.design.headerFarbe}, ${p.design.akzentFarbe})` }}
+                  style={{ background: p.design.headerStil === "hell"
+                    ? `linear-gradient(135deg, #ffffff, ${p.design.akzentFarbe})`
+                    : `linear-gradient(135deg, ${p.design.headerFarbe}, ${p.design.akzentFarbe})` }}
                 />
                 {p.name}
               </button>
@@ -272,6 +288,7 @@ export default function TicketDesigner({
 
         {/* Toggles */}
         <div className="space-y-0.5 border-t border-border pt-3">
+          <Toggle label="Heller Header (spart Toner beim Druck)" value={design.headerStil === "hell"} onChange={(v) => update({ headerStil: v ? "hell" : "farbig" })} />
           <Toggle label="Veranstaltungsort anzeigen" value={design.zeigeVeranstaltungsort} onChange={(v) => update({ zeigeVeranstaltungsort: v })} />
           <Toggle label="Ticketkategorie anzeigen" value={design.zeigeKategorie} onChange={(v) => update({ zeigeKategorie: v })} />
           <Toggle label="QR-Code anzeigen" value={design.zeigeQrCode} onChange={(v) => update({ zeigeQrCode: v })} />
