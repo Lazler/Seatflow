@@ -3,8 +3,10 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardNavigation } from "@/components/layout/dashboard-navigation";
 import { KonfigurationsWarnung } from "@/components/layout/konfigurations-warnung";
+import { DemoBanner } from "@/components/layout/demo-banner";
 import { LanguageProvider } from "@/components/i18n-provider";
 import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
+import { istDemo } from "@/lib/demo";
 
 export default async function DashboardLayout({
   children,
@@ -40,6 +42,7 @@ export default async function DashboardLayout({
         <main className="flex-1 overflow-auto">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pt-20 pb-24 lg:pt-8 lg:pb-8">
             <KonfigurationsWarnung />
+            {istDemo(user.id) && <DemoBanner />}
             {children}
           </div>
         </main>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendeRundmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
+import { demoBlockiert } from "@/lib/demo";
 import { z } from "zod";
 
 const Schema = z.object({
@@ -20,6 +21,7 @@ export async function POST(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
+  const demo = demoBlockiert(user.id); if (demo) return demo;
 
   // Missbrauchsschutz: max. 2 Rundmails pro Event pro Stunde
   if (rateLimit(`rundmail:${id}`, 2, 3600)) {

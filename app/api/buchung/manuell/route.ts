@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dbFehlerMeldung } from "@/lib/db-fehler";
+import { demoBlockiert } from "@/lib/demo";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+  const demo = demoBlockiert(user.id); if (demo) return demo;
 
   let body: {
     eventId?: string;

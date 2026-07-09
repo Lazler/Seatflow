@@ -4,6 +4,7 @@ import { effectivePlan, PLAN_SEAT_LIMIT } from "@/lib/plan";
 import { zaehleBuchbarePlaetze } from "@/lib/event-plaetze";
 import { pruefeVeroeffentlichung } from "@/lib/event-bereitschaft";
 import { dbFehlerMeldung } from "@/lib/db-fehler";
+import { demoBlockiert } from "@/lib/demo";
 
 // Veröffentlichen läuft server-seitig, damit Readiness UND die Free-Tarif-
 // Grenze (max. Plätze) verbindlich durchgesetzt werden — nicht nur in der UI.
@@ -15,6 +16,7 @@ export async function POST(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+  const demo = demoBlockiert(user.id); if (demo) return demo;
 
   const { data: event } = await supabase
     .from("events")

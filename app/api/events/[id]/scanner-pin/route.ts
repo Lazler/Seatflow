@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { demoBlockiert } from "@/lib/demo";
 
 // Erzeugt (oder erneuert) die 6-stellige Scanner-PIN eines Events.
 // Nur der Veranstalter darf das; das Einlasspersonal nutzt die PIN dann
@@ -12,6 +13,7 @@ export async function POST(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
+  const demo = demoBlockiert(user.id); if (demo) return demo;
 
   // 6-stellig, ohne führende Null-Probleme
   const pin = String(Math.floor(100000 + Math.random() * 900000));
@@ -36,6 +38,7 @@ export async function DELETE(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
+  const demo = demoBlockiert(user.id); if (demo) return demo;
 
   const { error } = await supabase
     .from("events")

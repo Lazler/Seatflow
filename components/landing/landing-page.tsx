@@ -246,6 +246,12 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
+            {/* Voll navigierender Link — die Route setzt die Demo-Session und leitet weiter */}
+            <a href="/api/demo/login">
+              {c.lang === "en" ? "View live demo" : c.lang === "hu" ? "Élő demó" : "Live-Demo ansehen"}
+            </a>
+          </Button>
+          <Button size="lg" variant="ghost" asChild>
             <Link href={loginPath}>{c.hero.ctaSecondary}</Link>
           </Button>
         </div>
