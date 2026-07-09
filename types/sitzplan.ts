@@ -186,6 +186,82 @@ export function alleSitze(konfig: SitzplanKonfiguration): { sitzId: string; kate
   );
 }
 
+// Achsenparallele Ausdehnung eines einzelnen Elements ab dessen Mittelpunkt
+// (grob, inkl. Sitzradius/Labels). Rotation wird konservativ über den
+// Diagonalradius abgedeckt, damit nie etwas abgeschnitten wird.
+function elementHalbmasse(el: SitzplanElement): { hw: number; hh: number } {
+  let hw = 0, hh = 0;
+  switch (el.typ) {
+    case "reihe": {
+      const w = Math.max(0, el.anzahlSitze - 1) * el.sitzAbstand;
+      hw = w / 2 + SITZ_RADIUS + 34; // + Reihen-Label-Chip links
+      hh = SITZ_RADIUS + Math.abs(el.bogen ?? 0) + 8;
+      break;
+    }
+    case "tischreihe": {
+      hw = (el.sitzeProSeite * TISCH_SITZ_ABSTAND) / 2;
+      hh = TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS * 2;
+      break;
+    }
+    case "rundtisch": {
+      hw = hh = el.tischRadius + SITZ_RADIUS * 2 + 16;
+      break;
+    }
+    case "stehplatz": {
+      hw = el.breite / 2;
+      hh = el.hoehe / 2;
+      break;
+    }
+    case "text": {
+      hw = Math.max(48, el.text.length * el.fontSize * 0.78 + 12) / 2;
+      hh = el.fontSize;
+      break;
+    }
+  }
+  if (el.winkel) { const r = Math.hypot(hw, hh); hw = hh = r; }
+  return { hw, hh };
+}
+
+// Tatsächliche Inhaltsgrenzen (Bühne + alle Elemente). Anders als
+// breite/hoehe beschreibt dies, wo der Inhalt WIRKLICH liegt — Basis dafür,
+// den ganzen Plan im Buchungs-Canvas zu zeigen.
+export function inhaltsGrenzen(k: SitzplanKonfiguration): { x: number; y: number; breite: number; hoehe: number } {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const add = (cx: number, cy: number, hw: number, hh: number) => {
+    minX = Math.min(minX, cx - hw); maxX = Math.max(maxX, cx + hw);
+    minY = Math.min(minY, cy - hh); maxY = Math.max(maxY, cy + hh);
+  };
+  const b = k.buehne;
+  const t = (b.winkel * Math.PI) / 180;
+  const bw = Math.abs(Math.cos(t)) * b.breite + Math.abs(Math.sin(t)) * b.hoehe;
+  const bh = Math.abs(Math.sin(t)) * b.breite + Math.abs(Math.cos(t)) * b.hoehe;
+  add(b.x, b.y, bw / 2, bh / 2);
+  for (const el of k.elemente) {
+    const { hw, hh } = elementHalbmasse(el);
+    add(el.x, el.y, hw, hh);
+  }
+  if (!isFinite(minX)) return { x: 0, y: 0, breite: k.breite, hoehe: k.hoehe };
+  return { x: minX, y: minY, breite: maxX - minX, hoehe: maxY - minY };
+}
+
+// Verschiebt den Inhalt in den Ursprung (+ Rand) und setzt die Leinwandgröße
+// auf die tatsächliche Ausdehnung. So zeigt der Buchungs-Canvas immer den
+// ganzen Plan — auch wenn er außermittig oder auf einer zu großen Leinwand
+// angelegt wurde. Sitz-IDs bleiben unverändert (nur x/y verschieben sich).
+export function aufInhaltZugeschnitten(k: SitzplanKonfiguration, rand = 28): SitzplanKonfiguration {
+  const g = inhaltsGrenzen(k);
+  if (g.breite <= 0 || g.hoehe <= 0) return k;
+  const dx = rand - g.x;
+  const dy = rand - g.y;
+  return {
+    ...k,
+    breite: Math.ceil(g.breite + rand * 2),
+    hoehe: Math.ceil(g.hoehe + rand * 2),
+    buehne: { ...k.buehne, x: k.buehne.x + dx, y: k.buehne.y + dy },
+    elemente: k.elemente.map((el) => ({ ...el, x: el.x + dx, y: el.y + dy })),
+  };
+}
+
 export const LEERE_KONFIGURATION: SitzplanKonfiguration = {
   breite: 900,
   hoehe: 620,

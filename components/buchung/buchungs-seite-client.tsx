@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, CircleNotch as Loader2, CaretUp as ChevronUp, CaretDown as ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkle as Sparkles, Wheelchair } from "@phosphor-icons/react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
-import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor } from "@/types/sitzplan";
+import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor, aufInhaltZugeschnitten } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
 import { preisNachRegel, regelLabel } from "@/types/ticket-typ";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
@@ -224,6 +224,14 @@ export default function BuchungsSeiteClient({
 
   const aktiverFloor = floors[aktiverFloorIdx] ?? floors[0];
 
+  // Für die Anzeige auf den tatsächlichen Inhalt zuschneiden + zentrieren,
+  // damit der ganze Plan sichtbar ist (unabhängig davon, wo er auf der
+  // Leinwand angelegt wurde). Sitz-IDs bleiben identisch.
+  const anzeigeKonfig = useMemo(
+    () => aufInhaltZugeschnitten(aktiverFloor.konfiguration),
+    [aktiverFloor],
+  );
+
   function switchFloor(idx: number) {
     if (idx === aktiverFloorIdx) return;
     setFading(true);
@@ -243,7 +251,9 @@ export default function BuchungsSeiteClient({
       if (!ref.current) return;
       const w = ref.current.offsetWidth;
       if (w <= 0) return;
-      setter(Math.min(1, w / aktiverFloor.konfiguration.breite));
+      // Plan füllt die Containerbreite (crisp Vektor-Skalierung), moderat
+      // gedeckelt, damit sehr kleine Pläne nicht grotesk aufgeblasen werden.
+      setter(Math.min(1.8, w / anzeigeKonfig.breite));
     };
     const updateDesktop = makeUpdater(desktopContainerRef, setDesktopRenderScale);
     const updateMobile = makeUpdater(mobileContainerRef, setMobileRenderScale);
@@ -253,7 +263,7 @@ export default function BuchungsSeiteClient({
     if (desktopContainerRef.current) rod.observe(desktopContainerRef.current);
     if (mobileContainerRef.current) rom.observe(mobileContainerRef.current);
     return () => { rod.disconnect(); rom.disconnect(); };
-  }, [aktiverFloor.konfiguration.breite]);
+  }, [anzeigeKonfig.breite]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -491,9 +501,9 @@ export default function BuchungsSeiteClient({
   }), [uiStrings]);
 
   const canvasWrapper = (ref: React.RefObject<HTMLDivElement | null>, scale: number) => (
-    <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-hidden"
+    <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-hidden flex justify-center bg-[#fbfcfe]"
       style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
-      <SitzplanCanvas konfiguration={aktiverFloor.konfiguration} modus="buchung"
+      <SitzplanCanvas konfiguration={anzeigeKonfig} modus="buchung"
         renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
         onSitzKlicken={onSitzKlicken}
         barrierefreieSitze={barrierefreieSitze}
