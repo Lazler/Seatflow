@@ -10,7 +10,8 @@ import ScannerPinVerwaltung from "./scanner-pin-verwaltung";
 import EventRundmail from "./event-rundmail";
 import { VeroeffentlichungsCheck } from "@/components/events/veroeffentlichungs-check";
 import { pruefeVeroeffentlichung } from "@/lib/event-bereitschaft";
-import { migrierteKonfiguration, elementSitzIds } from "@/types/sitzplan";
+import { zaehleBuchbarePlaetze } from "@/lib/event-plaetze";
+import { effectivePlan, PLAN_SEAT_LIMIT } from "@/lib/plan";
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf",
@@ -61,29 +62,27 @@ export default async function EventDetail({
   const gesamteinnahmenCent = bezahlteBuchungen.reduce((s, b) => s + b.gesamt_cent, 0);
 
   // ── Veröffentlichungs-Bereitschaft ──────────────────────────────────────────
-  const etagen = (event.etagen as { sitzplan_id: string }[] | null) ?? null;
-  const planIds = [
-    ...(event.sitzplan_id ? [event.sitzplan_id as string] : []),
-    ...(etagen?.map((e) => e.sitzplan_id).filter(Boolean) ?? []),
-  ];
-  const hatSaalplan = planIds.length > 0;
-  let buchbarePlaetze = 0;
-  if (hatSaalplan) {
-    const { data: plaene } = await supabase
-      .from("sitzplaene")
-      .select("konfiguration")
-      .in("id", [...new Set(planIds)]);
-    for (const p of plaene ?? []) {
-      const konf = migrierteKonfiguration(p.konfiguration);
-      buchbarePlaetze += konf.elemente.reduce((s, el) => s + elementSitzIds(el).length, 0);
-    }
-  }
+  const { data: profil } = await supabase
+    .from("veranstalter_profile")
+    .select("plan, abo_bis")
+    .eq("id", user!.id)
+    .single();
+  const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
+
+  const { hatSaalplan, plaetze: buchbarePlaetze } = await zaehleBuchbarePlaetze(
+    supabase,
+    (event.sitzplan_id as string | null) ?? null,
+    (event.etagen as { sitzplan_id: string }[] | null) ?? null,
+  );
+
   const { anforderungen, harteBlocker } = pruefeVeroeffentlichung({
     eventId: event.id,
     hatVenue: !!venue,
     hatSaalplan,
     buchbarePlaetze,
     hatBild: !!event.bild_url,
+    plan,
+    sitzLimit: PLAN_SEAT_LIMIT[plan],
   });
 
   return (

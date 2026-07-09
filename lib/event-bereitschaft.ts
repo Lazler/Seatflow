@@ -17,8 +17,11 @@ export function pruefeVeroeffentlichung(args: {
   hatSaalplan: boolean;
   buchbarePlaetze: number;
   hatBild: boolean;
+  // Tarif-Durchsetzung: im Free-Tarif ist die Platzzahl begrenzt
+  plan?: "free" | "pro";
+  sitzLimit?: number | null;
 }): { anforderungen: Anforderung[]; harteBlocker: number } {
-  const { eventId, hatVenue, hatSaalplan, buchbarePlaetze, hatBild } = args;
+  const { eventId, hatVenue, hatSaalplan, buchbarePlaetze, hatBild, plan = "pro", sitzLimit = null } = args;
   const einst = `/dashboard/events/${eventId}/einstellungen`;
 
   const anforderungen: Anforderung[] = [
@@ -55,6 +58,18 @@ export function pruefeVeroeffentlichung(args: {
       fixHref: einst,
     },
   ];
+
+  // Tarif-Grenze (nur Free): harte Sperre, wenn der Saalplan das Platzlimit überschreitet
+  if (plan === "free" && sitzLimit !== null && hatSaalplan) {
+    anforderungen.push({
+      key: "sitzlimit",
+      erfuellt: buchbarePlaetze <= sitzLimit,
+      pflicht: true,
+      label: `Free-Tarif: höchstens ${sitzLimit} Plätze`,
+      hinweis: `Dieser Saalplan hat ${buchbarePlaetze} Plätze. Im Free-Tarif sind bis zu ${sitzLimit} möglich — mit Pro unbegrenzt.`,
+      fixHref: "/dashboard/abo",
+    });
+  }
 
   const harteBlocker = anforderungen.filter((a) => a.pflicht && !a.erfuellt).length;
   return { anforderungen, harteBlocker };

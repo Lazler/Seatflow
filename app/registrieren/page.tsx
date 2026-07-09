@@ -16,6 +16,7 @@ export default function Registrieren() {
   const [passwort, setPasswort] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
+  const [emailBestaetigen, setEmailBestaetigen] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,12 +24,8 @@ export default function Registrieren() {
     setLaedt(true);
 
     const supabase = createClient();
-    const slug = name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .slice(0, 50);
-
+    // Das veranstalter_profile wird server-seitig per DB-Trigger
+    // (handle_neuer_user) angelegt — kein Client-Insert nötig.
     const { data, error } = await supabase.auth.signUp({
       email,
       password: passwort,
@@ -41,18 +38,12 @@ export default function Registrieren() {
       return;
     }
 
-    if (data.user) {
-      const { error: profilFehler } = await supabase.from("veranstalter_profile").insert({
-        id: data.user.id,
-        name,
-        slug: `${slug}-${data.user.id.slice(0, 6)}`,
-      });
-
-      if (profilFehler) {
-        setFehler("Profil konnte nicht erstellt werden.");
-        setLaedt(false);
-        return;
-      }
+    // Ist E-Mail-Bestätigung aktiv, gibt es noch keine Session → nicht ins
+    // Dashboard leiten, sondern zur Bestätigung auffordern.
+    if (!data.session) {
+      setEmailBestaetigen(true);
+      setLaedt(false);
+      return;
     }
 
     router.push("/dashboard");
@@ -69,6 +60,26 @@ export default function Registrieren() {
           <span className="font-semibold text-lg">SeatFlow</span>
         </div>
 
+        {emailBestaetigen ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Fast geschafft</CardTitle>
+              <CardDescription>Bestätige deine E-Mail-Adresse</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Wir haben dir eine Bestätigungs-E-Mail an <span className="font-medium text-foreground">{email}</span> geschickt.
+                Klicke den Link darin, um dein Konto zu aktivieren und dich anzumelden.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Keine E-Mail erhalten? Sieh im Spam-Ordner nach.
+              </p>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/anmelden">Zur Anmeldung</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardHeader>
             <CardTitle>Konto erstellen</CardTitle>
@@ -127,6 +138,7 @@ export default function Registrieren() {
             </p>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

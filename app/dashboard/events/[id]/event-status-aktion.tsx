@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, EyeSlash as EyeOff, XCircle, CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
+import { toast } from "@/components/ui/toaster";
 
 type Status = "entwurf" | "veroeffentlicht" | "abgesagt" | "beendet";
 
@@ -53,6 +54,20 @@ export default function EventStatusAktion({
         const json = await res.json().catch(() => ({}));
         setFehler(json.error ?? t.events.absageFehler);
       }
+      return;
+    }
+
+    // Veröffentlichen server-seitig (erzwingt Readiness + Free-Tarif-Grenze)
+    if (naechsterStatus === "veroeffentlicht") {
+      const res = await fetch(`/api/events/${eventId}/veroeffentlichen`, { method: "POST" });
+      setLaedt(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error("Veröffentlichen nicht möglich", data.error);
+        return;
+      }
+      toast.success("Event veröffentlicht");
+      router.refresh();
       return;
     }
 

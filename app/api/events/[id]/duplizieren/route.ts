@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { PLAN_EVENT_LIMIT, effectivePlan } from "@/lib/plan";
 import { z } from "zod";
 
 const Schema = z.object({
@@ -39,6 +40,38 @@ export async function POST(
     .single();
 
   if (!original) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
+
+  // Free-Tarif-Monatslimit auch hier durchsetzen — sonst ließe sich das Limit
+  // aus POST /api/events per Duplizieren/Serie umgehen.
+  const { data: profil } = await supabase
+    .from("veranstalter_profile")
+    .select("plan, abo_bis")
+    .eq("id", user.id)
+    .single();
+  const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
+  const limit = PLAN_EVENT_LIMIT[plan];
+  if (limit !== null) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("veranstalter_id", user.id)
+      .gte("erstellt_am", startOfMonth.toISOString());
+    if ((count ?? 0) + parsed.data.termine.length > limit) {
+      const verbleibend = Math.max(0, limit - (count ?? 0));
+      return NextResponse.json(
+        {
+          error: verbleibend === 0
+            ? `Du hast das Limit von ${limit} Events pro Monat im Free-Tarif erreicht. Mit Pro sind es unbegrenzt.`
+            : `Im Free-Tarif sind noch ${verbleibend} Event(s) diesen Monat möglich (Limit ${limit}). Mit Pro unbegrenzt.`,
+          code: "PLAN_LIMIT_REACHED",
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   // Einlass-Zeit relativ zum Termin mitverschieben (z. B. immer 1 h vorher)
   const originalDatum = new Date(original.datum).getTime();
