@@ -114,15 +114,15 @@ export default function GutscheineClient() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">Gutscheine</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Rabattcodes für deine Events — Kunden lösen sie direkt beim Checkout ein.
           </p>
         </div>
         {!formOffen && (
-          <Button size="sm" onClick={() => setFormOffen(true)}>
+          <Button size="sm" onClick={() => setFormOffen(true)} className="self-start sm:self-auto shrink-0">
             <Plus className="h-4 w-4 mr-1.5" /> Gutschein erstellen
           </Button>
         )}
@@ -235,24 +235,24 @@ export default function GutscheineClient() {
           <p className="text-sm mt-1">Erstelle deinen ersten Rabattcode — Kunden lösen ihn beim Checkout ein.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Code(s)</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Rabatt</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">Eingelöst</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">Gültig bis</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Status</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Name</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Code(s)</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Rabatt</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">Eingelöst</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">Gültig bis</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Status</th>
                 <th className="w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {gutscheine.map((g) => (
                 <tr key={g.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{g.name}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3 font-medium">{g.name}</td>
+                  <td className="px-3 py-3">
                     <div className="flex flex-wrap gap-1">
                       {g.codes.length === 0 ? (
                         <span className="text-muted-foreground text-xs">—</span>
@@ -266,21 +266,21 @@ export default function GutscheineClient() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-semibold text-primary">{rabattLabel(g)}</td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
+                  <td className="px-3 py-3 font-semibold text-primary">{rabattLabel(g)}</td>
+                  <td className="px-3 py-3 text-muted-foreground hidden sm:table-cell">
                     {g.eingeloest}{g.max_einloesungen ? ` / ${g.max_einloesungen}` : ""}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell text-xs">
+                  <td className="px-3 py-3 text-muted-foreground hidden md:table-cell text-xs">
                     {g.gueltig_bis
                       ? new Date(g.gueltig_bis).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })
                       : "Unbegrenzt"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <Badge variant={g.aktiv ? "default" : "secondary"} className="text-xs">
                       {g.aktiv ? "Aktiv" : "Inaktiv"}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <button
                       type="button"
                       onClick={() => loeschen(g.id)}

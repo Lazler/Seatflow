@@ -26,12 +26,12 @@ export default async function EventsSeite() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">{t.events.title}</h1>
           <p className="text-muted-foreground">{t.events.subtitle}</p>
         </div>
-        <Button asChild>
+        <Button asChild className="self-start sm:self-auto shrink-0">
           <Link href="/dashboard/events/neu">
             <Plus className="h-4 w-4 mr-1" /> {t.events.neuesEvent}
           </Link>
@@ -55,9 +55,9 @@ export default async function EventsSeite() {
         <div className="space-y-2">
           {events?.map((event) => (
             <Card key={event.id}>
-              <CardContent className="py-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="font-medium">{event.titel}</p>
+              <CardContent className="py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{event.titel}</p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(event.datum).toLocaleDateString("de-DE", {
                       weekday: "short", day: "numeric", month: "long", year: "numeric",
@@ -67,7 +67,7 @@ export default async function EventsSeite() {
                     {(event.ticket_preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 ml-4">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   <Badge
                     variant={event.status === "veroeffentlicht" ? "default" : event.status === "abgesagt" ? "destructive" : "secondary"}
                   >

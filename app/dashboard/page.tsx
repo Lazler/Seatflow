@@ -138,14 +138,14 @@ export default async function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{profil?.name ?? t.dashboard.title}</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold truncate">{profil?.name ?? t.dashboard.title}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="self-start sm:self-auto shrink-0">
           <Link href="/dashboard/events/neu">
             <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard.neuesEvent}
           </Link>

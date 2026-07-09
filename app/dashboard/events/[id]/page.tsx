@@ -134,26 +134,26 @@ export default async function EventDetail({
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Kennzahlen */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold">{bezahlteBuchungen.length}</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <Card className="min-w-0">
+              <CardContent className="pt-4 px-3 sm:px-6">
+                <div className="text-lg sm:text-2xl font-bold tabular-nums">{bezahlteBuchungen.length}</div>
                 <p className="text-xs text-muted-foreground mt-1">Buchungen</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold">
-                  {(buchungen ?? []).reduce((s, b) => {
+            <Card className="min-w-0">
+              <CardContent className="pt-4 px-3 sm:px-6">
+                <div className="text-lg sm:text-2xl font-bold tabular-nums">
+                  {(buchungen ?? []).reduce((s) => {
                     return s; // Ticket-Zählung kommt mit Sitzplan
                   }, 0) || "—"}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Tickets</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold">
+            <Card className="min-w-0">
+              <CardContent className="pt-4 px-3 sm:px-6">
+                <div className="text-lg sm:text-2xl font-bold tabular-nums truncate">
                   {(gesamteinnahmenCent / 100).toLocaleString("de-DE", {
                     style: "currency",
                     currency: "EUR",

@@ -20,12 +20,12 @@ export default async function VenuesSeite() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">{t.venues.title}</h1>
           <p className="text-muted-foreground">{t.venues.subtitle}</p>
         </div>
-        <Button asChild>
+        <Button asChild className="self-start sm:self-auto shrink-0">
           <Link href="/dashboard/venues/neu">
             <Plus className="h-4 w-4 mr-1" /> {t.venues.neuesVenue}
           </Link>
