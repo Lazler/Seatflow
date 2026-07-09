@@ -182,7 +182,7 @@ export function DashboardNavigation() {
             className="flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <Menu className="h-5 w-5" />
-            <span>Mehr</span>
+            <span>{t.nav.mehr}</span>
           </button>
         </div>
       </nav>

@@ -9,6 +9,12 @@ export const dict = {
     ticketTemplates: "Jegysablonok",
     abo: "Előfizetés",
     abmelden: "Kijelentkezés",
+    mehr: "Több",
+  },
+  demo: {
+    titel: "Demó mód — csak megtekintés",
+    text: "Egy mintafiókot fedezel fel fiktív adatokkal. A módosítások (mentés, közzététel, törlés …) le vannak tiltva.",
+    cta: "Ingyenes saját fiók",
   },
   common: {
     speichern: "Mentés",

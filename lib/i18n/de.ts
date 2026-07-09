@@ -9,6 +9,12 @@ export const dict = {
     ticketTemplates: "Ticket-Templates",
     abo: "Abonnement",
     abmelden: "Abmelden",
+    mehr: "Mehr",
+  },
+  demo: {
+    titel: "Demo-Modus — nur Ansicht",
+    text: "Du erkundest ein Beispielkonto mit fiktiven Daten. Änderungen (Speichern, Veröffentlichen, Löschen …) sind deaktiviert.",
+    cta: "Kostenlos eigenes Konto",
   },
   common: {
     speichern: "Speichern",
