@@ -10,6 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { PLAN_SERVICE_FEE_CENT, effectivePlan } from "@/lib/plan";
 import { HOLD_MINUTEN } from "@/lib/belegte-sitze";
 import { fruehbucherAktiv, fruehbucherPreis, type Fruehbucher, type EventAddon } from "@/types/event-extras";
+import { istDemo } from "@/lib/demo";
 
 const SitzplatzSchema = z.object({
   sitzId: z.string().min(1).max(100),
@@ -63,6 +64,14 @@ export async function POST(req: NextRequest) {
 
   if (!event) {
     return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
+  }
+
+  // Demo-Events sind öffentlich sichtbar, aber nicht wirklich kaufbar.
+  if (istDemo(event.veranstalter_id)) {
+    return NextResponse.json(
+      { error: "Dies ist ein Demo-Event — hier kann nicht wirklich gebucht werden. Registriere dich kostenlos für dein eigenes." },
+      { status: 403 },
+    );
   }
 
   // Determine service fee from organizer's plan + Stripe Connect status

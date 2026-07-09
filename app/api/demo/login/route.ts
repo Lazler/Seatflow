@@ -7,12 +7,20 @@ import { DEMO_EMAIL } from "@/lib/demo";
 // Dashboard. Nutzt den Admin-Client, um serverseitig ein Magic-Link-Token zu
 // erzeugen, und löst es sofort über die SSR-Session ein (setzt die Cookies).
 export async function GET(req: NextRequest) {
+  // Öffentliche Basis-URL bestimmen — hinter einem Reverse-Proxy (Coolify)
+  // meldet req.url den internen Host (localhost:3000). Darum bevorzugt die
+  // konfigurierte App-URL bzw. die Forwarded-Header des Proxys nutzen.
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? (host ? `${proto}://${host}` : new URL(req.url).origin);
+  const ziel = (pfad: string) => NextResponse.redirect(new URL(pfad, base));
+
   let admin: ReturnType<typeof createAdminClient>;
   try {
     admin = createAdminClient();
   } catch {
     // Ohne Service-Key kein Demo-Login möglich → zur Registrierung
-    return NextResponse.redirect(new URL("/registrieren", req.url));
+    return ziel("/registrieren");
   }
 
   const { data, error } = await admin.auth.admin.generateLink({
@@ -22,7 +30,7 @@ export async function GET(req: NextRequest) {
   const tokenHash = data?.properties?.hashed_token;
   if (error || !tokenHash) {
     console.error("[demo/login] generateLink fehlgeschlagen:", error);
-    return NextResponse.redirect(new URL("/anmelden", req.url));
+    return ziel("/anmelden");
   }
 
   const supabase = await createClient();
@@ -32,8 +40,8 @@ export async function GET(req: NextRequest) {
   });
   if (verifyError) {
     console.error("[demo/login] verifyOtp fehlgeschlagen:", verifyError);
-    return NextResponse.redirect(new URL("/anmelden", req.url));
+    return ziel("/anmelden");
   }
 
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  return ziel("/dashboard");
 }

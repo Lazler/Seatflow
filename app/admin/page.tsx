@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { effectivePlan } from "@/lib/plan";
+import { DEMO_USER_ID } from "@/lib/demo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CurrencyEur as EuroIcon, Users, Ticket, TrendUp as TrendingUp, LinkSimple as Link2, Warning as AlertTriangle } from "@phosphor-icons/react/dist/ssr";
 
@@ -20,15 +21,21 @@ export default async function AdminPage() {
   const admin = createAdminClient();
 
   // ── Fetch all data ─────────────────────────────────────────────────────────
-  const [profilesRes, buchungenRes, ticketsRes] = await Promise.all([
+  const [profilesRes, buchungenRes, ticketsRes, demoEventsRes] = await Promise.all([
     admin.from("veranstalter_profile").select("id, name, plan, abo_bis, stripe_account_id, stripe_connect_onboarded, erstellt_am"),
     admin.from("buchungen").select("id, event_id, gesamt_cent, status, erstellt_am"),
     admin.from("tickets").select("id, buchung_id, preis_cent"),
+    admin.from("events").select("id").eq("veranstalter_id", DEMO_USER_ID),
   ]);
 
-  const profile = profilesRes.data ?? [];
-  const buchungen = buchungenRes.data ?? [];
-  const tickets = ticketsRes.data ?? [];
+  // Demokonto aus den Plattform-Kennzahlen ausschließen — es sind keine echten
+  // Kunden/Umsätze, sondern nur Anschauungsdaten.
+  const demoEventIds = new Set((demoEventsRes.data ?? []).map((e) => e.id));
+  const profile = (profilesRes.data ?? []).filter((p) => p.id !== DEMO_USER_ID);
+  const buchungenAlle = buchungenRes.data ?? [];
+  const demoBuchungIds = new Set(buchungenAlle.filter((b) => demoEventIds.has(b.event_id)).map((b) => b.id));
+  const buchungen = buchungenAlle.filter((b) => !demoEventIds.has(b.event_id));
+  const tickets = (ticketsRes.data ?? []).filter((t) => !demoBuchungIds.has(t.buchung_id));
 
   // ── User metrics ───────────────────────────────────────────────────────────
   const now = new Date();
