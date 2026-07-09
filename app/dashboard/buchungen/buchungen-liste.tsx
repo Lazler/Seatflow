@@ -138,14 +138,14 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
         </select>
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 border-b border-border">
+      {/* Status filter tabs — horizontal scrollbar auf schmalen Screens */}
+      <div className="flex gap-1 border-b border-border overflow-x-auto">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setStatusFilter(tab.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+            className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors relative shrink-0 whitespace-nowrap ${
               statusFilter === tab.key
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground"

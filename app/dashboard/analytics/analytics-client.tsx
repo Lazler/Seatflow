@@ -17,12 +17,15 @@ function BarChart({
   valueFn,
   color = "bg-primary",
   emptyLabel,
+  scrollable = false,
 }: {
   data: { label: string; value: number }[];
   maxValue: number;
   valueFn?: (v: number) => string;
   color?: string;
   emptyLabel: string;
+  // scrollable: feste Balkenbreite + min-w-max (Container muss overflow-x-auto sein)
+  scrollable?: boolean;
 }) {
   // Balken beim Erscheinen von 0 hochwachsen lassen
   const [mounted, setMounted] = useState(false);
@@ -35,12 +38,12 @@ function BarChart({
     return <p className="text-sm text-muted-foreground text-center py-8">{emptyLabel}</p>;
   }
   return (
-    <div className="flex gap-1 h-32">
+    <div className={`flex gap-1 h-32 ${scrollable ? "min-w-max" : ""}`}>
       {data.map((d, i) => {
         const pct = maxValue > 0 ? (d.value / maxValue) * 100 : 0;
         const zielHoehe = Math.max(pct, d.value > 0 ? 2 : 0);
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative h-full">
+          <div key={i} className={`${scrollable ? "w-10 shrink-0" : "flex-1 min-w-0"} flex flex-col items-center gap-1 group relative h-full`}>
             {d.value > 0 && (
               <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-popover border border-border text-[10px] px-1.5 py-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                 {valueFn ? valueFn(d.value) : d.value}
@@ -113,17 +116,9 @@ export default function AnalyticsClient({
           </div>
         </CardHeader>
         <CardContent>
-          <BarChart data={revenueBarData} maxValue={maxCent} valueFn={euro} color="bg-emerald-500" emptyLabel={t.nochKeineDaten} />
-          <div className="flex items-center gap-1 mt-1">
-            {sichtbareDaten.map((d, i) => {
-              const every = zeitraum <= 7 ? 1 : zeitraum <= 14 ? 2 : 5;
-              const show = i % every === 0 || i === sichtbareDaten.length - 1;
-              return (
-                <div key={i} className="flex-1 text-center">
-                  {show && <span className="text-[9px] text-muted-foreground">{new Date(d.datum).toLocaleDateString("de-DE", { day: "numeric", month: "short" })}</span>}
-                </div>
-              );
-            })}
+          {/* Horizontal scrollbar bei vielen Tagen — feste Balkenbreite, Datum je Balken */}
+          <div className="overflow-x-auto -mx-1 px-1 pb-1">
+            <BarChart data={revenueBarData} maxValue={maxCent} valueFn={euro} color="bg-emerald-500" emptyLabel={t.nochKeineDaten} scrollable />
           </div>
         </CardContent>
       </Card>

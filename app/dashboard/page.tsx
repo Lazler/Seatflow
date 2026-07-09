@@ -155,13 +155,13 @@ export default async function Dashboard() {
       {/* ── KPI Kacheln ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.dashboard.einnahmen}</p>
-                <p className="text-2xl font-bold mt-1">{euro(gesamteinnahmenCent)}</p>
+          <CardContent className="pt-5 px-4 sm:px-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.einnahmen}</p>
+                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{euro(gesamteinnahmenCent)}</p>
               </div>
-              <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-lg bg-emerald-50 hidden sm:flex items-center justify-center shrink-0">
                 <EuroIcon className="h-4 w-4 text-emerald-600" />
               </div>
             </div>
@@ -170,13 +170,13 @@ export default async function Dashboard() {
         </Card>
 
         <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.analytics.tickets}</p>
-                <p className="text-2xl font-bold mt-1">{gesamtTickets}</p>
+          <CardContent className="pt-5 px-4 sm:px-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.analytics.tickets}</p>
+                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{gesamtTickets}</p>
               </div>
-              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-lg bg-blue-50 hidden sm:flex items-center justify-center shrink-0">
                 <Ticket className="h-4 w-4 text-blue-600" />
               </div>
             </div>
@@ -185,13 +185,13 @@ export default async function Dashboard() {
         </Card>
 
         <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.dashboard.heute}</p>
-                <p className="text-2xl font-bold mt-1">{buchungenHeute}</p>
+          <CardContent className="pt-5 px-4 sm:px-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.heute}</p>
+                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{buchungenHeute}</p>
               </div>
-              <div className="h-9 w-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-lg bg-violet-50 hidden sm:flex items-center justify-center shrink-0">
                 <TrendingUp className="h-4 w-4 text-violet-600" />
               </div>
             </div>
@@ -200,13 +200,13 @@ export default async function Dashboard() {
         </Card>
 
         <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.dashboard.liveEvents}</p>
-                <p className="text-2xl font-bold mt-1">{aktiveEvents.length}</p>
+          <CardContent className="pt-5 px-4 sm:px-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.liveEvents}</p>
+                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{aktiveEvents.length}</p>
               </div>
-              <div className="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-lg bg-amber-50 hidden sm:flex items-center justify-center shrink-0">
                 <CalendarCheck className="h-4 w-4 text-amber-600" />
               </div>
             </div>
@@ -290,7 +290,7 @@ export default async function Dashboard() {
               <Link href="/dashboard/events">{t.dashboard.alleEvents} <ArrowRight className="h-3.5 w-3.5 ml-1" /></Link>
             </Button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {eventsTabelle.map((event) => {
               const sold     = ticketsProEvent.get(event.id) ?? 0;
               const kapazitaet = event.sitzplan_id ? (kapazitaetProSitzplan.get(event.sitzplan_id) ?? null) : null;
