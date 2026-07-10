@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback, memo } from "react";
 import { Stage, Layer, Rect, Circle, Text, Group, Line, Path, Transformer } from "react-konva";
 import type Konva from "konva";
 import { MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, CornersOut as Maximize } from "@phosphor-icons/react";
+import { fmt } from "@/lib/i18n/buchung";
 import {
   type SitzplanElement,
   type ReiheElement,
@@ -196,7 +197,7 @@ type ElementProps<T> = {
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
   nummerAusblenden: boolean;
   sperrModus?: boolean;
-  zonenTexte: { zoneFrei: string; zoneGewaehlt: string; zoneHinzufuegen: string; zoneAusverkauft: string; stehplatz: string };
+  zonenTexte: typeof TEXTE_DEFAULT;
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   onSitzKlick?: (sitzId: string) => void;
   onHoverInfo?: (info: SeatHoverInfo) => void;
@@ -470,7 +471,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
             ? (freie.length === 0 && gewaehlt === 0
                 ? zonenTexte.zoneAusverkauft
                 : `${freie.length} ${zonenTexte.zoneFrei}${gewaehlt > 0 ? ` · ${gewaehlt} ${zonenTexte.zoneGewaehlt}` : ""}`)
-            : `${el.kapazitaet} Personen · ${kategorieName} ${(kategoriePreisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`}
+            : fmt(zonenTexte.stehplatzInfo, { kapazitaet: el.kapazitaet, kategorieName, preis: (kategoriePreisCent / 100).toLocaleString(zonenTexte.currencyLocale, { style: "currency", currency: "EUR" }) })}
           fill="#64748b" fontSize={10}
           align="center" verticalAlign="middle"
         />
@@ -494,7 +495,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
 
 // ── Text-Annotation ───────────────────────────────────────────────────────────
 
-function TextKomponente({ el, stageScale, snapRaster, editorAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, onKlick, onDragEnd }: ElementProps<TextElement>) {
+function TextKomponente({ el, stageScale, snapRaster, editorAusgewaehlt, istBuchungsmodus, raumbreite, raumhoehe, zonenTexte, onKlick, onDragEnd }: ElementProps<TextElement>) {
   // Bold-Großbuchstaben + letterSpacing brauchen ~0.78 × fontSize pro Zeichen
   const geschaetzteBreite = Math.max(48, el.text.length * el.fontSize * 0.78 + 12);
   const H = el.fontSize * 1.5;
@@ -513,7 +514,7 @@ function TextKomponente({ el, stageScale, snapRaster, editorAusgewaehlt, istBuch
     >
       <Text
         width={geschaetzteBreite} height={H}
-        text={el.text || "Text"}
+        text={el.text || zonenTexte.textFallback}
         fill="#475569" fontSize={el.fontSize} fontStyle="bold" letterSpacing={0.5}
         align="center" verticalAlign="middle"
       />
@@ -604,14 +605,11 @@ type Props = {
   snapRaster?: number;
   // Editor-Sperrmodus: Sitze anklickbar zum Sperren/Entsperren
   sperrModus?: boolean;
-  // Lokalisierte Texte für Buchungsmodus (Stehplatz-Zone, Aria)
-  texte?: {
-    zoneFrei: string; zoneGewaehlt: string;
-    zoneHinzufuegen: string; zoneAusverkauft: string;
-    canvasAria: string; barrierefrei: string;
-    stehplatz: string;
-    zoomVergroessern: string; zoomVerkleinern: string; zoomReset: string;
-  };
+  // Lokalisierte Texte für Buchungs- UND Editor-Modus.
+  // Buchungsmodus liefert die Zonen-/Zoom-Texte, Editor-Modus die editorAria/
+  // textFallback/stehplatzInfo/currencyLocale-Felder — daher alle optional und
+  // per TEXTE_DEFAULT aufgefüllt.
+  texte?: Partial<typeof TEXTE_DEFAULT>;
 };
 
 const TEXTE_DEFAULT = {
@@ -625,14 +623,20 @@ const TEXTE_DEFAULT = {
   zoomVergroessern: "Vergrößern",
   zoomVerkleinern: "Verkleinern",
   zoomReset: "Ansicht zurücksetzen",
+  // Editor-Modus
+  editorAria: "Sitzplan-Editor",
+  textFallback: "Text",
+  stehplatzInfo: "{kapazitaet} Personen · {kategorieName} {preis}",
+  currencyLocale: "de-DE",
 };
 
 export default function SitzplanCanvas({
   konfiguration, modus, renderScale = 1,
   auswahl, onAuswaehlen, onElementVerschieben, onMehrereElementeVerschieben, onBuehneVerschieben, onBuehneTransformiert,
   belegteSitze = new Set(), ausgewaehlteSitze = new Set(), onSitzKlicken,
-  barrierefreieSitze = new Set(), snapRaster = 0, sperrModus = false, texte = TEXTE_DEFAULT,
+  barrierefreieSitze = new Set(), snapRaster = 0, sperrModus = false, texte,
 }: Props) {
+  const txt = { ...TEXTE_DEFAULT, ...texte };
   const buehneRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const istBuchungsmodus = modus === "buchung";
@@ -764,7 +768,7 @@ export default function SitzplanCanvas({
       stageScale: scale,
       snapRaster,
       sperrModus,
-      zonenTexte: texte,
+      zonenTexte: txt,
       onHoverInfo: istBuchungsmodus ? setTooltip : undefined,
       editorAusgewaehlt: istAusgewaehlt,
       belegte: belegteSitze,
@@ -842,7 +846,7 @@ export default function SitzplanCanvas({
         }
       }}
       role={istBuchungsmodus ? "application" : undefined}
-      aria-label={istBuchungsmodus ? texte.canvasAria : "Sitzplan-Editor"}
+      aria-label={istBuchungsmodus ? txt.canvasAria : txt.editorAria}
       onWheel={(e) => {
         // Ctrl/Cmd+Scroll und Trackpad-Pinch zoomen; normales Scrollen bleibt Scrollen
         if (!istBuchungsmodus || (!e.evt.ctrlKey && !e.evt.metaKey)) return;
@@ -995,7 +999,7 @@ export default function SitzplanCanvas({
         {/* Sitz-Tooltip (Desktop-Hover im Buchungsmodus) */}
         {istBuchungsmodus && tooltip && (() => {
           const zeile1 = tooltip.sitzId;
-          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}${tooltip.barrierefrei ? ` · ${texte.barrierefrei}` : ""}`;
+          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}${tooltip.barrierefrei ? ` · ${txt.barrierefrei}` : ""}`;
           const W = Math.max(zeile1.length, zeile2.length) * 6.6 + 20;
           const H = 40;
           return (
@@ -1018,20 +1022,20 @@ export default function SitzplanCanvas({
     {/* Zoom-Controls (nur Buchungsmodus) */}
     {istBuchungsmodus && (
       <div className="absolute right-2.5 top-2.5 flex flex-col gap-1.5">
-        <button type="button" aria-label={texte.zoomVergroessern}
+        <button type="button" aria-label={txt.zoomVergroessern}
           onClick={() => applyZoom(viewportMitte, zoom * 1.5)}
           disabled={zoom >= MAX_ZOOM}
           className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
           <ZoomIn className="h-4 w-4" />
         </button>
-        <button type="button" aria-label={texte.zoomVerkleinern}
+        <button type="button" aria-label={txt.zoomVerkleinern}
           onClick={() => applyZoom(viewportMitte, zoom / 1.5)}
           disabled={zoom <= MIN_ZOOM}
           className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
           <ZoomOut className="h-4 w-4" />
         </button>
         {zoom > 1 && (
-          <button type="button" aria-label={texte.zoomReset}
+          <button type="button" aria-label={txt.zoomReset}
             onClick={() => applyZoom(viewportMitte, 1)}
             className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition">
             <Maximize className="h-4 w-4" />

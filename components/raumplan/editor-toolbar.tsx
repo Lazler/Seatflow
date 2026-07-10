@@ -9,13 +9,15 @@ import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus,
 import {
   type SitzplanElement, type Buehne, type ElementTyp, type Preiskategorie,
 } from "@/types/sitzplan";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
 
-const TYP_META: Record<ElementTyp, { label: string; icon: React.ElementType }> = {
-  reihe:      { label: "Reihe",        icon: AlignJustify },
-  tischreihe: { label: "Tischreihe",   icon: Armchair     },
-  rundtisch:  { label: "Runder Tisch", icon: CircleDot    },
-  stehplatz:  { label: "Stehplatz",    icon: Users        },
-  text:       { label: "Text",         icon: Type         },
+const TYP_ICON: Record<ElementTyp, React.ElementType> = {
+  reihe:      AlignJustify,
+  tischreihe: Armchair,
+  rundtisch:  CircleDot,
+  stehplatz:  Users,
+  text:       Type,
 };
 
 const RAUM_PRESETS = [
@@ -57,13 +59,14 @@ function RaumgroesseSection({ breite, hoehe, onChange }: {
   breite: number; hoehe: number;
   onChange: (b: number, h: number) => void;
 }) {
+  const t = useT();
   const [offen, setOffen] = useState(true);
   return (
     <Card className="border-slate-200 rounded-none border-x-0 border-t-0 shadow-none">
       <CardHeader className="py-2 px-4">
         <button className="flex items-center justify-between w-full" onClick={() => setOffen(!offen)}>
           <CardTitle className="text-xs text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-            <Maximize2 className="h-3.5 w-3.5" /> Raumgröße
+            <Maximize2 className="h-3.5 w-3.5" /> {t.editorToolbar.raumgroesse}
           </CardTitle>
           <span className="text-xs text-muted-foreground font-normal">{breite}×{hoehe}</span>
         </button>
@@ -84,8 +87,8 @@ function RaumgroesseSection({ breite, hoehe, onChange }: {
             ))}
           </div>
           <div className="space-y-2">
-            <ZahlInput label="Breite" value={breite} min={400} max={2000} onChange={(v) => onChange(v, hoehe)} einheit="px" />
-            <ZahlInput label="Höhe"   value={hoehe}  min={300} max={1500} onChange={(v) => onChange(breite, v)} einheit="px" />
+            <ZahlInput label={t.editorToolbar.breite} value={breite} min={400} max={2000} onChange={(v) => onChange(v, hoehe)} einheit="px" />
+            <ZahlInput label={t.editorToolbar.hoehe}  value={hoehe}  min={300} max={1500} onChange={(v) => onChange(breite, v)} einheit="px" />
           </div>
         </CardContent>
       )}
@@ -98,6 +101,8 @@ function PreiskategorienEditor({ kategorien, onChange }: {
   kategorien: Preiskategorie[];
   onChange: (k: Preiskategorie[]) => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [offen, setOffen] = useState(false);
   const [bearbeiteId, setBearbeiteId] = useState<string | null>(null);
   const [entwurf, setEntwurf] = useState<Partial<Preiskategorie>>({});
@@ -106,7 +111,7 @@ function PreiskategorienEditor({ kategorien, onChange }: {
   function speichern(id: string) { onChange(kategorien.map((k) => k.id === id ? { ...k, ...entwurf } : k)); setBearbeiteId(null); }
   function hinzufuegen() {
     const farben = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#06b6d4"];
-    const neu: Preiskategorie = { id: crypto.randomUUID(), name: `Kategorie ${kategorien.length + 1}`, preis_cent: 1500, farbe: farben[kategorien.length % farben.length] };
+    const neu: Preiskategorie = { id: crypto.randomUUID(), name: fmt(t.editorToolbar.kategorieName, { n: kategorien.length + 1 }), preis_cent: 1500, farbe: farben[kategorien.length % farben.length] };
     onChange([...kategorien, neu]);
     startBearbeiten(neu);
   }
@@ -116,7 +121,7 @@ function PreiskategorienEditor({ kategorien, onChange }: {
       <CardHeader className="py-2 px-4">
         <button className="flex items-center justify-between w-full" onClick={() => setOffen(!offen)}>
           <CardTitle className="text-xs text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-            <Tags className="h-3.5 w-3.5" /> Preiskategorien <span className="font-normal text-muted-foreground">({kategorien.length})</span>
+            <Tags className="h-3.5 w-3.5" /> {t.editorToolbar.preiskategorien} <span className="font-normal text-muted-foreground">({kategorien.length})</span>
           </CardTitle>
           {offen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
@@ -130,10 +135,10 @@ function PreiskategorienEditor({ kategorien, onChange }: {
                   onChange={(e) => setEntwurf((d) => ({ ...d, farbe: e.target.value }))}
                   className="h-7 w-9 rounded cursor-pointer border border-input p-0.5" />
                 <Input value={entwurf.name ?? ""} onChange={(e) => setEntwurf((d) => ({ ...d, name: e.target.value }))}
-                  placeholder="Name" className="h-7 text-sm flex-1" />
+                  placeholder={t.editorToolbar.namePlaceholder} className="h-7 text-sm flex-1" />
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground shrink-0">Preis:</span>
+                <span className="text-xs text-muted-foreground shrink-0">{t.editorToolbar.preis}</span>
                 <Input type="number" value={((entwurf.preis_cent ?? 0) / 100).toFixed(2)}
                   onChange={(e) => setEntwurf((d) => ({ ...d, preis_cent: Math.round(parseFloat(e.target.value) * 100) }))}
                   className="h-7 text-sm" step="0.50" min="0" />
@@ -148,12 +153,12 @@ function PreiskategorienEditor({ kategorien, onChange }: {
             <div key={k.id} className="flex items-center gap-2 py-1 group">
               <div className="w-3.5 h-3.5 rounded-full shrink-0 border border-white shadow-sm" style={{ backgroundColor: k.farbe }} />
               <span className="text-xs flex-1 truncate font-medium">{k.name}</span>
-              <span className="text-xs text-muted-foreground shrink-0">{(k.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
+              <span className="text-xs text-muted-foreground shrink-0">{(k.preis_cent / 100).toLocaleString(intlLocale(locale), { style: "currency", currency: "EUR" })}</span>
               <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => startBearbeiten(k)}><Pencil className="h-3 w-3" /></Button>
               <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onChange(kategorien.filter((c) => c.id !== k.id))} disabled={kategorien.length <= 1}><X className="h-3 w-3" /></Button>
             </div>
           ))}
-          <Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={hinzufuegen}><Plus className="h-3 w-3 mr-1" /> Kategorie hinzufügen</Button>
+          <Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={hinzufuegen}><Plus className="h-3 w-3 mr-1" /> {t.editorToolbar.kategorieHinzufuegen}</Button>
         </CardContent>
       )}
     </Card>
@@ -162,13 +167,14 @@ function PreiskategorienEditor({ kategorien, onChange }: {
 
 // --- Bühne ---
 function BuehneEigenschaften({ buehne, onChange }: { buehne: Buehne; onChange: (d: Partial<Buehne>) => void }) {
+  const t = useT();
   const [offen, setOffen] = useState(false);
   return (
     <Card className="border-slate-200 rounded-none border-x-0 shadow-none">
       <CardHeader className="py-2 px-4">
         <button className="flex items-center justify-between w-full" onClick={() => setOffen(!offen)}>
           <CardTitle className="text-xs text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-            <Theater className="h-3.5 w-3.5" /> Bühne / Podium
+            <Theater className="h-3.5 w-3.5" /> {t.editorToolbar.buehnePodium}
           </CardTitle>
           {offen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
@@ -176,22 +182,22 @@ function BuehneEigenschaften({ buehne, onChange }: { buehne: Buehne; onChange: (
       {offen && (
         <CardContent className="px-4 pb-3 space-y-3">
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Beschriftung</Label>
+            <Label className="text-xs text-muted-foreground">{t.editorToolbar.beschriftung}</Label>
             <Input value={buehne.label} onChange={(e) => onChange({ label: e.target.value })} className="h-7 text-sm" />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <ZahlInput label="Breite" value={buehne.breite} min={80} max={1200} schritt={10} onChange={(v) => onChange({ breite: v })} einheit="px" />
-            <ZahlInput label="Höhe"   value={buehne.hoehe}  min={20} max={300}  schritt={10} onChange={(v) => onChange({ hoehe:  v })} einheit="px" />
+            <ZahlInput label={t.editorToolbar.breite} value={buehne.breite} min={80} max={1200} schritt={10} onChange={(v) => onChange({ breite: v })} einheit="px" />
+            <ZahlInput label={t.editorToolbar.hoehe}   value={buehne.hoehe}  min={20} max={300}  schritt={10} onChange={(v) => onChange({ hoehe:  v })} einheit="px" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <RotateCw className="h-3 w-3" /> Winkel: {Math.round(buehne.winkel)}°
+              <RotateCw className="h-3 w-3" /> {fmt(t.editorToolbar.winkel, { winkel: Math.round(buehne.winkel) })}
             </Label>
             <input type="range" min={-180} max={180} step={1} value={buehne.winkel}
               onChange={(e) => onChange({ winkel: Number(e.target.value) })}
               className="w-full h-1.5 accent-primary cursor-pointer" />
           </div>
-          <p className="text-xs text-muted-foreground">Auf dem Canvas ziehen oder Anfasser nutzen.</p>
+          <p className="text-xs text-muted-foreground">{t.editorToolbar.canvasZiehen}</p>
         </CardContent>
       )}
     </Card>
@@ -214,11 +220,7 @@ type Props = {
   onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
 };
 
-const VORLAGEN: { typ: "theater" | "kabarett" | "misch"; label: string; desc: string }[] = [
-  { typ: "theater",  label: "Theater",          desc: "10 Reihen à 12, Mittelgang" },
-  { typ: "kabarett", label: "Kabarett-Tische",  desc: "6 Rundtische à 6 Plätze" },
-  { typ: "misch",    label: "Mischbestuhlung",  desc: "4 Reihen + 3 Rundtische" },
-];
+const VORLAGEN_TYPEN: ("theater" | "kabarett" | "misch")[] = ["theater", "kabarett", "misch"];
 
 // --- Bestuhlungs-Generator ---
 function BestuhlungsGenerator({ leer, onErzeugen, onVorlage }: {
@@ -226,6 +228,7 @@ function BestuhlungsGenerator({ leer, onErzeugen, onVorlage }: {
   onErzeugen: (reihen: number, sitze: number, gang: boolean) => void;
   onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
 }) {
+  const t = useT();
   const [offen, setOffen] = useState(leer);
   const [reihen, setReihen] = useState(8);
   const [sitze, setSitze] = useState(12);
@@ -236,7 +239,7 @@ function BestuhlungsGenerator({ leer, onErzeugen, onVorlage }: {
       <CardHeader className="py-2 px-4">
         <button className="flex items-center justify-between w-full" onClick={() => setOffen(!offen)}>
           <CardTitle className="text-xs text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-            <Wand2 className="h-3.5 w-3.5" /> Bestuhlung erzeugen
+            <Wand2 className="h-3.5 w-3.5" /> {t.editorToolbar.bestuhlungErzeugen}
           </CardTitle>
           {offen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
@@ -245,25 +248,25 @@ function BestuhlungsGenerator({ leer, onErzeugen, onVorlage }: {
         <CardContent className="px-4 pb-3 space-y-3">
           {leer && (
             <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">Vorlagen — in Sekunden startklar:</p>
-              {VORLAGEN.map((v) => (
-                <button key={v.typ} onClick={() => onVorlage(v.typ)}
+              <p className="text-xs text-muted-foreground">{t.editorToolbar.vorlagenHinweis}</p>
+              {VORLAGEN_TYPEN.map((typ) => (
+                <button key={typ} onClick={() => onVorlage(typ)}
                   className="w-full text-left rounded-lg border border-input hover:border-primary/50 hover:bg-accent px-3 py-2.5 transition-colors">
-                  <span className="text-sm font-medium block">{v.label}</span>
-                  <span className="text-xs text-muted-foreground">{v.desc}</span>
+                  <span className="text-sm font-medium block">{t.editorToolbar.vorlagen[typ].label}</span>
+                  <span className="text-xs text-muted-foreground">{t.editorToolbar.vorlagen[typ].desc}</span>
                 </button>
               ))}
               <div className="flex items-center gap-2 pt-1">
                 <div className="h-px bg-border flex-1" />
-                <span className="text-[10px] text-muted-foreground uppercase">oder eigene</span>
+                <span className="text-[10px] text-muted-foreground uppercase">{t.editorToolbar.oderEigene}</span>
                 <div className="h-px bg-border flex-1" />
               </div>
             </div>
           )}
-          <ZahlInput label="Reihen" value={reihen} min={1} max={30} schritt={1} onChange={setReihen} />
-          <ZahlInput label="Sitze pro Reihe" value={sitze} min={2} max={40} schritt={1} onChange={setSitze} />
+          <ZahlInput label={t.editorToolbar.reihen} value={reihen} min={1} max={30} schritt={1} onChange={setReihen} />
+          <ZahlInput label={t.editorToolbar.sitzeProReihe} value={sitze} min={2} max={40} schritt={1} onChange={setSitze} />
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Mittelgang</Label>
+            <Label className="text-xs text-muted-foreground">{t.editorToolbar.mittelgang}</Label>
             <button type="button" onClick={() => setGang(!gang)}
               role="switch" aria-checked={gang}
               className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${gang ? "bg-primary" : "bg-input"}`}>
@@ -272,10 +275,10 @@ function BestuhlungsGenerator({ leer, onErzeugen, onVorlage }: {
           </div>
           <Button size="sm" className="w-full h-9" onClick={() => onErzeugen(reihen, sitze, gang)}>
             <Rows3 className="h-3.5 w-3.5 mr-1.5" />
-            {reihen * sitze} Plätze erzeugen
+            {fmt(t.editorToolbar.plaetzeErzeugen, { n: reihen * sitze })}
           </Button>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Wird unterhalb der Bühne eingefügt — mit Cmd+Z rückgängig machbar.
+            {t.editorToolbar.generatorHinweis}
           </p>
         </CardContent>
       )}
@@ -288,24 +291,28 @@ export default function EditorToolbar({
   onHinzufuegen, onBuehneAktualisieren, onKategorienAktualisieren, onRaumgroesseAktualisieren,
   onBestuhlungErzeugen, onVorlage,
 }: Props) {
+  const t = useT();
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Hinzufügen */}
       <div className="px-4 py-3 border-b border-border shrink-0">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-          Element hinzufügen
+          {t.editorToolbar.elementHinzufuegen}
         </p>
         <div className="grid grid-cols-3 gap-1.5">
-          {(Object.entries(TYP_META) as [ElementTyp, typeof TYP_META[ElementTyp]][]).map(([typ, meta]) => (
-            <button key={typ} onClick={() => onHinzufuegen(typ)}
-              className="flex flex-col items-center gap-1.5 py-3.5 px-1 rounded-lg border border-input hover:bg-accent hover:border-primary/50 text-xs font-medium transition-colors min-h-[60px]">
-              <meta.icon className="h-4.5 w-4.5" />
-              <span className="leading-none text-center">{meta.label}</span>
-            </button>
-          ))}
+          {(Object.keys(TYP_ICON) as ElementTyp[]).map((typ) => {
+            const Icon = TYP_ICON[typ];
+            return (
+              <button key={typ} onClick={() => onHinzufuegen(typ)}
+                className="flex flex-col items-center gap-1.5 py-3.5 px-1 rounded-lg border border-input hover:bg-accent hover:border-primary/50 text-xs font-medium transition-colors min-h-[60px]">
+                <Icon className="h-4.5 w-4.5" />
+                <span className="leading-none text-center">{t.editorToolbar.elementTypen[typ]}</span>
+              </button>
+            );
+          })}
         </div>
         <p className="text-xs text-muted-foreground mt-2.5">
-          {elemente.length} Element{elemente.length !== 1 ? "e" : ""} · {gesamtSitze} Plätze
+          {elemente.length} {elemente.length !== 1 ? t.editorToolbar.elementPl : t.editorToolbar.elementSg} · {gesamtSitze} {t.editorToolbar.plaetze}
         </p>
       </div>
 
@@ -322,7 +329,7 @@ export default function EditorToolbar({
       </div>
 
       <div className="px-4 py-3 border-t border-border shrink-0 text-xs text-muted-foreground text-center leading-relaxed">
-        Element anklicken → Inspektor unten
+        {t.editorToolbar.elementInspektor}
       </div>
     </div>
   );

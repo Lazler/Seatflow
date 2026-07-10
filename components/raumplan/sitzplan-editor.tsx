@@ -19,15 +19,22 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
 import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
   ssr: false,
-  loading: () => (
-    <div className="flex-1 bg-slate-50 flex items-center justify-center text-sm text-muted-foreground">
-      Canvas wird geladen…
-    </div>
-  ),
+  loading: () => <CanvasLadeHinweis />,
 });
+
+function CanvasLadeHinweis() {
+  const t = useT();
+  return (
+    <div className="flex-1 bg-slate-50 flex items-center justify-center text-sm text-muted-foreground">
+      {t.editor.canvasLaedt}
+    </div>
+  );
+}
 
 type Props = {
   planId: string; planName: string; venueId: string; venueName: string;
@@ -38,6 +45,9 @@ type Props = {
 
 export default function SitzplanEditor({ planId, planName, venueId, venueName, initialKonfiguration, verkaufteSitzIds = [] }: Props) {
   const router = useRouter();
+  const t = useT();
+  const locale = useLocale();
+  const currencyLocale = intlLocale(locale);
   const [konfig, setKonfig] = useState<SitzplanKonfiguration>(migrierteKonfiguration(initialKonfiguration));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
 
@@ -184,8 +194,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     const { error } = await supabase.from("sitzplaene").update({ name: bereinigt }).eq("id", planId);
     setNameLaedt(false);
     setNameEditModus(false);
-    if (error) { setNameWert(planName); toast.error("Umbenennen fehlgeschlagen", error.message); return; }
-    toast.success("Plan umbenannt", `Heißt jetzt „${bereinigt}".`);
+    if (error) { setNameWert(planName); toast.error(t.editor.umbenennenFehler, error.message); return; }
+    toast.success(t.editor.planUmbenannt, fmt(t.editor.heisstJetzt, { name: bereinigt }));
     router.refresh();
   }
 
@@ -203,7 +213,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   function schutzMelden(el: SitzplanElement) {
     const n = elementSitzIds(el).filter((id) => verkauft.has(id)).length;
-    setSchutzHinweis(`„${el.bezeichnung}" hat ${n} verkaufte${n === 1 ? "n" : ""} Platz${n === 1 ? "" : "..."} — Löschen und Struktur-Änderungen sind gesperrt. Verschieben ist erlaubt.`.replace("Platz...", "Plätze"));
+    setSchutzHinweis(fmt(n === 1 ? t.editor.schutzSg : t.editor.schutzPl, { bez: el.bezeichnung, n }));
     setTimeout(() => setSchutzHinweis(null), 5000);
   }
 
@@ -229,7 +239,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     if      (typ === "reihe")      neuesElement = { ...basis, typ: "reihe",      anzahlSitze: 10, sitzAbstand: 34 } satisfies ReiheElement;
     else if (typ === "tischreihe") neuesElement = { ...basis, typ: "tischreihe", sitzeProSeite: 4, sitzeOben: true, sitzeUnten: true } satisfies TischreiheElement;
     else if (typ === "stehplatz")  neuesElement = { ...basis, typ: "stehplatz",  breite: 220, hoehe: 130, kapazitaet: 30 } satisfies StehplatzElement;
-    else if (typ === "text")       neuesElement = { ...basis, typ: "text",       text: "Beschriftung", fontSize: 16 } satisfies TextElement;
+    else if (typ === "text")       neuesElement = { ...basis, typ: "text",       text: t.editor.textDefault, fontSize: 16 } satisfies TextElement;
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
     mutiere((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
@@ -404,11 +414,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     const { error } = await supabase.from("sitzplaene").update({ konfiguration: konfig }).eq("id", planId);
     setSpeichernLaedt(false);
     if (error) {
-      toast.error("Speichern fehlgeschlagen", error.message);
+      toast.error(t.editor.speichernFehler, error.message);
       return;
     }
     setGespeichert(true);
-    toast.success("Plan gespeichert", `${gesamtSitze} ${gesamtSitze === 1 ? "Platz" : "Plätze"} in „${nameWert}".`);
+    toast.success(t.editor.planGespeichert, fmt(gesamtSitze === 1 ? t.editor.planGespeichertSg : t.editor.planGespeichertPl, { n: gesamtSitze, name: nameWert }));
     router.refresh();
   }
 
@@ -469,12 +479,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               className="h-9 w-9 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold">{auswahlIds.length} Elemente</span>
+            <span className="text-sm font-semibold">{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</span>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
             <MousePointer2 className="h-8 w-8 opacity-30" />
-            <p className="text-sm">Ziehe ein Element um alle <strong>{auswahlIds.length} Elemente</strong> gemeinsam zu verschieben.</p>
-            <p className="text-xs">Shift+Klick zum Abwählen.</p>
+            <p className="text-sm">{t.editor.mehrereZiehenPre} <strong>{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</strong> {t.editor.mehrereZiehenPost}</p>
+            <p className="text-xs">{t.editor.shiftAbwaehlen}</p>
           </div>
           <div className="px-4 py-3 border-t border-border">
             <button type="button"
@@ -486,7 +496,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
                 onClose?.();
               }}
               className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
-              <Trash2 className="h-3.5 w-3.5" /> {auswahlIds.length} Elemente löschen
+              <Trash2 className="h-3.5 w-3.5" /> {fmt(t.editor.elementeLoeschen, { n: auswahlIds.length })}
             </button>
           </div>
         </div>
@@ -562,34 +572,34 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           {/* Undo / Redo / Snap */}
           <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
             <button type="button" onClick={undo} disabled={!historieStand.kannUndo}
-              aria-label="Rückgängig (Cmd+Z)" title="Rückgängig (Cmd+Z)"
+              aria-label={t.editor.rueckgaengig} title={t.editor.rueckgaengig}
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
               <Undo2 className="h-3.5 w-3.5" />
             </button>
             <button type="button" onClick={redo} disabled={!historieStand.kannRedo}
-              aria-label="Wiederholen (Cmd+Shift+Z)" title="Wiederholen (Cmd+Shift+Z)"
+              aria-label={t.editor.wiederholen} title={t.editor.wiederholen}
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
               <Redo2 className="h-3.5 w-3.5" />
             </button>
             <button type="button" onClick={() => setSnapAktiv((v) => !v)}
-              aria-label="Am Raster ausrichten" aria-pressed={snapAktiv}
-              title={snapAktiv ? "Raster-Snapping aktiv" : "Raster-Snapping aus"}
+              aria-label={t.editor.amRasterAusrichten} aria-pressed={snapAktiv}
+              title={snapAktiv ? t.editor.rasterAktiv : t.editor.rasterAus}
               className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
                 snapAktiv ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"
               }`}>
               <Magnet className="h-3.5 w-3.5" />
             </button>
             <button type="button" onClick={() => { setSperrModus((v) => !v); setBarrierefreiModus(false); setAuswahl(null); }}
-              aria-label="Sitze sperren" aria-pressed={sperrModus}
-              title="Sperrmodus: einzelne Plätze blockieren"
+              aria-label={t.editor.sitzeSperren} aria-pressed={sperrModus}
+              title={t.editor.sperrmodusTitle}
               className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
                 sperrModus ? "bg-destructive/15 text-destructive" : "hover:bg-muted text-muted-foreground"
               }`}>
               <Ban className="h-3.5 w-3.5" />
             </button>
             <button type="button" onClick={() => { setBarrierefreiModus((v) => !v); setSperrModus(false); setAuswahl(null); }}
-              aria-label="Barrierefreie Plätze markieren" aria-pressed={barrierefreiModus}
-              title="Barrierefrei-Modus: Rollstuhlplätze markieren"
+              aria-label={t.editor.barrierefreieMarkieren} aria-pressed={barrierefreiModus}
+              title={t.editor.barrierefreiModusTitle}
               className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
                 barrierefreiModus ? "bg-sky-100 text-sky-700" : "hover:bg-muted text-muted-foreground"
               }`}>
@@ -599,7 +609,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           {/* Zoom-Steuerung */}
           <div className="hidden sm:flex items-center gap-0.5 rounded-lg border border-input p-0.5">
             <button type="button" onClick={() => zoomSchritt(-1)} disabled={editorZoom <= ZOOM_STUFEN[0]}
-              aria-label="Verkleinern"
+              aria-label={t.editor.verkleinern}
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
@@ -608,24 +618,24 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               {Math.round(editorZoom * 100)}%
             </button>
             <button type="button" onClick={() => zoomSchritt(1)} disabled={editorZoom >= ZOOM_STUFEN[ZOOM_STUFEN.length - 1]}
-              aria-label="Vergrößern"
+              aria-label={t.editor.vergroessern}
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
           </div>
           <span className="text-xs text-muted-foreground hidden xl:inline">
-            {gesamtSitze} Plätze
+            {gesamtSitze} {t.editor.plaetze}
             {maxUmsatzCent > 0 && (
-              <> · max. <strong className="text-foreground font-semibold">
-                {(maxUmsatzCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
+              <> · {t.editor.maxLabel} <strong className="text-foreground font-semibold">
+                {(maxUmsatzCent / 100).toLocaleString(currencyLocale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
               </strong></>
             )}
           </span>
-          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ Gespeichert</span>}
-          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Sitz-IDs</span>}
+          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ {t.editor.gespeichert}</span>}
+          {hatDuplikate && <span className="text-xs text-destructive font-medium">{t.editor.doppelteSitzIds}</span>}
           <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
             <Save className="h-3.5 w-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">{speichernLaedt ? "Speichern…" : "Speichern"}</span>
+            <span className="hidden sm:inline">{speichernLaedt ? t.editor.speichernLaedt : t.editor.speichern}</span>
           </Button>
         </div>
       </div>
@@ -640,7 +650,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           {verkauft.size > 0 && (
             <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800 font-medium shrink-0">
               <Lock className="h-4 w-4 shrink-0" />
-              {verkauft.size} verkaufte Plätze — betroffene Elemente sind gegen Löschen und Umbenennen geschützt
+              {fmt(t.editor.verkaufteWarnung, { n: verkauft.size })}
             </div>
           )}
           {schutzHinweis && (
@@ -651,15 +661,15 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           {sperrModus && (
             <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
               <Ban className="h-4 w-4 shrink-0" />
-              Sperrmodus: Plätze anklicken zum Sperren/Entsperren
-              · {konfig.gesperrteSitze?.length ?? 0} gesperrt
+              {t.editor.sperrmodusBanner}
+              · {konfig.gesperrteSitze?.length ?? 0} {t.editor.gesperrt}
             </div>
           )}
           {barrierefreiModus && (
             <div className="flex items-center gap-2 rounded-xl bg-sky-50 border border-sky-200 px-4 py-2 text-sm text-sky-800 font-medium shrink-0">
               <Wheelchair className="h-4 w-4 shrink-0" />
-              Barrierefrei-Modus: Plätze anklicken zum Markieren
-              · {konfig.barrierefreieSitze?.length ?? 0} markiert
+              {t.editor.barrierefreiBanner}
+              · {konfig.barrierefreieSitze?.length ?? 0} {t.editor.markiert}
             </div>
           )}
           <div
@@ -682,6 +692,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               onMehrereElementeVerschieben={elementeMehrfachVerschieben}
               onBuehneVerschieben={buehneVerschieben}
               onBuehneTransformiert={buehneTransformiert}
+              texte={{
+                editorAria: t.editor.canvasAria,
+                textFallback: t.editor.canvasTextFallback,
+                stehplatzInfo: t.editor.stehplatzInfo,
+                currencyLocale,
+              }}
             />
             </ErrorBoundary>
           </div>
@@ -698,7 +714,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         <button
           onClick={() => setMobilePanelOffen(true)}
           className="lg:hidden fixed bottom-5 right-5 z-20 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-          aria-label="Panel öffnen"
+          aria-label={t.editor.panelOeffnen}
         >
           <SlidersHorizontal className="h-5 w-5" />
         </button>
@@ -713,7 +729,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             style={{ maxHeight: "78vh" }}
             aria-describedby={undefined}
           >
-            <Dialog.Title className="sr-only">Editor-Panel</Dialog.Title>
+            <Dialog.Title className="sr-only">{t.editor.editorPanel}</Dialog.Title>
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
