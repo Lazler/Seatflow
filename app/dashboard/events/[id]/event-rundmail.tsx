@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EnvelopeSimple, X, CircleNotch, PaperPlaneTilt, CheckCircle } from "@phosphor-icons/react";
+import { useT } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 
 // „E-Mail an alle Gäste" — z. B. Beginn verschoben, geänderter Einlass.
 export default function EventRundmail({ eventId, anzahlGaeste }: {
   eventId: string;
   anzahlGaeste: number;
 }) {
+  const t = useT();
   const [offen, setOffen] = useState(false);
   const [betreff, setBetreff] = useState("");
   const [nachricht, setNachricht] = useState("");
@@ -29,8 +32,12 @@ export default function EventRundmail({ eventId, anzahlGaeste }: {
     });
     setLaedt(false);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setFehler(data.error ?? "Senden fehlgeschlagen."); return; }
-    setErgebnis(`${data.gesendet} E-Mails gesendet${data.fehlgeschlagen ? `, ${data.fehlgeschlagen} fehlgeschlagen` : ""}.`);
+    if (!res.ok) { setFehler(data.error ?? t.eventRundmail.sendenFehlgeschlagen); return; }
+    setErgebnis(
+      fmt(t.eventRundmail.gesendet, { n: data.gesendet })
+        + (data.fehlgeschlagen ? fmt(t.eventRundmail.fehlgeschlagen, { n: data.fehlgeschlagen }) : "")
+        + "."
+    );
   }
 
   function zuruecksetzen(o: boolean) {
@@ -43,7 +50,7 @@ export default function EventRundmail({ eventId, anzahlGaeste }: {
       <Dialog.Trigger asChild>
         <Button size="sm" variant="outline" className="w-full" disabled={anzahlGaeste === 0}>
           <EnvelopeSimple className="h-3.5 w-3.5 mr-1.5" />
-          E-Mail an alle Gäste{anzahlGaeste > 0 ? ` (${anzahlGaeste})` : ""}
+          {t.eventRundmail.button}{anzahlGaeste > 0 ? ` (${anzahlGaeste})` : ""}
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -55,10 +62,10 @@ export default function EventRundmail({ eventId, anzahlGaeste }: {
           <div className="flex items-start justify-between mb-1">
             <Dialog.Title className="text-base font-semibold flex items-center gap-2">
               <EnvelopeSimple className="h-4 w-4 text-primary" />
-              E-Mail an alle Gäste
+              {t.eventRundmail.titel}
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground" aria-label="Schließen">
+              <button className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground" aria-label={t.common.schliessen}>
                 <X className="h-4 w-4" />
               </button>
             </Dialog.Close>
@@ -69,30 +76,28 @@ export default function EventRundmail({ eventId, anzahlGaeste }: {
               <CheckCircle className="h-10 w-10 text-green-600 mx-auto" />
               <p className="text-sm font-medium">{ergebnis}</p>
               <Dialog.Close asChild>
-                <Button size="sm" variant="outline">Schließen</Button>
+                <Button size="sm" variant="outline">{t.common.schliessen}</Button>
               </Dialog.Close>
             </div>
           ) : (
             <>
               <p className="text-xs text-muted-foreground mb-4">
-                Erreicht alle Käufer mit bezahlter Buchung ({anzahlGaeste} Adressen) —
-                z. B. bei verschobenem Beginn oder geändertem Einlass.
-                Maximal 2 Rundmails pro Stunde.
+                {fmt(t.eventRundmail.intro, { n: anzahlGaeste })}
               </p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Betreff</Label>
+                  <Label className="text-xs">{t.eventRundmail.betreff}</Label>
                   <Input value={betreff} maxLength={150}
                     onChange={(e) => setBetreff(e.target.value)}
-                    placeholder="z. B. Geänderter Beginn: 20:30 Uhr"
+                    placeholder={t.eventRundmail.betreffPlaceholder}
                     className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Nachricht</Label>
+                  <Label className="text-xs">{t.eventRundmail.nachricht}</Label>
                   <textarea
                     value={nachricht} maxLength={5000} rows={6}
                     onChange={(e) => setNachricht(e.target.value)}
-                    placeholder="Liebe Gäste, …"
+                    placeholder={t.eventRundmail.nachrichtPlaceholder}
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                   />
                 </div>
@@ -100,13 +105,13 @@ export default function EventRundmail({ eventId, anzahlGaeste }: {
               {fehler && <p className="mt-3 text-xs text-destructive bg-destructive/5 rounded-lg px-3 py-2">{fehler}</p>}
               <div className="mt-4 flex justify-end gap-2">
                 <Dialog.Close asChild>
-                  <Button variant="outline" size="sm">Abbrechen</Button>
+                  <Button variant="outline" size="sm">{t.common.abbrechen}</Button>
                 </Dialog.Close>
                 <Button size="sm" onClick={senden}
                   disabled={laedt || betreff.trim().length < 3 || nachricht.trim().length < 10}>
                   {laedt
-                    ? <><CircleNotch className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Sende…</>
-                    : <><PaperPlaneTilt className="h-3.5 w-3.5 mr-1.5" /> An {anzahlGaeste} Gäste senden</>}
+                    ? <><CircleNotch className="h-3.5 w-3.5 mr-1.5 animate-spin" /> {t.eventRundmail.sende}</>
+                    : <><PaperPlaneTilt className="h-3.5 w-3.5 mr-1.5" /> {fmt(t.eventRundmail.sendenButton, { n: anzahlGaeste })}</>}
                 </Button>
               </div>
             </>

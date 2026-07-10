@@ -10,10 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash as Trash2, CaretDown as ChevronDown, CaretUp as ChevronUp, Ticket as Tickets, DotsSixVertical as GripVertical, X } from "@phosphor-icons/react";
 import type { TicketTyp, PflichtFeld, PreisRegel } from "@/types/ticket-typ";
-import { regelLabel } from "@/types/ticket-typ";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
+import { LOCALE_LABELS } from "@/lib/i18n";
 
 type Lang = "de" | "en" | "hu";
 const FLAG: Record<Lang, string> = { de: "DE", en: "EN", hu: "HU" };
+const dateLocaleFor = (l: Lang) => (l === "hu" ? "hu-HU" : l === "en" ? "en-GB" : "de-DE");
 
 const NEUER_TYP = (): TicketTyp => ({
   id: crypto.randomUUID(),
@@ -32,11 +35,8 @@ const NEUES_FELD = (): PflichtFeld => ({
   pflicht: true,
 });
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-}
-
 function PreisRegelEditor({ regel, onChange }: { regel: PreisRegel; onChange: (r: PreisRegel) => void }) {
+  const t = useT();
   return (
     <div className="space-y-2">
       <div className="flex rounded-md border border-input overflow-hidden text-xs">
@@ -56,7 +56,7 @@ function PreisRegelEditor({ regel, onChange }: { regel: PreisRegel; onChange: (r
                 : "bg-background text-muted-foreground hover:bg-muted"
             }`}
           >
-            {typ === "basis" ? "Normal" : typ === "fest" ? "Festpreis" : typ === "prozent" ? "Prozent" : "Rabatt"}
+            {typ === "basis" ? t.ticketTypen.regelNormal : typ === "fest" ? t.ticketTypen.regelFest : typ === "prozent" ? t.ticketTypen.regelProzent : t.ticketTypen.regelRabatt}
           </button>
         ))}
       </div>
@@ -68,7 +68,7 @@ function PreisRegelEditor({ regel, onChange }: { regel: PreisRegel; onChange: (r
             onChange={(e) => onChange({ typ: "fest", cent: Math.round(parseFloat(e.target.value || "0") * 100) })}
             className="h-8 text-sm w-28"
           />
-          <span className="text-sm text-muted-foreground">€ pro Ticket (unabhängig vom Sitzpreis)</span>
+          <span className="text-sm text-muted-foreground">{t.ticketTypen.festHinweis}</span>
         </div>
       )}
       {regel.typ === "prozent" && (
@@ -79,7 +79,7 @@ function PreisRegelEditor({ regel, onChange }: { regel: PreisRegel; onChange: (r
             onChange={(e) => onChange({ typ: "prozent", prozent: Math.min(100, Math.max(1, parseInt(e.target.value || "50"))) })}
             className="h-8 text-sm w-20"
           />
-          <span className="text-sm text-muted-foreground">% des Sitzpreises</span>
+          <span className="text-sm text-muted-foreground">{t.ticketTypen.prozentHinweis}</span>
         </div>
       )}
       {regel.typ === "rabatt_cent" && (
@@ -90,7 +90,7 @@ function PreisRegelEditor({ regel, onChange }: { regel: PreisRegel; onChange: (r
             onChange={(e) => onChange({ typ: "rabatt_cent", cent: Math.round(parseFloat(e.target.value || "0") * 100) })}
             className="h-8 text-sm w-28"
           />
-          <span className="text-sm text-muted-foreground">€ Nachlass auf den Sitzpreis</span>
+          <span className="text-sm text-muted-foreground">{t.ticketTypen.rabattHinweis}</span>
         </div>
       )}
     </div>
@@ -102,12 +102,13 @@ function PflichtFeldEditor({ feld, onChange, onDelete }: {
   onChange: (f: Partial<PflichtFeld>) => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   return (
     <div className="flex gap-2 items-start p-2.5 rounded-lg bg-muted/40 border border-border">
       <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-1.5 shrink-0" />
       <div className="flex-1 grid grid-cols-2 gap-2">
         <Input
-          placeholder="Feldbezeichnung (z.B. Schülerausweis-Nr.)"
+          placeholder={t.ticketTypen.feldLabelPlaceholder}
           value={feld.label}
           onChange={(e) => onChange({ label: e.target.value })}
           className="h-7 text-xs col-span-2"
@@ -117,10 +118,10 @@ function PflichtFeldEditor({ feld, onChange, onDelete }: {
           onChange={(e) => onChange({ typ: e.target.value as PflichtFeld["typ"] })}
           className="h-7 rounded-md border border-input bg-background px-2 text-xs"
         >
-          <option value="text">Text</option>
-          <option value="zahl">Zahl</option>
-          <option value="email">E-Mail</option>
-          <option value="auswahl">Auswahl (Dropdown)</option>
+          <option value="text">{t.ticketTypen.feldText}</option>
+          <option value="zahl">{t.ticketTypen.feldZahl}</option>
+          <option value="email">{t.ticketTypen.feldEmail}</option>
+          <option value="auswahl">{t.ticketTypen.feldAuswahl}</option>
         </select>
         <div className="flex items-center gap-1.5">
           <input
@@ -130,12 +131,12 @@ function PflichtFeldEditor({ feld, onChange, onDelete }: {
             onChange={(e) => onChange({ pflicht: e.target.checked })}
             className="h-3.5 w-3.5"
           />
-          <label htmlFor={`pflicht-${feld.id}`} className="text-xs text-muted-foreground">Pflichtfeld</label>
+          <label htmlFor={`pflicht-${feld.id}`} className="text-xs text-muted-foreground">{t.ticketTypen.pflichtfeld}</label>
         </div>
         {feld.typ === "auswahl" && (
           <div className="col-span-2">
             <Input
-              placeholder="Optionen, kommagetrennt (z.B. Klasse 1, Klasse 2)"
+              placeholder={t.ticketTypen.optionenPlaceholder}
               value={(feld.optionen ?? []).join(", ")}
               onChange={(e) => onChange({ optionen: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
               className="h-7 text-xs"
@@ -156,10 +157,23 @@ function TypEditor({ typ, onChange, onDelete, zusatzSprachen = [] }: {
   onDelete: () => void;
   zusatzSprachen?: Lang[];
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [offen, setOffen] = useState(!typ.name);
   const [aktiveSprache, setAktiveSprache] = useState<Lang>("de");
   const alleSprachen: Lang[] = ["de", ...zusatzSprachen];
   const hatMehrSprachen = zusatzSprachen.length > 0;
+
+  const euroFmt = (cent: number) =>
+    (cent / 100).toLocaleString(dateLocaleFor(locale), { style: "currency", currency: "EUR" });
+  function regelKurz(regel: PreisRegel): string {
+    switch (regel.typ) {
+      case "basis": return t.ticketTypen.regelLabelNormal;
+      case "fest": return fmt(t.ticketTypen.regelLabelFest, { preis: euroFmt(regel.cent) });
+      case "prozent": return fmt(t.ticketTypen.regelLabelProzent, { prozent: regel.prozent });
+      case "rabatt_cent": return fmt(t.ticketTypen.regelLabelRabatt, { preis: euroFmt(regel.cent) });
+    }
+  }
 
   function getName(lang: Lang) {
     if (lang === "de") return typ.name;
@@ -183,8 +197,8 @@ function TypEditor({ typ, onChange, onDelete, zusatzSprachen = [] }: {
       <div className="flex items-center gap-3 px-3 py-2.5">
         <button type="button" onClick={() => setOffen((v) => !v)} className="flex-1 flex items-center gap-2 text-left min-w-0">
           {offen ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-          <span className="font-medium text-sm truncate">{typ.name || <span className="text-muted-foreground italic">Unbenannt</span>}</span>
-          {typ.name && <span className="text-xs text-muted-foreground shrink-0">{regelLabel(typ.preis_regel)}</span>}
+          <span className="font-medium text-sm truncate">{typ.name || <span className="text-muted-foreground italic">{t.ticketTypen.unbenannt}</span>}</span>
+          {typ.name && <span className="text-xs text-muted-foreground shrink-0">{regelKurz(typ.preis_regel)}</span>}
         </button>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -194,7 +208,7 @@ function TypEditor({ typ, onChange, onDelete, zusatzSprachen = [] }: {
               typ.aktiv ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"
             }`}
           >
-            {typ.aktiv ? "Aktiv" : "Inaktiv"}
+            {typ.aktiv ? t.ticketTypen.aktiv : t.ticketTypen.inaktiv}
           </button>
           <button type="button" onClick={onDelete} className="text-muted-foreground/40 hover:text-destructive transition-colors">
             <Trash2 className="h-4 w-4" />
@@ -227,40 +241,40 @@ function TypEditor({ typ, onChange, onDelete, zusatzSprachen = [] }: {
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">
-                Name {aktiveSprache !== "de" ? `(${FLAG[aktiveSprache]} ${aktiveSprache.toUpperCase()})` : "*"}
+                {t.ticketTypen.nameLabel} {aktiveSprache !== "de" ? `(${FLAG[aktiveSprache]} ${aktiveSprache.toUpperCase()})` : "*"}
               </Label>
               <Input
                 value={getName(aktiveSprache)}
                 onChange={(e) => setName(aktiveSprache, e.target.value)}
-                placeholder={aktiveSprache === "de" ? "z.B. Schülerticket, Seniorenticket" : `Name auf ${aktiveSprache === "en" ? "Englisch" : "Ungarisch"}`}
+                placeholder={aktiveSprache === "de" ? t.ticketTypen.namePlaceholder : fmt(t.ticketTypen.nameUebersetzungPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
                 className="h-8 text-sm"
                 required={aktiveSprache === "de"}
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Max. pro Buchung (optional)</Label>
+              <Label className="text-xs">{t.ticketTypen.maxProBuchung}</Label>
               <Input
                 type="number" min="1"
                 value={typ.max_pro_buchung ?? ""}
                 onChange={(e) => onChange({ max_pro_buchung: e.target.value ? parseInt(e.target.value) : undefined })}
-                placeholder="Unbegrenzt"
+                placeholder={t.ticketTypen.unbegrenzt}
                 className="h-8 text-sm"
               />
             </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">
-              Kurzbeschreibung {aktiveSprache !== "de" ? `(${FLAG[aktiveSprache]} ${aktiveSprache.toUpperCase()})` : "(optional, sichtbar für Kunden)"}
+              {t.ticketTypen.kurzbeschreibung} {aktiveSprache !== "de" ? `(${FLAG[aktiveSprache]} ${aktiveSprache.toUpperCase()})` : t.ticketTypen.kurzbeschreibungOptional}
             </Label>
             <Input
               value={getBeschreibung(aktiveSprache)}
               onChange={(e) => setBeschreibung(aktiveSprache, e.target.value)}
-              placeholder={aktiveSprache === "de" ? "z.B. Nur mit gültigem Schülerausweis" : `Beschreibung auf ${aktiveSprache === "en" ? "Englisch" : "Ungarisch"}`}
+              placeholder={aktiveSprache === "de" ? t.ticketTypen.beschreibungPlaceholder : fmt(t.ticketTypen.beschreibungUebersetzungPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
               className="h-8 text-sm"
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Preisregel</Label>
+            <Label className="text-xs">{t.ticketTypen.preisregel}</Label>
             <PreisRegelEditor
               regel={typ.preis_regel}
               onChange={(r) => onChange({ preis_regel: r })}
@@ -268,17 +282,17 @@ function TypEditor({ typ, onChange, onDelete, zusatzSprachen = [] }: {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Zusatzfelder beim Checkout</Label>
+              <Label className="text-xs">{t.ticketTypen.zusatzfelder}</Label>
               <button
                 type="button"
                 onClick={() => onChange({ pflichtfelder: [...typ.pflichtfelder, NEUES_FELD()] })}
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
-                <Plus className="h-3 w-3" /> Feld hinzufügen
+                <Plus className="h-3 w-3" /> {t.ticketTypen.feldHinzufuegen}
               </button>
             </div>
             {typ.pflichtfelder.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Keine zusätzlichen Felder — nur Name &amp; E-Mail werden abgefragt.</p>
+              <p className="text-xs text-muted-foreground">{t.ticketTypen.keineFelder}</p>
             ) : (
               <div className="space-y-1.5">
                 {typ.pflichtfelder.map((feld, fi) => (
@@ -305,6 +319,7 @@ export default function TicketTypen({ eventId, initialTypen, eventSprachen = ["d
   const zusatzSprachen = (eventSprachen.filter((l) => l !== "de") as Lang[]).filter((l) =>
     ["en", "hu"].includes(l)
   );
+  const t = useT();
   const [typen, setTypen] = useState<TicketTyp[]>(initialTypen);
   const [isPending, startTransition] = useTransition();
   const [gespeichert, setGespeichert] = useState(false);
@@ -326,11 +341,11 @@ export default function TicketTypen({ eventId, initialTypen, eventSprachen = ["d
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Tickets className="h-4 w-4" /> Ticket-Typen
+          <Tickets className="h-4 w-4" /> {t.ticketTypen.titel}
         </CardTitle>
         {typen.length > 0 && (
           <Button size="sm" variant="outline" onClick={speichern} disabled={isPending}>
-            {gespeichert ? "✓ Gespeichert" : "Speichern"}
+            {gespeichert ? `✓ ${t.common.gespeichert}` : t.common.speichern}
           </Button>
         )}
       </CardHeader>
@@ -338,7 +353,7 @@ export default function TicketTypen({ eventId, initialTypen, eventSprachen = ["d
         {typen.length === 0 ? (
           <div className="text-center py-4">
             <p className="text-xs text-muted-foreground mb-3">
-              Noch keine Typen definiert. Alle Kunden zahlen den normalen Sitzpreis.
+              {t.ticketTypen.keineTypen}
             </p>
           </div>
         ) : (
@@ -358,15 +373,15 @@ export default function TicketTypen({ eventId, initialTypen, eventSprachen = ["d
           type="button" size="sm" variant="outline" className="w-full"
           onClick={() => setTypen((prev) => [...prev, NEUER_TYP()])}
         >
-          <Plus className="h-3.5 w-3.5 mr-1.5" /> Ticket-Typ hinzufügen
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.ticketTypen.ticketTypHinzufuegen}
         </Button>
         {typen.length > 0 && (
           <Button size="sm" className="w-full" onClick={speichern} disabled={isPending}>
-            {gespeichert ? "✓ Gespeichert" : "Speichern"}
+            {gespeichert ? `✓ ${t.common.gespeichert}` : t.common.speichern}
           </Button>
         )}
         <p className="text-xs text-muted-foreground">
-          Kunden wählen beim Checkout ihren Typ — der Preis und eventuelle Pflichtfelder passen sich automatisch an.
+          {t.ticketTypen.fusszeile}
         </p>
       </CardContent>
     </Card>

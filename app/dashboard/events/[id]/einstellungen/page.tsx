@@ -29,7 +29,7 @@ export default async function EventEinstellungen({
     data: { user },
   } = await supabase.auth.getUser();
 
-  await getServerDict();
+  const t = await getServerDict();
 
   const [{ data: event }, { data: templates }, { data: alleVenues }] = await Promise.all([
     supabase
@@ -79,7 +79,7 @@ export default async function EventEinstellungen({
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-bold">Einstellungen</h1>
+          <h1 className="text-xl font-bold">{t.eventEinstellungen.title}</h1>
           <p className="text-sm text-muted-foreground truncate">{event.titel}</p>
         </div>
       </div>

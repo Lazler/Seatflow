@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Plus, Lock } from "@phosphor-icons/react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/components/i18n-provider";
 
 type Venue = { id: string; name: string };
 
@@ -27,6 +28,7 @@ export default function VenueZuweisung({
   // die auf Tickets gespeicherten Sitzplätze ungültig machen
   gesperrt: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [venueId, setVenueId] = useState(aktuelleVenueId ?? "");
   const [speichert, setSpeichert] = useState(false);
@@ -49,12 +51,12 @@ export default function VenueZuweisung({
     const { error } = await supabase.from("events").update(patch).eq("id", eventId);
     setSpeichert(false);
     if (error) {
-      toast.error("Speichern fehlgeschlagen", error.message);
+      toast.error(t.common.speichernFehlgeschlagen, error.message);
       return;
     }
     toast.success(
-      venueId ? "Veranstaltungsort zugeordnet" : "Veranstaltungsort entfernt",
-      venueGewechselt ? "Sitzplan-Zuordnung wurde zurückgesetzt — bitte unten neu wählen." : undefined
+      venueId ? t.venueZuweisung.zugeordnet : t.venueZuweisung.entfernt,
+      venueGewechselt ? t.venueZuweisung.resetHinweis : undefined
     );
     router.refresh();
   }
@@ -64,16 +66,16 @@ export default function VenueZuweisung({
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
           <MapPin className="h-4 w-4" />
-          Veranstaltungsort
+          {t.eventDetailPage.veranstaltungsort}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {venues.length === 0 ? (
           <div className="text-xs text-muted-foreground space-y-2">
-            <p>Du hast noch keinen Veranstaltungsort angelegt.</p>
+            <p>{t.eventForm.keinVenue}</p>
             <Button size="sm" variant="outline" asChild>
               <Link href="/dashboard/venues/neu">
-                <Plus className="h-3.5 w-3.5 mr-1.5" /> Veranstaltungsort anlegen
+                <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.venues.venueAnlegen}
               </Link>
             </Button>
           </div>
@@ -81,8 +83,7 @@ export default function VenueZuweisung({
           <div className="flex items-start gap-2 rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs text-muted-foreground">
             <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <p>
-              Der Veranstaltungsort ist festgelegt, weil es bereits bezahlte Buchungen gibt.
-              Ein Wechsel würde die verkauften Sitzplätze ungültig machen.
+              {t.venueZuweisung.gesperrtHinweis}
             </p>
           </div>
         ) : (
@@ -92,18 +93,18 @@ export default function VenueZuweisung({
               value={venueId}
               onChange={(e) => setVenueId(e.target.value)}
             >
-              <option value="">— Kein Veranstaltungsort —</option>
+              <option value="">{t.venueZuweisung.keinVenueOption}</option>
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
             {venueGewechselt && (
               <p className="text-[11px] text-amber-600">
-                Beim Wechsel wird die bisherige Sitzplan-Zuordnung zurückgesetzt.
+                {t.venueZuweisung.wechselHinweis}
               </p>
             )}
             <Button size="sm" onClick={speichern} disabled={speichert || !geaendert}>
-              {speichert ? "Speichern…" : "Speichern"}
+              {speichert ? t.common.speichernLaeuft : t.common.speichern}
             </Button>
           </>
         )}

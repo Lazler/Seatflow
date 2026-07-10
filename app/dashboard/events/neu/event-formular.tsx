@@ -70,7 +70,7 @@ export default function NeuesEventFormular({
 
     const preisInCent = Math.round(parseFloat(preisEuro.replace(",", ".")) * 100);
     if (isNaN(preisInCent) || preisInCent < 0) {
-      setFehler("Ungültiger Ticketpreis.");
+      setFehler(t.eventForm.ungueltigerPreis);
       setLaedt(false);
       return;
     }
@@ -99,7 +99,7 @@ export default function NeuesEventFormular({
 
     const json = await res.json();
     if (!res.ok) {
-      setFehler(json.error ?? "Event konnte nicht gespeichert werden.");
+      setFehler(json.error ?? t.eventForm.speichernFehler);
       setLaedt(false);
       return;
     }
@@ -173,7 +173,7 @@ export default function NeuesEventFormular({
               {venueOhnePlan && (
                 <p className="flex items-start gap-1.5 text-xs text-amber-600">
                   <WarningCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  Dieser Ort hat noch keinen Saalplan. Du kannst das Event trotzdem anlegen und den Plan später zuweisen — verkaufen kannst du erst mit Saalplan.
+                  {t.eventForm.keinSaalplanWarnung}
                 </p>
               )}
             </div>
