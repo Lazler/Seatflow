@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { LEERE_KONFIGURATION } from "@/types/sitzplan";
+import { getServerDict } from "@/lib/i18n/server";
 
 export default async function NeuerRaumplan({
   params,
@@ -26,11 +27,12 @@ export default async function NeuerRaumplan({
   if (!venue) notFound();
 
   // Neuen Raumplan anlegen
+  const dict = await getServerDict();
   const { data: plan, error } = await supabase
     .from("sitzplaene")
     .insert({
       venue_id: venueId,
-      name: "Neuer Saalplan",
+      name: dict.venueDetail.neuerSaalplan,
       konfiguration: LEERE_KONFIGURATION,
     })
     .select("id")

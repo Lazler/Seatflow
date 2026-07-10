@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,24 @@ export default async function VenueDetail({
 
   if (!venue) notFound();
 
+  // Sprache: Cookie > Profil > de (wie im Dashboard-Layout)
+  const jar = await cookies();
+  const cookieLang = jar.get("dashboard_lang")?.value;
+  let locale: Locale = "de";
+  if (cookieLang && isLocale(cookieLang)) {
+    locale = cookieLang;
+  } else {
+    const { data: profil } = await supabase
+      .from("veranstalter_profile")
+      .select("sprache")
+      .eq("id", user!.id)
+      .single();
+    if (profil?.sprache && isLocale(profil.sprache)) locale = profil.sprache as Locale;
+  }
+  const dict = await getDictionary(locale);
+  const t = dict.venueDetail;
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -68,16 +88,16 @@ export default async function VenueDetail({
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Map className="h-4 w-4" /> Saalpläne
+                  <Map className="h-4 w-4" /> {t.saalplaeneTitel}
                 </CardTitle>
                 <CardDescription>
-                  Sitzplan-Layouts für diesen Veranstaltungsort
+                  {t.saalplaeneBeschreibung}
                 </CardDescription>
               </div>
               {(sitzplaene ?? []).length > 0 && (
                 <Button size="sm" variant="outline" asChild>
                   <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
-                    <Plus className="h-4 w-4 mr-1" /> Neuer Plan
+                    <Plus className="h-4 w-4 mr-1" /> {t.neuerPlan}
                   </Link>
                 </Button>
               )}
@@ -85,13 +105,13 @@ export default async function VenueDetail({
             <CardContent>
               {(sitzplaene ?? []).length === 0 ? (
                 <div className="text-center py-6">
-                  <p className="text-sm font-medium">Nächster Schritt: Saalplan erstellen</p>
+                  <p className="text-sm font-medium">{t.naechsterSchritt}</p>
                   <p className="text-sm text-muted-foreground mt-1 mb-4">
-                    Platziere Reihen, Tische oder Stehplatz-Zonen — erst danach kannst du Tickets verkaufen.
+                    {t.naechsterSchrittText}
                   </p>
                   <Button size="sm" asChild>
                     <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
-                      <Plus className="h-4 w-4 mr-1.5" /> Saalplan erstellen
+                      <Plus className="h-4 w-4 mr-1.5" /> {t.saalplanErstellen}
                     </Link>
                   </Button>
                 </div>
@@ -107,7 +127,7 @@ export default async function VenueDetail({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="h-4 w-4" /> Events hier
+                <Calendar className="h-4 w-4" /> {t.eventsHier}
               </CardTitle>
               <Button size="sm" variant="ghost" asChild>
                 <Link href={`/dashboard/events/neu?venue=${id}`}>
@@ -118,11 +138,11 @@ export default async function VenueDetail({
             <CardContent>
               {(events ?? []).length === 0 ? (
                 <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">Noch keine Events hier.</p>
+                  <p className="text-sm text-muted-foreground mb-3">{t.keineEventsHier}</p>
                   {(sitzplaene ?? []).length > 0 && (
                     <Button size="sm" variant="outline" asChild>
                       <Link href={`/dashboard/events/neu?venue=${id}`}>
-                        <Plus className="h-4 w-4 mr-1.5" /> Event hier anlegen
+                        <Plus className="h-4 w-4 mr-1.5" /> {t.eventHierAnlegen}
                       </Link>
                     </Button>
                   )}
@@ -138,7 +158,7 @@ export default async function VenueDetail({
                         <p className="text-sm font-medium">{event.titel}</p>
                         <div className="flex items-center justify-between mt-1">
                           <p className="text-xs text-muted-foreground">
-                            {new Date(event.datum).toLocaleDateString("de-DE", {
+                            {new Date(event.datum).toLocaleDateString(dateLocale, {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
@@ -146,9 +166,9 @@ export default async function VenueDetail({
                           </p>
                           <Badge variant="secondary" className="text-xs">
                             {event.status === "veroeffentlicht"
-                              ? "Live"
+                              ? dict.status.live
                               : event.status === "entwurf"
-                              ? "Entwurf"
+                              ? dict.status.entwurf
                               : event.status}
                           </Badge>
                         </div>

@@ -9,9 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useT } from "@/components/i18n-provider";
 
 export default function NeuesVenue() {
   const router = useRouter();
+  const dict = useT();
+  const t = dict.venueNeu;
+  const tb = dict.venueBearbeiten;
   const [name, setName] = useState("");
   const [adresse, setAdresse] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
@@ -45,7 +49,7 @@ export default function NeuesVenue() {
       .single();
 
     if (error) {
-      setFehler("Veranstaltungsort konnte nicht gespeichert werden.");
+      setFehler(t.fehlerSpeichern);
       setLaedt(false);
       return;
     }
@@ -62,25 +66,25 @@ export default function NeuesVenue() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Neuer Veranstaltungsort</h1>
-          <p className="text-muted-foreground text-sm">Bühne, Saal oder Location anlegen</p>
+          <h1 className="text-2xl font-bold">{dict.venues.neuesVenue}</h1>
+          <p className="text-muted-foreground text-sm">{t.untertitel}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Angaben zum Veranstaltungsort</CardTitle>
+          <CardTitle className="text-base">{t.angaben}</CardTitle>
           <CardDescription>
-            Den Saalplan legst du danach direkt hier an.
+            {t.angabenBeschreibung}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">{tb.nameLabel}</Label>
               <Input
                 id="name"
-                placeholder="z.B. Kleines Theater am Markt"
+                placeholder={t.namePlaceholder}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -88,21 +92,21 @@ export default function NeuesVenue() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="adresse">Adresse</Label>
+              <Label htmlFor="adresse">{tb.adresse}</Label>
               <Input
                 id="adresse"
-                placeholder="z.B. Marktplatz 1, 80331 München"
+                placeholder={tb.adressePlaceholder}
                 value={adresse}
                 onChange={(e) => setAdresse(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="beschreibung">Beschreibung</Label>
+              <Label htmlFor="beschreibung">{tb.beschreibung}</Label>
               <textarea
                 id="beschreibung"
                 className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Optional: kurze Beschreibung des Ortes"
+                placeholder={t.beschreibungPlaceholder}
                 value={beschreibung}
                 onChange={(e) => setBeschreibung(e.target.value)}
               />
@@ -112,10 +116,10 @@ export default function NeuesVenue() {
 
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={laedt}>
-                {laedt ? "Wird gespeichert..." : "Veranstaltungsort anlegen"}
+                {laedt ? dict.eventForm.speichert : dict.venues.venueAnlegen}
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/dashboard/venues">Abbrechen</Link>
+                <Link href="/dashboard/venues">{dict.common.abbrechen}</Link>
               </Button>
             </div>
           </form>

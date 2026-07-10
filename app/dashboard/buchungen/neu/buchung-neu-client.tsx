@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CircleNotch as Loader2, UserPlus } from "@phosphor-icons/react";
 import { migrierteKonfiguration, elementSitzIds, type SitzplanKonfiguration } from "@/types/sitzplan";
 import { toast } from "@/components/ui/toaster";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 
 type EventRow = { id: string; titel: string; datum: string; sitzplan_id: string | null; service_gebuehr_cent: number | null };
 
@@ -24,12 +26,14 @@ type SitzInfo = {
   elementBezeichnung: string;
 };
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-}
-
 export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
   const router = useRouter();
+  const dict = useT();
+  const t = dict.manuelleBuchung;
+  const locale = useLocale();
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
+  const euro = (cent: number) =>
+    (cent / 100).toLocaleString(dateLocale, { style: "currency", currency: "EUR" });
   const [eventId, setEventId] = useState("");
   const [alleeSitze, setAlleeSitze] = useState<SitzInfo[]>([]);
   const [belegte, setBelegte] = useState<Set<string>>(new Set());
@@ -111,8 +115,8 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
 
   async function absenden(e: React.FormEvent) {
     e.preventDefault();
-    if (!eventId || ausgewaehlt.size === 0) { setFehler("Event und mindestens einen Platz wählen."); return; }
-    if (!name.trim() || !email.trim()) { setFehler("Name und E-Mail sind erforderlich."); return; }
+    if (!eventId || ausgewaehlt.size === 0) { setFehler(t.fehlerEventPlatz); return; }
+    if (!name.trim() || !email.trim()) { setFehler(t.fehlerNameEmail); return; }
     setFehler(null);
     setLaedt(true);
 
@@ -134,13 +138,14 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
 
     const data = await res.json().catch(() => ({})) as { id?: string; error?: string };
     if (!res.ok || !data.id) {
-      const msg = data.error ?? "Buchung konnte nicht angelegt werden.";
+      const msg = data.error ?? t.fehlerAnlegen;
       setFehler(msg);
-      toast.error("Buchung fehlgeschlagen", msg);
+      toast.error(t.buchungFehlgeschlagen, msg);
       setLaedt(false);
       return;
     }
-    toast.success("Buchung angelegt", `${ausgewaehlteSitze.length} ${ausgewaehlteSitze.length === 1 ? "Platz" : "Plätze"} für ${name.trim()}.`);
+    const anzahl = ausgewaehlteSitze.length;
+    toast.success(t.buchungAngelegt, fmt(anzahl === 1 ? t.angelegtText : t.angelegtText_pl, { n: anzahl, name: name.trim() }));
     router.push(`/dashboard/buchungen/${data.id}`);
   }
 
@@ -152,16 +157,16 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
         </Button>
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <UserPlus className="h-5 w-5" /> Buchung manuell anlegen
+            <UserPlus className="h-5 w-5" /> {t.titel}
           </h1>
-          <p className="text-sm text-muted-foreground">Für Walk-ins, Telefonbestellungen oder Übernahmen.</p>
+          <p className="text-sm text-muted-foreground">{t.untertitel}</p>
         </div>
       </div>
 
       <form onSubmit={absenden} className="space-y-5">
         {/* Event */}
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-sm">Event</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">{dict.buchungen.colEvent}</CardTitle></CardHeader>
           <CardContent>
             <select
               value={eventId}
@@ -169,10 +174,10 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
               required
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="">— Event wählen —</option>
+              <option value="">{t.eventWaehlen}</option>
               {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>
-                  {ev.titel} · {new Date(ev.datum).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}
+                  {ev.titel} · {new Date(ev.datum).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}
                 </option>
               ))}
             </select>
@@ -184,19 +189,19 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center justify-between">
-                <span>Plätze wählen</span>
+                <span>{t.plaetzeWaehlen}</span>
                 {ausgewaehlt.size > 0 && (
-                  <span className="text-xs font-normal text-muted-foreground">{ausgewaehlt.size} gewählt</span>
+                  <span className="text-xs font-normal text-muted-foreground">{fmt(t.gewaehltCount, { n: ausgewaehlt.size })}</span>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {sitzplanLaedt ? (
                 <div className="flex items-center justify-center py-8 gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Sitzplan wird geladen…
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t.sitzplanLaedt}
                 </div>
               ) : alleeSitze.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Diesem Event ist kein Sitzplan zugewiesen.</p>
+                <p className="text-sm text-muted-foreground text-center py-6">{t.keinSitzplan}</p>
               ) : (
                 <div className="space-y-4">
                   {Object.entries(sitzeNachElement).map(([bezeichnung, sitze]) => {
@@ -216,7 +221,7 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
                             {bezeichnung}
                           </button>
                           <span className="text-xs text-muted-foreground">
-                            {gewaehlt.length}/{verfuegbar.length} verfügbar
+                            {fmt(t.verfuegbarCount, { n: gewaehlt.length, total: verfuegbar.length })}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -254,20 +259,20 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
 
         {/* Guest + status */}
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-sm">Gast</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">{t.gast}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Name *</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Vor- und Nachname" required className="h-9" />
+                <Label className="text-xs">{dict.venueBearbeiten.nameLabel}</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={dict.buchung.namePlaceholder} required className="h-9" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">E-Mail *</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="gast@example.com" required className="h-9" />
+                <Label className="text-xs">{t.emailLabel}</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailPlaceholder} required className="h-9" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Zahlungsstatus</Label>
+              <Label className="text-xs">{t.zahlungsstatus}</Label>
               <div className="flex gap-2">
                 {(["bezahlt", "ausstehend"] as const).map((s) => (
                   <button
@@ -281,7 +286,7 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
                         : "border-input text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {s === "bezahlt" ? "Bezahlt" : "Ausstehend"}
+                    {s === "bezahlt" ? dict.status.bezahlt : dict.status.ausstehend}
                   </button>
                 ))}
               </div>
@@ -305,12 +310,12 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
               ))}
               {serviceGebuehr > 0 && (
                 <div className="flex justify-between text-muted-foreground text-xs pt-1">
-                  <span>Servicegebühr ({ausgewaehlt.size}×)</span>
+                  <span>{fmt(dict.buchungen.servicegebuehr, { n: ausgewaehlt.size })}</span>
                   <span>{euro(ausgewaehlt.size * serviceGebuehr)}</span>
                 </div>
               )}
               <div className="flex justify-between font-semibold border-t border-border pt-2 mt-1">
-                <span>Gesamt</span>
+                <span>{dict.common.gesamt}</span>
                 <span>{euro(gesamtCent)}</span>
               </div>
             </CardContent>
@@ -321,10 +326,10 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
 
         <div className="flex gap-3">
           <Button type="submit" disabled={laedt || ausgewaehlt.size === 0} className="flex-1">
-            {laedt ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Wird angelegt…</> : "Buchung anlegen"}
+            {laedt ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t.wirdAngelegt}</> : t.buchungAnlegen}
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href="/dashboard/buchungen">Abbrechen</Link>
+            <Link href="/dashboard/buchungen">{dict.common.abbrechen}</Link>
           </Button>
         </div>
       </form>
