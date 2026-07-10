@@ -1,16 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
-import { getServerDict } from "@/lib/i18n/server";
+import { getServerDict, getServerLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/buchung";
 import { Card, CardContent } from "@/components/ui/card";
 import { CurrencyEur as EuroIcon, Ticket, TrendUp as TrendingUp, Users } from "@phosphor-icons/react/dist/ssr";
 import AnalyticsClient from "./analytics-client";
 import { CountUp } from "@/components/ui/count-up";
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+function euro(cent: number, loc: string) {
+  return (cent / 100).toLocaleString(loc, { style: "currency", currency: "EUR" });
 }
 
 export default async function AnalyticsSeite() {
-  const [t, supabase] = await Promise.all([getServerDict(), createClient()]);
+  const [t, supabase, locale] = await Promise.all([getServerDict(), createClient(), getServerLocale()]);
+  const dateLocale = intlLocale(locale);
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: alleEvents } = await supabase
@@ -76,7 +78,7 @@ export default async function AnalyticsSeite() {
   const buchungenNachStunde = new Array(24).fill(0);
   for (const b of bezahlt) buchungenNachStunde[new Date(b.erstellt_am).getHours()]++;
 
-  const wochentage = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+  const wochentage = [...t.dashboardHome.wochentage];
 
   return (
     <div className="space-y-6">
@@ -132,7 +134,7 @@ export default async function AnalyticsSeite() {
               <Users className="h-4 w-4 text-amber-600" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Ø {bezahlt.length > 0 ? euro(Math.round(gesamtCent / bezahlt.length)) : "—"} {t.analytics.avProBuchung}</p>
+          <p className="text-xs text-muted-foreground mt-2">Ø {bezahlt.length > 0 ? euro(Math.round(gesamtCent / bezahlt.length), dateLocale) : "—"} {t.analytics.avProBuchung}</p>
         </CardContent></Card>
       </div>
 

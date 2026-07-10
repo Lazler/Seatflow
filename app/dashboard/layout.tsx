@@ -41,7 +41,7 @@ export default async function DashboardLayout({
         <DashboardNavigation />
         <main className="flex-1 overflow-auto">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pt-20 pb-24 lg:pt-8 lg:pb-8">
-            {!istDemo(user.id) && <KonfigurationsWarnung />}
+            {!istDemo(user.id) && <KonfigurationsWarnung t={dict.konfigWarnung} />}
             {istDemo(user.id) && <DemoBanner t={dict.demo} />}
             {children}
           </div>

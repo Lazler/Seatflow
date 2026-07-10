@@ -103,7 +103,7 @@ export function DashboardNavigation() {
         <button
           onClick={() => setDrawerOffen(true)}
           className="p-1.5 -ml-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label="Menü öffnen"
+          aria-label={t.nav.menueOeffnen}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -121,7 +121,7 @@ export function DashboardNavigation() {
             className="drawer-content fixed inset-y-0 left-0 w-72 bg-card border-r border-border z-50 flex flex-col lg:hidden focus:outline-none"
             aria-describedby={undefined}
           >
-            <Dialog.Title className="sr-only">Navigation</Dialog.Title>
+            <Dialog.Title className="sr-only">{t.nav.navigation}</Dialog.Title>
 
             {/* Drawer header */}
             <div className="h-14 flex items-center justify-between px-4 border-b border-border shrink-0">
@@ -132,7 +132,7 @@ export function DashboardNavigation() {
               <button
                 onClick={() => setDrawerOffen(false)}
                 className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Menü schließen"
+                aria-label={t.nav.menueSchliessen}
               >
                 <X className="h-4 w-4" />
               </button>

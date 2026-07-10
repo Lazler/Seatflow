@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { useT } from "@/components/i18n-provider";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
+import type { Dict } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,28 +32,28 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
 };
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+function euro(cent: number, loc: string) {
+  return (cent / 100).toLocaleString(loc, { style: "currency", currency: "EUR" });
 }
 
 function kurzId(id: string) { return id.slice(0, 8).toUpperCase(); }
 
-function datumsAnzeige(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
+function datumsAnzeige(iso: string, loc: string) {
+  return new Date(iso).toLocaleDateString(loc, {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
 }
 
-function zeitVor(iso: string) {
+function zeitVor(iso: string, tz: Dict["time"]) {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "gerade eben";
-  if (min < 60) return `vor ${min} Min.`;
+  if (min < 1) return tz.geradeEben;
+  if (min < 60) return fmt(tz.vorMin, { min });
   const h = Math.floor(min / 60);
-  if (h < 24) return `vor ${h} Std.`;
+  if (h < 24) return fmt(tz.vorStd, { h });
   const d = Math.floor(h / 24);
-  return `vor ${d} Tag${d === 1 ? "" : "en"}`;
+  return fmt(d === 1 ? tz.vorTagen : tz.vorTagen_pl, { d });
 }
 
 type Props = {
@@ -63,6 +65,8 @@ type Props = {
 
 export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare }: Props) {
   const t = useT();
+  const locale = useLocale();
+  const dateLocale = intlLocale(locale);
   const router = useRouter();
   const [editModus, setEditModus] = useState(false);
   const [name, setName] = useState(buchung.gaest_name);
@@ -96,7 +100,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
   }
 
   async function erstatten() {
-    if (!confirm(`Buchung von ${buchung.gaest_name} über ${euro(buchung.gesamt_cent)} vollständig erstatten?`)) return;
+    if (!confirm(fmt(t.buchungen.erstattenBestaetigen, { name: buchung.gaest_name, betrag: euro(buchung.gesamt_cent, dateLocale) }))) return;
     setErstattetLaden(true);
     setErstattungFehler(null);
     const res = await fetch(`/api/buchungen/${buchung.id}/erstatten`, {
@@ -108,7 +112,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
       router.refresh();
     } else {
       const json = await res.json().catch(() => ({}));
-      setErstattungFehler(json.error ?? "Erstattung fehlgeschlagen");
+      setErstattungFehler(json.error ?? t.buchungen.erstattungFehlgeschlagen);
     }
     setErstattetLaden(false);
   }
@@ -172,7 +176,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            #{kurzId(buchung.id)} · {datumsAnzeige(buchung.erstellt_am)}
+            #{kurzId(buchung.id)} · {datumsAnzeige(buchung.erstellt_am, dateLocale)}
           </p>
         </div>
         {!editModus ? (
@@ -188,7 +192,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                 variant={resendErfolg ? "default" : "outline"}
                 onClick={ticketsErneutSenden}
                 disabled={resendLaden}
-                title="Tickets per E-Mail erneut senden"
+                title={t.buchungen.ticketsNeuSendenTitel}
               >
                 {resendLaden
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -291,7 +295,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                 className="text-sm font-medium text-primary hover:underline">
                 {event.titel}
               </Link>
-              <p className="text-xs text-muted-foreground mt-1">{datumsAnzeige(event.datum)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{datumsAnzeige(event.datum, dateLocale)}</p>
             </CardContent>
           </Card>
 
@@ -317,19 +321,19 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                           )}
                         </div>
                       </div>
-                      <span className="text-sm tabular-nums">{euro(t.preis_cent)}</span>
+                      <span className="text-sm tabular-nums">{euro(t.preis_cent, dateLocale)}</span>
                     </div>
                   ))}
                   <div className="pt-2.5 space-y-1">
                     {event.serviceGebuehrCent > 0 && (
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{t.buchungen.servicegebuehr.replace("{n}", String(tickets.length))}</span>
-                        <span>{euro(serviceGebuehr)}</span>
+                        <span>{euro(serviceGebuehr, dateLocale)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm font-semibold pt-1 border-t border-border mt-1">
                       <span>{t.common.gesamt}</span>
-                      <span>{euro(buchung.gesamt_cent)}</span>
+                      <span>{euro(buchung.gesamt_cent, dateLocale)}</span>
                     </div>
                   </div>
                 </div>
@@ -378,7 +382,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                   </div>
                   {buchung.notiz && (
                     <div>
-                      <p className="text-xs text-muted-foreground">Notiz</p>
+                      <p className="text-xs text-muted-foreground">{t.buchungen.notiz}</p>
                       <p className="text-sm mt-1 text-foreground">{buchung.notiz}</p>
                     </div>
                   )}
@@ -411,7 +415,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                   kommentare.map((k) => (
                     <div key={k.id} className="rounded-lg bg-muted/50 px-3 py-2.5 space-y-1">
                       <p className="text-sm leading-relaxed">{k.text}</p>
-                      <p className="text-[11px] text-muted-foreground">{zeitVor(k.erstellt_am)}</p>
+                      <p className="text-[11px] text-muted-foreground">{zeitVor(k.erstellt_am, t.time)}</p>
                     </div>
                   ))
                 )}

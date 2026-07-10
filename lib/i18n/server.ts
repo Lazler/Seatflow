@@ -8,3 +8,9 @@ export async function getServerDict(): Promise<Dict> {
   const locale: Locale = isLocale(lang) ? lang : "de";
   return getDictionary(locale);
 }
+
+export async function getServerLocale(): Promise<Locale> {
+  const jar = await cookies();
+  const lang = jar.get("dashboard_lang")?.value ?? "de";
+  return isLocale(lang) ? lang : "de";
+}

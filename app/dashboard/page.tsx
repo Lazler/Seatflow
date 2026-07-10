@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getServerDict } from "@/lib/i18n/server";
+import { getServerDict, getServerLocale } from "@/lib/i18n/server";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +15,8 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   beendet: "outline",
 };
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+function euro(cent: number, loc: string) {
+  return (cent / 100).toLocaleString(loc, { style: "currency", currency: "EUR" });
 }
 
 function zeitVor(iso: string, t: import("@/lib/i18n").Dict["time"]) {
@@ -30,7 +31,8 @@ function zeitVor(iso: string, t: import("@/lib/i18n").Dict["time"]) {
 }
 
 export default async function Dashboard() {
-  const [supabase, t] = await Promise.all([createClient(), getServerDict()]);
+  const [supabase, t, locale] = await Promise.all([createClient(), getServerDict(), getServerLocale()]);
+  const dateLocale = intlLocale(locale);
 
   const STATUS_LABEL: Record<string, string> = {
     entwurf: t.status.entwurf,
@@ -142,7 +144,7 @@ export default async function Dashboard() {
         <div className="min-w-0">
           <h1 className="text-2xl font-bold truncate">{profil?.name ?? t.dashboard.title}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            {new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
         <Button asChild size="sm" className="self-start sm:self-auto shrink-0">
@@ -159,7 +161,7 @@ export default async function Dashboard() {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.einnahmen}</p>
-                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{euro(gesamteinnahmenCent)}</p>
+                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{euro(gesamteinnahmenCent, dateLocale)}</p>
               </div>
               <div className="h-9 w-9 rounded-lg bg-emerald-50 hidden sm:flex items-center justify-center shrink-0">
                 <EuroIcon className="h-4 w-4 text-emerald-600" />
@@ -218,11 +220,11 @@ export default async function Dashboard() {
       {/* ── Geführtes Onboarding (bis zur ersten Veröffentlichung) ── */}
       {!hatLive && (() => {
         const schritte = [
-          { done: hatVenue, titel: "Veranstaltungsort anlegen", desc: "Bühne, Saal oder Location", href: "/dashboard/venues/neu" },
-          { done: hatPlan, titel: "Saalplan erstellen", desc: "Reihen, Tische oder Zonen platzieren",
+          { done: hatVenue, titel: t.dashboardHome.schritt1Titel, desc: t.dashboardHome.schritt1Desc, href: "/dashboard/venues/neu" },
+          { done: hatPlan, titel: t.dashboardHome.schritt2Titel, desc: t.dashboardHome.schritt2Desc,
             href: ersteVenueId ? `/dashboard/venues/${ersteVenueId}` : "/dashboard/venues/neu" },
-          { done: hatEvent, titel: "Event anlegen", desc: "Datum, Preis und Saalplan zuweisen", href: "/dashboard/events/neu" },
-          { done: hatLive, titel: "Veröffentlichen & teilen", desc: "Buchungslink an dein Publikum geben", href: "/dashboard/events" },
+          { done: hatEvent, titel: t.dashboardHome.schritt3Titel, desc: t.dashboardHome.schritt3Desc, href: "/dashboard/events/neu" },
+          { done: hatLive, titel: t.dashboardHome.schritt4Titel, desc: t.dashboardHome.schritt4Desc, href: "/dashboard/events" },
         ];
         const erledigte = schritte.filter((s) => s.done).length;
         const naechsterIdx = schritte.findIndex((s) => !s.done);
@@ -235,8 +237,8 @@ export default async function Dashboard() {
                   <Ticket className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">In 4 Schritten startklar</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">{erledigte} von 4 erledigt — so richtest du deinen Ticketverkauf ein.</p>
+                  <CardTitle className="text-base">{t.dashboardHome.startklar}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">{fmt(t.dashboardHome.erledigtVon, { erledigte })}</p>
                 </div>
               </div>
             </CardHeader>
@@ -269,7 +271,7 @@ export default async function Dashboard() {
                       </div>
                       {istNaechster && (
                         <span className="text-xs font-medium text-primary flex items-center gap-0.5 shrink-0">
-                          Jetzt <ArrowRight className="h-3.5 w-3.5" />
+                          {t.dashboardHome.jetzt} <ArrowRight className="h-3.5 w-3.5" />
                         </span>
                       )}
                     </Link>
@@ -311,7 +313,7 @@ export default async function Dashboard() {
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(event.datum).toLocaleDateString("de-DE", {
+                            {new Date(event.datum).toLocaleDateString(dateLocale, {
                               weekday: "short", day: "numeric", month: "short", year: "numeric",
                               hour: "2-digit", minute: "2-digit",
                             })}
@@ -341,11 +343,11 @@ export default async function Dashboard() {
                           )}
                         </div>
                         <div className="text-right shrink-0 space-y-1">
-                          <p className="text-sm font-semibold">{euro(revenue)}</p>
+                          <p className="text-sm font-semibold">{euro(revenue, dateLocale)}</p>
                           {istLive && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              Live
+                              {t.dashboardHome.live}
                             </span>
                           )}
                         </div>
@@ -375,7 +377,7 @@ export default async function Dashboard() {
                       </p>
                     </div>
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className="text-sm font-semibold">{euro(b.gesamt_cent)}</span>
+                      <span className="text-sm font-semibold">{euro(b.gesamt_cent, dateLocale)}</span>
                       <Badge
                         variant={b.status === "bezahlt" ? "default" : "secondary"}
                         className="text-[10px] px-1.5 py-0 hidden sm:inline-flex"

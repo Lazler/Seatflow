@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MagnifyingGlass as Search, ArrowRight, Receipt as ReceiptText, Plus } from "@phosphor-icons/react";
-import { useT } from "@/components/i18n-provider";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
+import type { Dict } from "@/lib/i18n";
 
 type Buchung = {
   id: string;
@@ -27,20 +29,20 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
 };
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+function euro(cent: number, loc: string) {
+  return (cent / 100).toLocaleString(loc, { style: "currency", currency: "EUR" });
 }
 
-function zeitVor(iso: string) {
+function zeitVor(iso: string, tz: Dict["time"], loc: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "gerade eben";
-  if (min < 60) return `vor ${min} Min.`;
+  if (min < 1) return tz.geradeEben;
+  if (min < 60) return fmt(tz.vorMin, { min });
   const h = Math.floor(min / 60);
-  if (h < 24) return `vor ${h} Std.`;
+  if (h < 24) return fmt(tz.vorStd, { h });
   const d = Math.floor(h / 24);
-  if (d < 30) return `vor ${d} Tag${d === 1 ? "" : "en"}`;
-  return new Date(iso).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" });
+  if (d < 30) return fmt(d === 1 ? tz.vorTagen : tz.vorTagen_pl, { d });
+  return new Date(iso).toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" });
 }
 
 function kurzId(id: string) {
@@ -49,6 +51,8 @@ function kurzId(id: string) {
 
 export default function BuchungenListe({ buchungen, events }: { buchungen: Buchung[]; events: Event[] }) {
   const t = useT();
+  const locale = useLocale();
+  const dateLocale = intlLocale(locale);
   const [suche, setSuche] = useState("");
   const [statusFilter, setStatusFilter] = useState("alle");
   const [sortierung, setSortierung] = useState<SortKey>("datum_desc");
@@ -106,7 +110,7 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
         <div>
           <h1 className="text-2xl font-bold">{t.buchungen.title}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {bezahlt.length} {t.status.bezahlt.toLowerCase()} · {euro(gesamtCent)} Umsatz
+            {fmt(t.buchungen.umsatzSubline, { n: bezahlt.length, betrag: euro(gesamtCent, dateLocale) })}
           </p>
         </div>
         <Button asChild size="sm">
@@ -207,14 +211,14 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
                   <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                     {eventTitel.get(b.event_id) ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{euro(b.gesamt_cent)}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{euro(b.gesamt_cent, dateLocale)}</td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <Badge variant={STATUS_VARIANT[b.status] ?? "secondary"} className="text-xs">
                       {STATUS_LABEL[b.status] ?? b.status}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground text-xs hidden lg:table-cell">
-                    {zeitVor(b.erstellt_am)}
+                    {zeitVor(b.erstellt_am, t.time, dateLocale)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors inline-block" />
@@ -225,7 +229,7 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
           </table>
           <div className="px-4 py-2.5 border-t border-border bg-muted/20 text-xs text-muted-foreground">
             {gefiltert.length} {t.buchungen.title}
-            {gefiltert.length !== buchungen.length && ` von ${buchungen.length}`}
+            {gefiltert.length !== buchungen.length && ` ${fmt(t.buchungen.vonGesamt, { n: buchungen.length })}`}
           </div>
         </div>
       )}
