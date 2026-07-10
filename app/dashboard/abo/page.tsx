@@ -7,6 +7,8 @@ import { effectivePlan, type Plan } from "@/lib/plan";
 import { Button } from "@/components/ui/button";
 import { Check, Lightning as Zap, Crown, LinkSimple as Link2, Warning as AlertTriangle, CheckCircle as CheckCircle2 } from "@phosphor-icons/react";
 import Benachrichtigungen from "@/components/konto/benachrichtigungen";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 
 type ProfilData = {
   plan: string;
@@ -20,6 +22,9 @@ const MONTHLY_EUR = 29;
 const ANNUAL_EUR = 249;
 
 export default function AboPage() {
+  const t = useT();
+  const locale = useLocale();
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
   const [profil, setProfil] = useState<ProfilData | null>(null);
   const [laedt, setLaedt] = useState(true);
   const [aktionLaedt, setAktionLaedt] = useState(false);
@@ -76,14 +81,14 @@ export default function AboPage() {
   }
 
   if (laedt) {
-    return <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">Lädt…</div>;
+    return <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">{t.abo.laedt}</div>;
   }
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-xl font-bold">Abonnement</h1>
-        <p className="text-sm text-muted-foreground mt-1">Verwalte deinen Plan und deine Abrechnung.</p>
+        <h1 className="text-xl font-bold">{t.abo.titel}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.abo.untertitel}</p>
       </div>
 
       {/* Current plan badge */}
@@ -92,18 +97,18 @@ export default function AboPage() {
           {plan === "pro" ? <Crown className="h-5 w-5 text-primary" /> : <Zap className="h-5 w-5 text-muted-foreground" />}
         </div>
         <div className="flex-1">
-          <p className="font-semibold">{plan === "pro" ? "Pro Plan" : "Free Plan"}</p>
+          <p className="font-semibold">{plan === "pro" ? t.abo.proPlan : t.abo.freePlan}</p>
           {plan === "pro" && aboBisDatum ? (
             <p className="text-sm text-muted-foreground">
-              Aktiv bis {aboBisDatum.toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })}
+              {fmt(t.abo.aktivBis, { datum: aboBisDatum.toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" }) })}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">3 Events/Monat · max. 80 Plätze · €1,50 Servicegebühr/Ticket</p>
+            <p className="text-sm text-muted-foreground">{t.abo.freeDetails}</p>
           )}
         </div>
         {plan === "pro" && (
           <Button variant="outline" size="sm" onClick={manageClick} disabled={aktionLaedt}>
-            {aktionLaedt ? "Lädt…" : "Verwalten"}
+            {aktionLaedt ? t.abo.laedt : t.abo.verwalten}
           </Button>
         )}
       </div>
@@ -113,10 +118,8 @@ export default function AboPage() {
         <div className="rounded-xl border border-primary/30 bg-primary/[0.03] p-6 space-y-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <p className="font-semibold text-base">Upgrade auf Pro</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Rechnet sich ab <strong>40 Tickets pro Monat</strong> — dann ist Pro günstiger als Free.
-              </p>
+              <p className="font-semibold text-base">{t.abo.upgradeTitel}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t.abo.upgradeText}</p>
             </div>
 
             {/* Interval toggle */}
@@ -126,15 +129,15 @@ export default function AboPage() {
                 onClick={() => setInterval("month")}
                 className={`px-3 py-1.5 transition-colors ${interval === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
-                Monatlich
+                {t.abo.monatlich}
               </button>
               <button
                 type="button"
                 onClick={() => setInterval("year")}
                 className={`px-3 py-1.5 transition-colors ${interval === "year" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
               >
-                Jährlich{" "}
-                <span className="text-[10px] font-semibold text-green-600 ml-1">−2 Mon.</span>
+                {t.abo.jaehrlich}{" "}
+                <span className="text-[10px] font-semibold text-green-600 ml-1">{t.abo.zweiMonate}</span>
               </button>
             </div>
           </div>
@@ -143,21 +146,21 @@ export default function AboPage() {
             <span className="text-3xl font-extrabold">
               {interval === "year" ? `€${(ANNUAL_EUR / 12).toFixed(0)}` : `€${MONTHLY_EUR}`}
             </span>
-            <span className="text-sm text-muted-foreground">/Monat</span>
+            <span className="text-sm text-muted-foreground">{t.abo.proMonat}</span>
             {interval === "year" && (
               <span className="text-xs text-muted-foreground ml-2">
-                (€{ANNUAL_EUR}/Jahr — statt €{MONTHLY_EUR * 12})
+                {fmt(t.abo.jahresPreis, { jahr: ANNUAL_EUR, statt: MONTHLY_EUR * 12 })}
               </span>
             )}
           </div>
 
           <ul className="space-y-2">
             {[
-              "Unlimitierte Events",
-              "Unlimitierte Plätze",
-              "Servicegebühr nur €0,75/Ticket (statt €1,50)",
-              "Eigenes Branding auf Tickets",
-              "Analytics",
+              t.abo.featEvents,
+              t.abo.featPlaetze,
+              t.abo.featGebuehr,
+              t.abo.featBranding,
+              t.abo.featAnalytics,
             ].map((f) => (
               <li key={f} className="flex items-center gap-2 text-sm">
                 <Check className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -167,22 +170,20 @@ export default function AboPage() {
           </ul>
 
           <Button onClick={upgradeToProClick} disabled={aktionLaedt} className="w-full sm:w-auto">
-            {aktionLaedt ? "Weiterleitung…" : `Pro ${interval === "year" ? "jährlich" : "monatlich"} abonnieren`}
+            {aktionLaedt ? t.abo.weiterleitung : fmt(t.abo.proAbonnieren, { intervall: interval === "year" ? t.abo.intervallJaehrlich : t.abo.intervallMonatlich })}
           </Button>
         </div>
       )}
 
       {/* Stripe Connect */}
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">Stripe-Auszahlungskonto</h2>
-        <p className="text-sm text-muted-foreground">
-          Verbinden Sie Ihr Stripe-Konto damit Ticketeinnahmen direkt an Sie ausgezahlt werden. SeatFlow behält nur die Servicegebühr.
-        </p>
+        <h2 className="text-base font-semibold">{t.abo.stripeTitel}</h2>
+        <p className="text-sm text-muted-foreground">{t.abo.stripeText}</p>
 
         {connectSuccess && (
           <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Ihr Stripe-Konto wurde erfolgreich verbunden. Zahlungen werden ab sofort direkt ausgezahlt.
+            {t.abo.stripeErfolg}
           </div>
         )}
 
@@ -190,8 +191,8 @@ export default function AboPage() {
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-800">Stripe-Konto verbunden</p>
-              <p className="text-xs text-emerald-700 mt-0.5">Ticketeinnahmen werden direkt auf Ihr Konto überwiesen.</p>
+              <p className="text-sm font-medium text-emerald-800">{t.abo.stripeVerbunden}</p>
+              <p className="text-xs text-emerald-700 mt-0.5">{t.abo.stripeVerbundenText}</p>
             </div>
             <span className="text-xs font-mono text-muted-foreground hidden sm:block">
               {String(profil.stripe_account_id).slice(0, 18)}…
@@ -201,25 +202,23 @@ export default function AboPage() {
           <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-800">Onboarding nicht abgeschlossen</p>
-              <p className="text-xs text-amber-700 mt-0.5">Bitte schließen Sie die Stripe-Verifizierung ab, um Auszahlungen zu aktivieren.</p>
+              <p className="text-sm font-medium text-amber-800">{t.abo.onboardingOffen}</p>
+              <p className="text-xs text-amber-700 mt-0.5">{t.abo.onboardingOffenText}</p>
             </div>
             <Button size="sm" variant="outline" onClick={connectClick} disabled={connectLaedt}>
-              {connectLaedt ? "Weiterleitung…" : "Fortsetzen"}
+              {connectLaedt ? t.abo.weiterleitung : t.abo.fortsetzen}
             </Button>
           </div>
         ) : (
           <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Kein Stripe-Konto verbunden</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Ohne verbundenes Konto verbleiben Ticketeinnahmen auf dem SeatFlow-Konto bis zur manuellen Auszahlung.
-              </p>
+              <p className="text-sm font-medium">{t.abo.keinKonto}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t.abo.keinKontoText}</p>
             </div>
             <Button size="sm" onClick={connectClick} disabled={connectLaedt} className="shrink-0 gap-1.5">
               <Link2 className="h-3.5 w-3.5" />
-              {connectLaedt ? "Weiterleitung…" : "Jetzt verbinden"}
+              {connectLaedt ? t.abo.weiterleitung : t.abo.jetztVerbinden}
             </Button>
           </div>
         )}
@@ -230,18 +229,18 @@ export default function AboPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Feature</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t.abo.spalteFeature}</th>
               <th className="text-center px-4 py-3 font-medium">Free</th>
               <th className="text-center px-4 py-3 font-medium text-primary">Pro</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {[
-              ["Events/Monat", "3", "Unbegrenzt"],
-              ["Plätze/Event", "80", "Unbegrenzt"],
-              ["Servicegebühr/Ticket", "€1,50", "€0,75"],
-              ["Eigenes Branding", "–", "✓"],
-              ["Analytics", "–", "✓"],
+              [t.abo.zeileEventsMonat, "3", t.abo.unbegrenzt],
+              [t.abo.zeilePlaetzeEvent, "80", t.abo.unbegrenzt],
+              [t.abo.zeileGebuehr, "€1,50", "€0,75"],
+              [t.abo.zeileBranding, "–", "✓"],
+              [t.abo.featAnalytics, "–", "✓"],
             ].map(([label, frei, pro]) => (
               <tr key={label}>
                 <td className="px-4 py-3 text-muted-foreground">{label}</td>
