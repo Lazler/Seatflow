@@ -135,7 +135,7 @@ export default async function BuchungsSeite({
             <a
               href={cancelUrl}
               className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted transition-colors"
-              aria-label="Zurück"
+              aria-label={strings.zurueck}
             >
               <ArrowLeft className="h-4 w-4" />
             </a>
@@ -143,7 +143,7 @@ export default async function BuchungsSeite({
             <Link
               href={`/buchen/${eventId}`}
               className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted transition-colors"
-              aria-label="Zurück"
+              aria-label={strings.zurueck}
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>

@@ -498,6 +498,10 @@ export default function BuchungsSeiteClient({
     zoneAusverkauft: uiStrings.zoneAusverkauft,
     canvasAria: uiStrings.canvasAria,
     barrierefrei: uiStrings.barrierefrei,
+    stehplatz: uiStrings.stehplatz,
+    zoomVergroessern: uiStrings.zoomVergroessern,
+    zoomVerkleinern: uiStrings.zoomVerkleinern,
+    zoomReset: uiStrings.zoomReset,
   }), [uiStrings]);
 
   const canvasWrapper = (ref: React.RefObject<HTMLDivElement | null>, scale: number) => (
@@ -944,6 +948,7 @@ export default function BuchungsSeiteClient({
                 <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
               )}
               <Legende kategorien={alleKategorien}
+                belegtLabel={uiStrings.belegt} ausgewaehltLabel={uiStrings.ausgewaehlt}
                 barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
               {canvasWrapper(desktopContainerRef, desktopRenderScale)}
               <p className="text-xs text-muted-foreground">{uiStrings.liveHinweis}</p>
@@ -951,7 +956,7 @@ export default function BuchungsSeiteClient({
             <div>
               <div className="sticky top-20 rounded-2xl border border-border bg-background overflow-hidden">
                 <div className="px-4 py-3.5 border-b border-border">
-                  <p className="font-semibold text-sm">Deine Auswahl</p>
+                  <p className="font-semibold text-sm">{uiStrings.deineAuswahl}</p>
                 </div>
                 <div className="px-4 py-4">
                   {sitzAuswahl}
@@ -968,6 +973,7 @@ export default function BuchungsSeiteClient({
               <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
             )}
             <Legende kategorien={alleKategorien}
+              belegtLabel={uiStrings.belegt} ausgewaehltLabel={uiStrings.ausgewaehlt}
               barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
             {canvasWrapper(mobileContainerRef, mobileRenderScale)}
             <p className="text-[11px] text-muted-foreground text-center">
@@ -1017,8 +1023,10 @@ export default function BuchungsSeiteClient({
   );
 }
 
-function Legende({ kategorien, barrierefreiLabel }: {
+function Legende({ kategorien, belegtLabel, ausgewaehltLabel, barrierefreiLabel }: {
   kategorien: { id: string; name: string; farbe: string; preis_cent: number }[];
+  belegtLabel: string;
+  ausgewaehltLabel: string;
   // Label anzeigen, wenn der Plan barrierefreie Plätze hat (sonst undefined)
   barrierefreiLabel?: string;
 }) {
@@ -1030,8 +1038,8 @@ function Legende({ kategorien, barrierefreiLabel }: {
           {k.name} — {(k.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
         </span>
       ))}
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-slate-300" />Belegt</span>
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-green-500" />Ausgewählt</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-slate-300" />{belegtLabel}</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-green-500" />{ausgewaehltLabel}</span>
       {barrierefreiLabel && (
         <span className="flex items-center gap-1.5">
           <Wheelchair className="w-3.5 h-3.5 text-sky-700 shrink-0" />

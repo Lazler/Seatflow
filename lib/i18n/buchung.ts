@@ -85,6 +85,14 @@ const de = {
   zoneAusverkauft: "ausverkauft",
   canvasAria: "Sitzplan – klicke auf einen Platz, um ihn auszuwählen",
   barrierefrei: "barrierefrei",
+  belegt: "Belegt",
+  ausgewaehlt: "Ausgewählt",
+  stehplatz: "STEHPLATZ",
+  zoomVergroessern: "Vergrößern",
+  zoomVerkleinern: "Verkleinern",
+  zoomReset: "Ansicht zurücksetzen",
+  zurueck: "Zurück",
+  sitzplanLaedt: "Sitzplan wird geladen…",
 };
 
 export type BuchungsStrings = typeof de;
@@ -166,6 +174,14 @@ const en: BuchungsStrings = {
   zoneAusverkauft: "sold out",
   canvasAria: "Seating plan – click a seat to select it",
   barrierefrei: "wheelchair accessible",
+  belegt: "Taken",
+  ausgewaehlt: "Selected",
+  stehplatz: "STANDING",
+  zoomVergroessern: "Zoom in",
+  zoomVerkleinern: "Zoom out",
+  zoomReset: "Reset view",
+  zurueck: "Back",
+  sitzplanLaedt: "Loading seating plan…",
 };
 
 const hu: BuchungsStrings = {
@@ -245,6 +261,14 @@ const hu: BuchungsStrings = {
   zoneAusverkauft: "elkelt",
   canvasAria: "Ülésrend – kattints egy helyre a kiválasztáshoz",
   barrierefrei: "akadálymentes",
+  belegt: "Foglalt",
+  ausgewaehlt: "Kiválasztva",
+  stehplatz: "ÁLLÓHELY",
+  zoomVergroessern: "Nagyítás",
+  zoomVerkleinern: "Kicsinyítés",
+  zoomReset: "Nézet visszaállítása",
+  zurueck: "Vissza",
+  sitzplanLaedt: "Ülésrend betöltése…",
 };
 
 export const BUCHUNG_STRINGS: Record<BuchungsSprache, BuchungsStrings> = { de, en, hu };

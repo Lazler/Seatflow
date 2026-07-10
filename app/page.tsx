@@ -82,6 +82,10 @@ const DE: LandingContent = {
       zoneAusverkauft: "ausverkauft",
       canvasAria: "Interaktive Sitzplan-Demo",
       barrierefrei: "barrierefrei",
+      stehplatz: "STEHPLATZ",
+      zoomVergroessern: "Vergrößern",
+      zoomVerkleinern: "Verkleinern",
+      zoomReset: "Ansicht zurücksetzen",
     },
     punkte: [
       { title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg — wie im echten Saal." },

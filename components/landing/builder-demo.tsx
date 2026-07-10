@@ -23,6 +23,10 @@ export type BuilderDemoTexte = {
   zoneAusverkauft: string;
   canvasAria: string;
   barrierefrei: string;
+  stehplatz: string;
+  zoomVergroessern: string;
+  zoomVerkleinern: string;
+  zoomReset: string;
 };
 
 // Zeigt bewusst die Bandbreite des Builders: gebogene Reihen, Mittelgang,
@@ -135,6 +139,10 @@ export default function BuilderDemo({ texte }: { texte: BuilderDemoTexte }) {
               zoneAusverkauft: texte.zoneAusverkauft,
               canvasAria: texte.canvasAria,
               barrierefrei: texte.barrierefrei,
+              stehplatz: texte.stehplatz,
+              zoomVergroessern: texte.zoomVergroessern,
+              zoomVerkleinern: texte.zoomVerkleinern,
+              zoomReset: texte.zoomReset,
             }}
           />
         )}

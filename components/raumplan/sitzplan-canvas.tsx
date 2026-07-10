@@ -196,7 +196,7 @@ type ElementProps<T> = {
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
   nummerAusblenden: boolean;
   sperrModus?: boolean;
-  zonenTexte: { zoneFrei: string; zoneGewaehlt: string; zoneHinzufuegen: string; zoneAusverkauft: string };
+  zonenTexte: { zoneFrei: string; zoneGewaehlt: string; zoneHinzufuegen: string; zoneAusverkauft: string; stehplatz: string };
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   onSitzKlick?: (sitzId: string) => void;
   onHoverInfo?: (info: SeatHoverInfo) => void;
@@ -460,7 +460,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
       <Group x={el.breite / 2} y={el.hoehe / 2} rotation={-el.winkel} listening={false}>
         <Text
           x={-el.breite / 2} y={-20} width={el.breite} height={16}
-          text={`STEHPLATZ ${el.bezeichnung}`}
+          text={`${zonenTexte.stehplatz} ${el.bezeichnung}`}
           fill="#334155" fontSize={11} fontStyle="bold" letterSpacing={1.5}
           align="center" verticalAlign="middle"
         />
@@ -609,6 +609,8 @@ type Props = {
     zoneFrei: string; zoneGewaehlt: string;
     zoneHinzufuegen: string; zoneAusverkauft: string;
     canvasAria: string; barrierefrei: string;
+    stehplatz: string;
+    zoomVergroessern: string; zoomVerkleinern: string; zoomReset: string;
   };
 };
 
@@ -619,6 +621,10 @@ const TEXTE_DEFAULT = {
   zoneAusverkauft: "ausverkauft",
   canvasAria: "Sitzplan – klicke auf einen Platz, um ihn auszuwählen",
   barrierefrei: "barrierefrei",
+  stehplatz: "STEHPLATZ",
+  zoomVergroessern: "Vergrößern",
+  zoomVerkleinern: "Verkleinern",
+  zoomReset: "Ansicht zurücksetzen",
 };
 
 export default function SitzplanCanvas({
@@ -1012,20 +1018,20 @@ export default function SitzplanCanvas({
     {/* Zoom-Controls (nur Buchungsmodus) */}
     {istBuchungsmodus && (
       <div className="absolute right-2.5 top-2.5 flex flex-col gap-1.5">
-        <button type="button" aria-label="Vergrößern"
+        <button type="button" aria-label={texte.zoomVergroessern}
           onClick={() => applyZoom(viewportMitte, zoom * 1.5)}
           disabled={zoom >= MAX_ZOOM}
           className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
           <ZoomIn className="h-4 w-4" />
         </button>
-        <button type="button" aria-label="Verkleinern"
+        <button type="button" aria-label={texte.zoomVerkleinern}
           onClick={() => applyZoom(viewportMitte, zoom / 1.5)}
           disabled={zoom <= MIN_ZOOM}
           className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
           <ZoomOut className="h-4 w-4" />
         </button>
         {zoom > 1 && (
-          <button type="button" aria-label="Ansicht zurücksetzen"
+          <button type="button" aria-label={texte.zoomReset}
             onClick={() => applyZoom(viewportMitte, 1)}
             className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition">
             <Maximize className="h-4 w-4" />
