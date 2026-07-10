@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash as Trash2, Tag, CircleNotch as Loader2, Copy, Check } from "@phosphor-icons/react";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 
 type Gutschein = {
   id: string;
@@ -20,17 +22,8 @@ type Gutschein = {
   erstellt_am: string;
 };
 
-function euro(wert: number) {
-  return wert.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-}
-
-function rabattLabel(g: Gutschein) {
-  return g.rabatt.typ === "prozent"
-    ? `${g.rabatt.wert} % Rabatt`
-    : `${euro(g.rabatt.wert)} Rabatt`;
-}
-
 function CopyButton({ text }: { text: string }) {
+  const t = useT();
   const [kopiert, setKopiert] = useState(false);
   return (
     <button
@@ -41,7 +34,7 @@ function CopyButton({ text }: { text: string }) {
         setTimeout(() => setKopiert(false), 1500);
       }}
       className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
-      title="Kopieren"
+      title={t.gutscheine.kopieren}
     >
       {kopiert ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
     </button>
@@ -49,6 +42,20 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function GutscheineClient() {
+  const t = useT();
+  const locale = useLocale();
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
+
+  function euro(wert: number) {
+    return wert.toLocaleString(dateLocale, { style: "currency", currency: "EUR" });
+  }
+
+  function rabattLabel(g: Gutschein) {
+    return g.rabatt.typ === "prozent"
+      ? fmt(t.gutscheine.rabattProzent, { wert: g.rabatt.wert })
+      : fmt(t.gutscheine.rabattFest, { wert: euro(g.rabatt.wert) });
+  }
+
   const [gutscheine, setGutscheine] = useState<Gutschein[]>([]);
   const [laedt, setLaedt] = useState(true);
   const [formOffen, setFormOffen] = useState(false);
@@ -81,8 +88,8 @@ export default function GutscheineClient() {
   async function erstellen(e: React.FormEvent) {
     e.preventDefault();
     const wert = parseFloat(rabattWert.replace(",", "."));
-    if (!wert || wert <= 0) { setFehler("Ungültiger Rabattwert."); return; }
-    if (rabattTyp === "prozent" && wert > 100) { setFehler("Prozent-Rabatt max. 100 %."); return; }
+    if (!wert || wert <= 0) { setFehler(t.gutscheine.fehlerUngueltig); return; }
+    if (rabattTyp === "prozent" && wert > 100) { setFehler(t.gutscheine.fehlerMaxProzent); return; }
     setSpeichert(true); setFehler(null);
 
     const res = await fetch("/api/gutscheine", {
@@ -96,7 +103,7 @@ export default function GutscheineClient() {
     });
 
     const data = await res.json() as { id?: string; error?: string };
-    if (!res.ok) { setFehler(data.error ?? "Fehler beim Erstellen."); setSpeichert(false); return; }
+    if (!res.ok) { setFehler(data.error ?? t.gutscheine.fehlerErstellen); setSpeichert(false); return; }
 
     setSpeichert(false);
     setFormOffen(false);
@@ -116,14 +123,14 @@ export default function GutscheineClient() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold">Gutscheine</h1>
+          <h1 className="text-2xl font-bold">{t.gutscheine.title}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Rabattcodes für deine Events — Kunden lösen sie direkt beim Checkout ein.
+            {t.gutscheine.subtitle}
           </p>
         </div>
         {!formOffen && (
           <Button size="sm" onClick={() => setFormOffen(true)} className="self-start sm:self-auto shrink-0">
-            <Plus className="h-4 w-4 mr-1.5" /> Gutschein erstellen
+            <Plus className="h-4 w-4 mr-1.5" /> {t.gutscheine.gutscheinErstellen}
           </Button>
         )}
       </div>
@@ -133,31 +140,31 @@ export default function GutscheineClient() {
         <Card className="border-primary/30 bg-primary/[0.02]">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Tag className="h-4 w-4" /> Neuer Gutschein
+              <Tag className="h-4 w-4" /> {t.gutscheine.neuerGutschein}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={erstellen} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Name *</Label>
+                  <Label className="text-xs">{t.gutscheine.nameLabel}</Label>
                   <Input
                     value={name} onChange={(e) => setName(e.target.value)}
-                    placeholder="z.B. Frühbucherrabatt" required className="h-9"
+                    placeholder={t.gutscheine.namePlaceholder} required className="h-9"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Code * (wird vom Kunden eingegeben)</Label>
+                  <Label className="text-xs">{t.gutscheine.codeLabel}</Label>
                   <Input
                     value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="z.B. FRUEH20" required className="h-9 font-mono"
+                    placeholder={t.gutscheine.codePlaceholder} required className="h-9 font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Rabattart</Label>
+                  <Label className="text-xs">{t.gutscheine.rabattart}</Label>
                   <div className="flex rounded-md border border-input overflow-hidden h-9">
                     {(["prozent", "fest"] as const).map((typ) => (
                       <button
@@ -168,13 +175,13 @@ export default function GutscheineClient() {
                             : "bg-background text-muted-foreground hover:bg-muted"
                         }`}
                       >
-                        {typ === "prozent" ? "Prozent (%)" : "Festbetrag (€)"}
+                        {typ === "prozent" ? t.gutscheine.prozent : t.gutscheine.festbetrag}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Rabattwert *</Label>
+                  <Label className="text-xs">{t.gutscheine.rabattwertLabel}</Label>
                   <div className="relative">
                     <Input
                       value={rabattWert} onChange={(e) => setRabattWert(e.target.value)}
@@ -190,7 +197,7 @@ export default function GutscheineClient() {
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Gültig bis (optional)</Label>
+                  <Label className="text-xs">{t.gutscheine.gueltigBisLabel}</Label>
                   <Input
                     type="date" value={gueltigBis}
                     onChange={(e) => setGueltigBis(e.target.value)}
@@ -198,11 +205,11 @@ export default function GutscheineClient() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Max. Einlösungen (optional)</Label>
+                  <Label className="text-xs">{t.gutscheine.maxEinloesungenLabel}</Label>
                   <Input
                     type="number" min="1" value={maxEinloesungen}
                     onChange={(e) => setMaxEinloesungen(e.target.value)}
-                    placeholder="Unbegrenzt" className="h-9"
+                    placeholder={t.gutscheine.unbegrenztPlaceholder} className="h-9"
                   />
                 </div>
               </div>
@@ -212,10 +219,10 @@ export default function GutscheineClient() {
               <div className="flex gap-2 pt-1">
                 <Button type="submit" size="sm" disabled={speichert}>
                   {speichert ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Erstellen
+                  {t.common.erstellen}
                 </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => { setFormOffen(false); formZuruecksetzen(); }}>
-                  Abbrechen
+                  {t.common.abbrechen}
                 </Button>
               </div>
             </form>
@@ -226,25 +233,25 @@ export default function GutscheineClient() {
       {/* List */}
       {laedt ? (
         <div className="flex items-center justify-center py-16 gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Gutscheine werden geladen…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t.gutscheine.laden}
         </div>
       ) : gutscheine.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center text-muted-foreground">
           <Tag className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-foreground">Noch keine Gutscheine</p>
-          <p className="text-sm mt-1">Erstelle deinen ersten Rabattcode — Kunden lösen ihn beim Checkout ein.</p>
+          <p className="font-medium text-foreground">{t.gutscheine.keineGutscheine}</p>
+          <p className="text-sm mt-1">{t.gutscheine.keineGutscheineText}</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Name</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Code(s)</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Rabatt</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">Eingelöst</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">Gültig bis</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Status</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.gutscheine.colName}</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.gutscheine.colCodes}</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.gutscheine.colRabatt}</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{t.gutscheine.colEingeloest}</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">{t.gutscheine.colGueltigBis}</th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.gutscheine.colStatus}</th>
                 <th className="w-10" />
               </tr>
             </thead>
@@ -272,12 +279,12 @@ export default function GutscheineClient() {
                   </td>
                   <td className="px-3 py-3 text-muted-foreground hidden md:table-cell text-xs">
                     {g.gueltig_bis
-                      ? new Date(g.gueltig_bis).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })
-                      : "Unbegrenzt"}
+                      ? new Date(g.gueltig_bis).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })
+                      : t.gutscheine.unbegrenzt}
                   </td>
                   <td className="px-3 py-3">
                     <Badge variant={g.aktiv ? "default" : "secondary"} className="text-xs">
-                      {g.aktiv ? "Aktiv" : "Inaktiv"}
+                      {g.aktiv ? t.gutscheine.aktiv : t.gutscheine.inaktiv}
                     </Badge>
                   </td>
                   <td className="px-3 py-3">
@@ -286,7 +293,7 @@ export default function GutscheineClient() {
                       onClick={() => loeschen(g.id)}
                       disabled={loeschtId === g.id}
                       className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-30"
-                      title="Löschen"
+                      title={t.common.loeschen}
                     >
                       {loeschtId === g.id
                         ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -298,7 +305,7 @@ export default function GutscheineClient() {
             </tbody>
             <tr className="border-t border-border bg-muted/20">
               <td colSpan={7} className="px-4 py-2.5 text-xs text-muted-foreground">
-                {gutscheine.length} Gutschein{gutscheine.length !== 1 ? "e" : ""}
+                {fmt(gutscheine.length === 1 ? t.gutscheine.anzahl : t.gutscheine.anzahl_pl, { n: gutscheine.length })}
               </td>
             </tr>
           </table>
@@ -306,7 +313,7 @@ export default function GutscheineClient() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Gutscheine werden über Stripe verwaltet. Kunden können den Code beim Checkout eingeben — Stripe zieht den Rabatt automatisch ab.
+        {t.gutscheine.footerHinweis}
       </p>
     </div>
   );

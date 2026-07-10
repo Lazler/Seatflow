@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Palette, Eye, DownloadSimple as Download, Check } from "@phosphor-icons/react";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
+import { useT, useLocale } from "@/components/i18n-provider";
 
 /* ─── Live Preview ──────────────────────────────────────────────────────────── */
 function TicketVorschau({
@@ -23,7 +24,10 @@ function TicketVorschau({
   datum: string;
   venue?: string;
 }) {
-  const datumText = new Date(datum).toLocaleDateString("de-DE", {
+  const t = useT();
+  const locale = useLocale();
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
+  const datumText = new Date(datum).toLocaleDateString(dateLocale, {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
@@ -50,12 +54,12 @@ function TicketVorschau({
             className="font-bold text-base leading-tight truncate max-w-[220px]"
             style={{ color: hellHeader ? design.textFarbe : "#ffffff" }}
           >
-            {eventTitel || "Eventname"}
+            {eventTitel || t.ticketDesigner.previewEventname}
           </p>
           <p className="text-xs mt-0.5" style={{ color: hellHeader ? "#94a3b8" : "rgba(255,255,255,0.6)" }}>{datumText}</p>
         </div>
         <div className="rounded px-2 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: design.akzentFarbe }}>
-          TICKET
+          {t.ticketDesigner.badgeTicket}
         </div>
       </div>
 
@@ -64,12 +68,12 @@ function TicketVorschau({
         <div className="flex-1 px-5 py-4 space-y-3">
           {design.zeigeVeranstaltungsort && venue && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>Veranstaltungsort</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>{t.ticketDesigner.labelVeranstaltungsort}</p>
               <p className="text-sm font-medium mt-0.5" style={{ color: design.textFarbe }}>{venue}</p>
             </div>
           )}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>Inhaber</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>{t.ticketDesigner.labelInhaber}</p>
             <p className="text-sm font-bold mt-0.5" style={{ color: design.textFarbe }}>Max Mustermann</p>
           </div>
           <div className="border-t border-dashed" style={{ borderColor: "#e2e8f0" }} />
@@ -77,7 +81,7 @@ function TicketVorschau({
             <div>
               <p className="text-2xl font-bold font-mono leading-none" style={{ color: design.akzentFarbe }}>A-12</p>
               {design.zeigeKategorie && (
-                <p className="text-xs mt-1" style={{ color: "#64748b" }}>Parkett</p>
+                <p className="text-xs mt-1" style={{ color: "#64748b" }}>{t.ticketDesigner.previewKategorie}</p>
               )}
             </div>
             <p className="text-sm" style={{ color: "#94a3b8" }}>29,00 €</p>
@@ -103,7 +107,7 @@ function TicketVorschau({
                 />
               ))}
             </div>
-            <p className="text-[8px] mt-1.5" style={{ color: "#94a3b8" }}>Einlass-QR</p>
+            <p className="text-[8px] mt-1.5" style={{ color: "#94a3b8" }}>{t.ticketDesigner.einlassQr}</p>
           </div>
         )}
       </div>
@@ -120,7 +124,7 @@ function TicketVorschau({
           <p className="text-[10px] font-bold" style={{ color: "#94a3b8" }}>SeatFlow</p>
         )}
         <p className="text-[9px]" style={{ color: "#94a3b8" }}>
-          {design.fusszeile || "Buchung #A1B2C3D4"}
+          {design.fusszeile || t.ticketDesigner.previewFusszeile}
         </p>
       </div>
     </div>
@@ -183,6 +187,7 @@ export default function TicketDesigner({
   venue?: string;
   initialDesign: TicketDesign | null;
 }) {
+  const t = useT();
   const [design, setDesign] = useState<TicketDesign>(initialDesign ?? DEFAULT_TICKET_DESIGN);
   const [gespeichert, setGespeichert] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -200,41 +205,41 @@ export default function TicketDesigner({
     startTransition(() => router.refresh());
   }
 
-  const PRESETS: { name: string; design: Partial<TicketDesign> }[] = [
-    { name: "Dunkel", design: { headerStil: "farbig", headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Indigo", design: { headerStil: "farbig", headerFarbe: "#4338ca", akzentFarbe: "#818cf8", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Emerald", design: { headerStil: "farbig", headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Rot", design: { headerStil: "farbig", headerFarbe: "#991b1b", akzentFarbe: "#ef4444", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
-    { name: "Gold", design: { headerStil: "farbig", headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#fffbeb", textFarbe: "#1e293b" } },
-    { name: "Nacht", design: { headerStil: "farbig", headerFarbe: "#1e1b4b", akzentFarbe: "#a855f7", hintergrundFarbe: "#faf5ff", textFarbe: "#1e1b4b" } },
+  const PRESETS: { name: string; label: string; design: Partial<TicketDesign> }[] = [
+    { name: "Dunkel", label: t.ticketDesigner.presetDunkel, design: { headerStil: "farbig", headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Indigo", label: t.ticketDesigner.presetIndigo, design: { headerStil: "farbig", headerFarbe: "#4338ca", akzentFarbe: "#818cf8", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Emerald", label: t.ticketDesigner.presetEmerald, design: { headerStil: "farbig", headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Rot", label: t.ticketDesigner.presetRot, design: { headerStil: "farbig", headerFarbe: "#991b1b", akzentFarbe: "#ef4444", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
+    { name: "Gold", label: t.ticketDesigner.presetGold, design: { headerStil: "farbig", headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#fffbeb", textFarbe: "#1e293b" } },
+    { name: "Nacht", label: t.ticketDesigner.presetNacht, design: { headerStil: "farbig", headerFarbe: "#1e1b4b", akzentFarbe: "#a855f7", hintergrundFarbe: "#faf5ff", textFarbe: "#1e1b4b" } },
     // Druckoptimiert: weißer Header + Akzentlinie (spart Toner)
-    { name: "Minimal", design: { headerStil: "hell", headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
-    { name: "Linie Grün", design: { headerStil: "hell", headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
-    { name: "Linie Amber", design: { headerStil: "hell", headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
+    { name: "Minimal", label: t.ticketDesigner.presetMinimal, design: { headerStil: "hell", headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
+    { name: "Linie Grün", label: t.ticketDesigner.presetLinieGruen, design: { headerStil: "hell", headerFarbe: "#065f46", akzentFarbe: "#10b981", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
+    { name: "Linie Amber", label: t.ticketDesigner.presetLinieAmber, design: { headerStil: "hell", headerFarbe: "#78350f", akzentFarbe: "#f59e0b", hintergrundFarbe: "#ffffff", textFarbe: "#0f172a" } },
   ];
 
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Palette className="h-4 w-4" /> Ticket-Design
+          <Palette className="h-4 w-4" /> {t.ticketDesigner.ticketDesign}
         </CardTitle>
         <Button size="sm" variant="outline" onClick={speichern} disabled={isPending}>
-          {gespeichert ? <><Check className="h-3.5 w-3.5 mr-1" /> Gespeichert</> : "Speichern"}
+          {gespeichert ? <><Check className="h-3.5 w-3.5 mr-1" /> {t.ticketDesigner.gespeichert}</> : t.common.speichern}
         </Button>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Live Preview */}
         <div>
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
-            <Eye className="h-3.5 w-3.5" /> Vorschau
+            <Eye className="h-3.5 w-3.5" /> {t.ticketDesigner.vorschau}
           </p>
           <TicketVorschau design={design} eventTitel={eventTitel} datum={eventDatum} venue={venue} />
         </div>
 
         {/* Presets */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Farbschema</Label>
+          <Label className="text-xs">{t.ticketDesigner.farbschema}</Label>
           <div className="flex flex-wrap gap-1.5">
             {PRESETS.map((p) => (
               <button
@@ -249,7 +254,7 @@ export default function TicketDesigner({
                     ? `linear-gradient(135deg, #ffffff, ${p.design.akzentFarbe})`
                     : `linear-gradient(135deg, ${p.design.headerFarbe}, ${p.design.akzentFarbe})` }}
                 />
-                {p.name}
+                {p.label}
               </button>
             ))}
           </div>
@@ -257,49 +262,49 @@ export default function TicketDesigner({
 
         {/* Colors */}
         <div className="grid grid-cols-2 gap-3">
-          <FarbPicker label="Kopfzeile" value={design.headerFarbe} onChange={(v) => update({ headerFarbe: v })} />
-          <FarbPicker label="Akzentfarbe" value={design.akzentFarbe} onChange={(v) => update({ akzentFarbe: v })} />
-          <FarbPicker label="Hintergrund" value={design.hintergrundFarbe} onChange={(v) => update({ hintergrundFarbe: v })} />
-          <FarbPicker label="Textfarbe" value={design.textFarbe} onChange={(v) => update({ textFarbe: v })} />
+          <FarbPicker label={t.ticketDesigner.kopfzeile} value={design.headerFarbe} onChange={(v) => update({ headerFarbe: v })} />
+          <FarbPicker label={t.ticketDesigner.akzentfarbe} value={design.akzentFarbe} onChange={(v) => update({ akzentFarbe: v })} />
+          <FarbPicker label={t.ticketDesigner.hintergrund} value={design.hintergrundFarbe} onChange={(v) => update({ hintergrundFarbe: v })} />
+          <FarbPicker label={t.ticketDesigner.textfarbe} value={design.textFarbe} onChange={(v) => update({ textFarbe: v })} />
         </div>
 
         {/* Logo */}
         <div className="space-y-1">
-          <Label className="text-xs">Logo-URL (optional)</Label>
+          <Label className="text-xs">{t.ticketDesigner.logoUrlOptional}</Label>
           <Input
             value={design.logoUrl ?? ""}
             onChange={(e) => update({ logoUrl: e.target.value || undefined })}
-            placeholder="https://deine-domain.de/logo.png"
+            placeholder={t.ticketDesigner.logoUrlPlaceholder}
             className="h-8 text-xs"
           />
-          <p className="text-[10px] text-muted-foreground">Erscheint in der Fußzeile des Tickets.</p>
+          <p className="text-[10px] text-muted-foreground">{t.ticketDesigner.logoHinweis}</p>
         </div>
 
         {/* Footer message */}
         <div className="space-y-1">
-          <Label className="text-xs">Fußzeile (optional)</Label>
+          <Label className="text-xs">{t.ticketDesigner.fusszeileOptional}</Label>
           <Input
             value={design.fusszeile ?? ""}
             onChange={(e) => update({ fusszeile: e.target.value || undefined })}
-            placeholder="z.B. Kein Umtausch · veranstalter.de"
+            placeholder={t.ticketDesigner.fusszeilePlaceholder}
             className="h-8 text-xs"
           />
         </div>
 
         {/* Toggles */}
         <div className="space-y-0.5 border-t border-border pt-3">
-          <Toggle label="Heller Header (spart Toner beim Druck)" value={design.headerStil === "hell"} onChange={(v) => update({ headerStil: v ? "hell" : "farbig" })} />
-          <Toggle label="Veranstaltungsort anzeigen" value={design.zeigeVeranstaltungsort} onChange={(v) => update({ zeigeVeranstaltungsort: v })} />
-          <Toggle label="Ticketkategorie anzeigen" value={design.zeigeKategorie} onChange={(v) => update({ zeigeKategorie: v })} />
-          <Toggle label="QR-Code anzeigen" value={design.zeigeQrCode} onChange={(v) => update({ zeigeQrCode: v })} />
+          <Toggle label={t.ticketDesigner.toggleHellerHeader} value={design.headerStil === "hell"} onChange={(v) => update({ headerStil: v ? "hell" : "farbig" })} />
+          <Toggle label={t.ticketDesigner.toggleVeranstaltungsort} value={design.zeigeVeranstaltungsort} onChange={(v) => update({ zeigeVeranstaltungsort: v })} />
+          <Toggle label={t.ticketDesigner.toggleKategorie} value={design.zeigeKategorie} onChange={(v) => update({ zeigeKategorie: v })} />
+          <Toggle label={t.ticketDesigner.toggleQrCode} value={design.zeigeQrCode} onChange={(v) => update({ zeigeQrCode: v })} />
         </div>
 
         <Button size="sm" className="w-full" onClick={speichern} disabled={isPending}>
-          {gespeichert ? "✓ Gespeichert" : "Design speichern"}
+          {gespeichert ? t.ticketDesigner.gespeichertCheck : t.ticketDesigner.designSpeichern}
         </Button>
 
         <p className="text-xs text-muted-foreground">
-          Das Design wird auf alle Ticket-PDFs angewendet, die bei neuen Buchungen verschickt werden.
+          {t.ticketDesigner.hinweis}
         </p>
       </CardContent>
     </Card>

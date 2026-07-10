@@ -9,6 +9,8 @@ import { Plus, Trash as Trash2, Check, PencilSimple as Pencil, CaretDown as Chev
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import type { TicketTemplate } from "./page";
+import { useT, useLocale } from "@/components/i18n-provider";
+import type { Dict } from "@/lib/i18n";
 
 const PRESETS: { name: string; design: Partial<TicketDesign> }[] = [
   { name: "Dunkel",    design: { headerFarbe: "#0f172a", akzentFarbe: "#6366f1", hintergrundFarbe: "#ffffff", textFarbe: "#1e293b" } },
@@ -18,6 +20,18 @@ const PRESETS: { name: string; design: Partial<TicketDesign> }[] = [
   { name: "Rose",     design: { headerFarbe: "#881337", akzentFarbe: "#fb7185", hintergrundFarbe: "#fff1f2", textFarbe: "#881337" } },
   { name: "Minimal",  design: { headerFarbe: "#374151", akzentFarbe: "#9ca3af", hintergrundFarbe: "#ffffff", textFarbe: "#111827" } },
 ];
+
+function presetLabel(t: Dict, name: string): string {
+  const map: Record<string, string> = {
+    Dunkel: t.ticketTemplates.presetDunkel,
+    Nacht: t.ticketTemplates.presetNacht,
+    Ozean: t.ticketTemplates.presetOzean,
+    Wald: t.ticketTemplates.presetWald,
+    Rose: t.ticketTemplates.presetRose,
+    Minimal: t.ticketTemplates.presetMinimal,
+  };
+  return map[name] ?? name;
+}
 
 function ColorSwatch({ color, label, value, onChange }: {
   color: string; label: string; value: string; onChange: (v: string) => void;
@@ -40,6 +54,7 @@ function ColorSwatch({ color, label, value, onChange }: {
 
 /* ─── Live preview ──────────────────────────────────────────────────────────── */
 function TicketVorschau({ design, name }: { design: TicketDesign; name: string }) {
+  const t = useT();
   return (
     <div className="rounded-xl overflow-hidden border border-border shadow-sm select-none text-left"
       style={{ backgroundColor: design.hintergrundFarbe }}>
@@ -47,21 +62,21 @@ function TicketVorschau({ design, name }: { design: TicketDesign; name: string }
       <div className="px-4 py-2.5 flex items-center justify-between"
         style={{ backgroundColor: design.headerFarbe }}>
         <div>
-          <p className="text-white font-bold text-sm truncate max-w-[160px]">{name || "Eventname"}</p>
-          <p className="text-white/60 text-[10px]">Sa., 1. Jan · 20:00</p>
+          <p className="text-white font-bold text-sm truncate max-w-[160px]">{name || t.ticketTemplates.previewEventname}</p>
+          <p className="text-white/60 text-[10px]">{t.ticketTemplates.previewDatum}</p>
         </div>
         <div className="rounded px-1.5 py-0.5 text-[9px] font-bold text-white" style={{ backgroundColor: design.akzentFarbe }}>
-          Standard
+          {t.ticketTemplates.previewTicketTyp}
         </div>
       </div>
       <div className="px-4 py-3 flex gap-3 items-center">
         <div className="flex-1 space-y-1.5">
           <div>
-            <p className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>Inhaber</p>
+            <p className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>{t.ticketTemplates.labelInhaber}</p>
             <p className="text-xs font-bold" style={{ color: design.textFarbe }}>Max Mustermann</p>
           </div>
           <div>
-            <p className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>Platz</p>
+            <p className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>{t.ticketTemplates.labelPlatz}</p>
             <p className="text-sm font-bold" style={{ color: design.akzentFarbe }}>A-12</p>
           </div>
         </div>
@@ -77,7 +92,7 @@ function TicketVorschau({ design, name }: { design: TicketDesign; name: string }
         style={{ backgroundColor: "#f8fafc" }}>
         <p className="text-[9px]" style={{ color: "#94a3b8" }}>SeatFlow</p>
         <p className="text-[9px]" style={{ color: "#94a3b8" }}>
-          {design.fusszeile || "Buchung #ABC12345"}
+          {design.fusszeile || t.ticketTemplates.previewFusszeile}
         </p>
       </div>
     </div>
@@ -96,6 +111,7 @@ function TemplateDesigner({
   onCancel: () => void;
   isSaving: boolean;
 }) {
+  const t = useT();
   const [name, setName] = useState(initial.name);
   const [design, setDesign] = useState<TicketDesign>(initial.design);
   const [showKlein, setShowKlein] = useState(!!initial.design.kleingedrucktes);
@@ -110,14 +126,14 @@ function TemplateDesigner({
       <div className="space-y-5">
         {/* Name */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">Template-Name</Label>
+          <Label className="text-xs font-semibold">{t.ticketTemplates.templateName}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="z.B. Premium, Festival, Standard…" className="h-9" />
+            placeholder={t.ticketTemplates.templateNamePlaceholder} className="h-9" />
         </div>
 
         {/* Color presets */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground">Farbschema</p>
+          <p className="text-xs font-semibold text-foreground">{t.ticketTemplates.farbschema}</p>
           <div className="grid grid-cols-3 gap-2">
             {PRESETS.map((p) => (
               <button key={p.name} type="button"
@@ -127,7 +143,7 @@ function TemplateDesigner({
                   <div className="w-3 h-6 rounded-l-sm" style={{ backgroundColor: p.design.headerFarbe }} />
                   <div className="w-3 h-6 rounded-r-sm" style={{ backgroundColor: p.design.akzentFarbe }} />
                 </div>
-                <span className="text-xs font-medium">{p.name}</span>
+                <span className="text-xs font-medium">{presetLabel(t, p.name)}</span>
               </button>
             ))}
           </div>
@@ -135,27 +151,27 @@ function TemplateDesigner({
 
         {/* Colors */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold">Farben anpassen</p>
+          <p className="text-xs font-semibold">{t.ticketTemplates.farbenAnpassen}</p>
           <div className="grid grid-cols-2 gap-3">
-            <ColorSwatch color={design.headerFarbe} label="Header" value={design.headerFarbe}
+            <ColorSwatch color={design.headerFarbe} label={t.ticketTemplates.header} value={design.headerFarbe}
               onChange={(v) => update({ headerFarbe: v })} />
-            <ColorSwatch color={design.akzentFarbe} label="Akzent" value={design.akzentFarbe}
+            <ColorSwatch color={design.akzentFarbe} label={t.ticketTemplates.akzent} value={design.akzentFarbe}
               onChange={(v) => update({ akzentFarbe: v })} />
-            <ColorSwatch color={design.hintergrundFarbe} label="Hintergrund" value={design.hintergrundFarbe}
+            <ColorSwatch color={design.hintergrundFarbe} label={t.ticketTemplates.hintergrund} value={design.hintergrundFarbe}
               onChange={(v) => update({ hintergrundFarbe: v })} />
-            <ColorSwatch color={design.textFarbe} label="Text" value={design.textFarbe}
+            <ColorSwatch color={design.textFarbe} label={t.ticketTemplates.text} value={design.textFarbe}
               onChange={(v) => update({ textFarbe: v })} />
           </div>
         </div>
 
         {/* Options */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold">Optionen</p>
+          <p className="text-xs font-semibold">{t.ticketTemplates.optionen}</p>
           <div className="space-y-1.5">
             {[
-              { key: "zeigeVeranstaltungsort" as const, label: "Veranstaltungsort anzeigen" },
-              { key: "zeigeKategorie" as const, label: "Kategorie anzeigen" },
-              { key: "zeigeQrCode" as const, label: "QR-Code anzeigen" },
+              { key: "zeigeVeranstaltungsort" as const, label: t.ticketTemplates.veranstaltungsortAnzeigen },
+              { key: "zeigeKategorie" as const, label: t.ticketTemplates.kategorieAnzeigen },
+              { key: "zeigeQrCode" as const, label: t.ticketTemplates.qrCodeAnzeigen },
             ].map(({ key, label }) => (
               <label key={key} className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={design[key]}
@@ -170,14 +186,14 @@ function TemplateDesigner({
         {/* Logo + footer */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Logo-URL</Label>
+            <Label className="text-xs font-semibold">{t.ticketTemplates.logoUrl}</Label>
             <Input value={design.logoUrl ?? ""} onChange={(e) => update({ logoUrl: e.target.value || undefined })}
-              placeholder="https://…" className="h-8 text-xs" />
+              placeholder={t.ticketTemplates.logoUrlPlaceholder} className="h-8 text-xs" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Fußzeile</Label>
+            <Label className="text-xs font-semibold">{t.ticketTemplates.fusszeile}</Label>
             <Input value={design.fusszeile ?? ""} onChange={(e) => update({ fusszeile: e.target.value || undefined })}
-              placeholder="Kein Umtausch…" className="h-8 text-xs" />
+              placeholder={t.ticketTemplates.fusszeilePlaceholder} className="h-8 text-xs" />
           </div>
         </div>
 
@@ -187,22 +203,22 @@ function TemplateDesigner({
             className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
             onClick={() => setShowKlein((v) => !v)}>
             <div>
-              <p className="text-sm font-semibold">Kleingedrucktes</p>
-              <p className="text-xs text-muted-foreground">Erscheint unterhalb des Tickets im PDF</p>
+              <p className="text-sm font-semibold">{t.ticketTemplates.kleingedrucktes}</p>
+              <p className="text-xs text-muted-foreground">{t.ticketTemplates.kleingedrucktesHinweis}</p>
             </div>
             {showKlein ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </button>
           {showKlein && (
             <div className="border-t border-border p-4 space-y-2">
               <p className="text-xs text-muted-foreground">
-                Unterstützt Markdown: <code className="bg-muted px-1 rounded"># Überschrift</code>{" "}
-                <code className="bg-muted px-1 rounded">**fett**</code>{" "}
-                <code className="bg-muted px-1 rounded">- Liste</code>
+                {t.ticketTemplates.markdownHinweis} <code className="bg-muted px-1 rounded">{t.ticketTemplates.markdownUeberschrift}</code>{" "}
+                <code className="bg-muted px-1 rounded">{t.ticketTemplates.markdownFett}</code>{" "}
+                <code className="bg-muted px-1 rounded">{t.ticketTemplates.markdownListe}</code>
               </p>
               <Textarea
                 value={design.kleingedrucktes ?? ""}
                 onChange={(e) => update({ kleingedrucktes: e.target.value || undefined })}
-                placeholder={`## Stornobedingungen\n- Tickets sind nicht erstattbar\n- Einlass nur mit gültigem Ausweis\n\n## Veranstalter\nMusterveranstaltungen GmbH`}
+                placeholder={t.ticketTemplates.kleingedrucktesPlaceholder}
                 className="min-h-[180px] text-xs font-mono resize-y"
               />
             </div>
@@ -212,12 +228,12 @@ function TemplateDesigner({
 
       {/* Preview */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vorschau</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.ticketTemplates.vorschau}</p>
         <TicketVorschau design={design} name={name} />
 
         {design.kleingedrucktes?.trim() && (
           <div className="rounded-xl border border-border p-4 space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Kleingedrucktes (Vorschau)</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t.ticketTemplates.kleingedrucktesVorschau}</p>
             <div className="prose prose-xs max-w-none text-xs text-muted-foreground">
               <div className="space-y-1">
                 {design.kleingedrucktes.split("\n").map((line: string, i: number) => {
@@ -234,9 +250,9 @@ function TemplateDesigner({
 
         <div className="flex gap-2">
           <Button onClick={() => onSave(name, design)} disabled={isSaving || !name.trim()} size="sm" className="flex-1">
-            {isSaving ? "Speichern…" : <><Check className="h-3.5 w-3.5 mr-1.5" />Speichern</>}
+            {isSaving ? t.ticketTemplates.speichernLaeuft : <><Check className="h-3.5 w-3.5 mr-1.5" />{t.common.speichern}</>}
           </Button>
-          <Button variant="outline" size="sm" onClick={onCancel}>Abbrechen</Button>
+          <Button variant="outline" size="sm" onClick={onCancel}>{t.common.abbrechen}</Button>
         </div>
       </div>
     </div>
@@ -245,6 +261,9 @@ function TemplateDesigner({
 
 /* ─── Main page ─────────────────────────────────────────────────────────────── */
 export default function TicketTemplatesClient({ initialTemplates }: { initialTemplates: TicketTemplate[] }) {
+  const t = useT();
+  const locale = useLocale();
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
   const [templates, setTemplates] = useState<TicketTemplate[]>(initialTemplates);
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -277,7 +296,7 @@ export default function TicketTemplatesClient({ initialTemplates }: { initialTem
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Template wirklich löschen?")) return;
+    if (!confirm(t.ticketTemplates.loeschenBestaetigung)) return;
     await fetch(`/api/ticket-templates/${id}`, { method: "DELETE" });
     setTemplates((prev) => prev.filter((t) => t.id !== id));
     if (editingId === id) setEditingId(null);
@@ -287,14 +306,14 @@ export default function TicketTemplatesClient({ initialTemplates }: { initialTem
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Ticket-Templates</h1>
+          <h1 className="text-2xl font-bold">{t.ticketTemplates.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gestalte wiederverwendbare Ticket-Designs und weise sie deinen Events zu.
+            {t.ticketTemplates.subtitle}
           </p>
         </div>
         {editingId !== "new" && (
           <Button onClick={() => setEditingId("new")} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" /> Neues Template
+            <Plus className="h-4 w-4 mr-1.5" /> {t.ticketTemplates.neuesTemplate}
           </Button>
         )}
       </div>
@@ -302,7 +321,7 @@ export default function TicketTemplatesClient({ initialTemplates }: { initialTem
       {/* New template designer */}
       {editingId === "new" && (
         <div className="rounded-2xl border border-primary/30 bg-card p-6 shadow-sm">
-          <h2 className="font-semibold mb-4">Neues Template erstellen</h2>
+          <h2 className="font-semibold mb-4">{t.ticketTemplates.neuesTemplateErstellen}</h2>
           <TemplateDesigner
             initial={{ name: "", design: { ...DEFAULT_TICKET_DESIGN } }}
             onSave={handleSave}
@@ -315,48 +334,48 @@ export default function TicketTemplatesClient({ initialTemplates }: { initialTem
       {/* Template list */}
       {templates.length === 0 && editingId !== "new" && (
         <div className="rounded-2xl border border-dashed border-border p-16 text-center space-y-3">
-          <p className="text-muted-foreground text-sm">Noch keine Templates erstellt.</p>
+          <p className="text-muted-foreground text-sm">{t.ticketTemplates.keineTemplates}</p>
           <Button onClick={() => setEditingId("new")} variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-1.5" /> Erstes Template erstellen
+            <Plus className="h-4 w-4 mr-1.5" /> {t.ticketTemplates.erstesTemplateErstellen}
           </Button>
         </div>
       )}
 
       <div className="space-y-4">
-        {templates.map((t) => (
-          <div key={t.id} className="rounded-2xl border border-border bg-card overflow-hidden">
+        {templates.map((tpl) => (
+          <div key={tpl.id} className="rounded-2xl border border-border bg-card overflow-hidden">
             {/* Template header */}
             <div className="flex items-center gap-4 px-5 py-4">
               {/* Color preview chips */}
               <div className="flex gap-1 shrink-0">
-                <div className="w-5 h-8 rounded-l-md" style={{ backgroundColor: t.design.headerFarbe }} />
-                <div className="w-5 h-8" style={{ backgroundColor: t.design.akzentFarbe }} />
-                <div className="w-5 h-8 rounded-r-md border border-border" style={{ backgroundColor: t.design.hintergrundFarbe }} />
+                <div className="w-5 h-8 rounded-l-md" style={{ backgroundColor: tpl.design.headerFarbe }} />
+                <div className="w-5 h-8" style={{ backgroundColor: tpl.design.akzentFarbe }} />
+                <div className="w-5 h-8 rounded-r-md border border-border" style={{ backgroundColor: tpl.design.hintergrundFarbe }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">{t.name}</p>
+                <p className="font-semibold text-sm">{tpl.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(t.erstellt_am).toLocaleDateString("de-DE")}
-                  {t.design.kleingedrucktes && " · Kleingedrucktes vorhanden"}
+                  {new Date(tpl.erstellt_am).toLocaleDateString(dateLocale)}
+                  {tpl.design.kleingedrucktes && ` · ${t.ticketTemplates.kleingedrucktesVorhanden}`}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button variant="ghost" size="icon" className="h-8 w-8"
-                  onClick={() => setEditingId(editingId === t.id ? null : t.id)}>
+                  onClick={() => setEditingId(editingId === tpl.id ? null : tpl.id)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => handleDelete(t.id)}>
+                  onClick={() => handleDelete(tpl.id)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
 
             {/* Inline editor */}
-            {editingId === t.id && (
+            {editingId === tpl.id && (
               <div className="border-t border-border p-5">
                 <TemplateDesigner
-                  initial={{ name: t.name, design: t.design }}
+                  initial={{ name: tpl.name, design: tpl.design }}
                   onSave={handleSave}
                   onCancel={() => setEditingId(null)}
                   isSaving={isPending}
