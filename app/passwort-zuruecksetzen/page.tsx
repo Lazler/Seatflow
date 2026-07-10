@@ -19,30 +19,12 @@ export default function PasswortZuruecksetzen() {
   const [laedt, setLaedt] = useState(false);
 
   useEffect(() => {
-    // Parse hash fragment — only accessible client-side
-    const hash = window.location.hash.slice(1);
-    const params = new URLSearchParams(hash);
-    const type = params.get("type");
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
-
-    if (type === "recovery" && accessToken && refreshToken) {
-      const supabase = createClient();
-      supabase.auth
-        .setSession({ access_token: accessToken, refresh_token: refreshToken })
-        .then(({ error }) => {
-          if (error) {
-            setPhase("error");
-          } else {
-            // Clear the hash from the URL bar without a reload
-            window.history.replaceState(null, "", window.location.pathname);
-            setPhase("form");
-          }
-        });
-    } else {
-      // Außerhalb des synchronen Effect-Bodys setzen (React-Compiler-Regel)
-      queueMicrotask(() => setPhase("error"));
-    }
+    // Die Callback-Route (/auth/callback) hat den Reset-Code bereits gegen
+    // eine Recovery-Session getauscht. Hier nur prüfen, ob die Session steht.
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data, error }) => {
+      setPhase(error || !data.user ? "error" : "form");
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

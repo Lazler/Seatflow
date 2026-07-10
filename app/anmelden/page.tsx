@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 type Ansicht = "login" | "reset-anfrage" | "reset-gesendet";
 
-export default function Anmelden() {
+function AnmeldenInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const weiter = searchParams.get("weiter");
+  const linkFehler = searchParams.get("fehler") === "link";
+  const zielPfad = weiter && weiter.startsWith("/") && !weiter.startsWith("//") ? weiter : "/dashboard";
   const [ansicht, setAnsicht] = useState<Ansicht>("login");
   const [email, setEmail] = useState("");
   const [passwort, setPasswort] = useState("");
@@ -33,7 +37,7 @@ export default function Anmelden() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(zielPfad);
     router.refresh();
   }
 
@@ -43,7 +47,9 @@ export default function Anmelden() {
     setLaedt(true);
 
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/passwort-zuruecksetzen`;
+    // Reset-Link landet auf der Callback-Route (tauscht Code → Session) und
+    // leitet dann auf die Passwort-setzen-Seite mit gültiger Recovery-Session.
+    const redirectTo = `${window.location.origin}/auth/callback?next=/passwort-zuruecksetzen`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
     setLaedt(false);
@@ -71,6 +77,11 @@ export default function Anmelden() {
               <CardDescription>Melde dich mit deiner E-Mail an</CardDescription>
             </CardHeader>
             <CardContent>
+              {linkFehler && (
+                <p className="text-sm text-destructive bg-destructive/5 rounded-md px-3 py-2 mb-4">
+                  Der Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.
+                </p>
+              )}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">E-Mail</Label>
@@ -181,5 +192,13 @@ export default function Anmelden() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Anmelden() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-muted/40" />}>
+      <AnmeldenInner />
+    </Suspense>
   );
 }

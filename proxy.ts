@@ -37,7 +37,10 @@ export async function proxy(request: NextRequest) {
   const istAuthRoute = AUTH_ROUTEN.some((r) => pfad.startsWith(r));
 
   if (istGeschuetzt && !user) {
-    return NextResponse.redirect(new URL("/anmelden", request.url));
+    // Rücksprungziel merken, damit man nach dem Login wieder dort landet
+    const url = new URL("/anmelden", request.url);
+    url.searchParams.set("weiter", pfad);
+    return NextResponse.redirect(url);
   }
 
   if (istAuthRoute && user) {

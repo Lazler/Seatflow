@@ -29,17 +29,32 @@ export default function Registrieren() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password: passwort,
-      options: { data: { name } },
+      options: {
+        data: { name },
+        // Bestätigungslink landet auf der Callback-Route, die den Code gegen
+        // eine Session tauscht und dann ins Dashboard weiterleitet.
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
     });
 
     if (error) {
-      setFehler(error.message);
+      // Bekannte Fälle freundlich übersetzen, sonst generisch bleiben
+      const m = error.message.toLowerCase();
+      setFehler(
+        m.includes("already registered") || m.includes("already been registered")
+          ? "Diese E-Mail ist bereits registriert. Melde dich an oder setze dein Passwort zurück."
+          : m.includes("password")
+            ? "Das Passwort ist zu schwach — bitte wähle ein längeres."
+            : "Registrierung fehlgeschlagen. Bitte versuche es erneut."
+      );
       setLaedt(false);
       return;
     }
 
     // Ist E-Mail-Bestätigung aktiv, gibt es noch keine Session → nicht ins
-    // Dashboard leiten, sondern zur Bestätigung auffordern.
+    // Dashboard leiten, sondern zur Bestätigung auffordern. (Bei bereits
+    // existierenden Adressen liefert Supabase identities: [] — gleiche Ansicht,
+    // damit keine Konten-Enumeration möglich ist.)
     if (!data.session) {
       setEmailBestaetigen(true);
       setLaedt(false);
