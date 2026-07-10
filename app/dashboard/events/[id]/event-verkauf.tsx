@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CalendarBlank as CalendarClock } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/components/i18n-provider";
 
 // timestamptz → Wert für <input type="datetime-local"> (lokale Zeit)
 function zuLocalInput(iso: string | null): string {
@@ -30,6 +31,7 @@ export default function EventVerkauf({
   initialVerkaufBis: string | null;
   initialMaxProBuchung: number | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [verkaufAb, setVerkaufAb] = useState(zuLocalInput(initialVerkaufAb));
   const [verkaufBis, setVerkaufBis] = useState(zuLocalInput(initialVerkaufBis));
@@ -38,7 +40,7 @@ export default function EventVerkauf({
 
   async function speichern() {
     if (verkaufAb && verkaufBis && new Date(verkaufAb) >= new Date(verkaufBis)) {
-      toast.error("Ungültiger Zeitraum", "Verkaufsstart muss vor dem Verkaufsende liegen.");
+      toast.error(t.eventVerkauf.ungueltigerZeitraum, t.eventVerkauf.zeitraumHinweis);
       return;
     }
     setSpeichert(true);
@@ -52,8 +54,8 @@ export default function EventVerkauf({
       })
       .eq("id", eventId);
     setSpeichert(false);
-    if (error) { toast.error("Speichern fehlgeschlagen", error.message); return; }
-    toast.success("Gespeichert", "Verkauf & Limits aktualisiert.");
+    if (error) { toast.error(t.common.speichernFehlgeschlagen, error.message); return; }
+    toast.success(t.common.gespeichert, t.eventVerkauf.toastText);
     router.refresh();
   }
 
@@ -62,29 +64,29 @@ export default function EventVerkauf({
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <CalendarClock className="h-4 w-4 text-primary" />
-          Verkauf & Limits
+          {t.eventVerkauf.titel}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-xs">Verkaufsstart (optional)</Label>
+          <Label className="text-xs">{t.eventVerkauf.verkaufsstart}</Label>
           <Input type="datetime-local" value={verkaufAb}
             onChange={(e) => setVerkaufAb(e.target.value)} className="h-9 text-sm" />
           <p className="text-[11px] text-muted-foreground">
-            Vorher zeigt die Buchungsseite „Vorverkauf startet am …".
+            {t.eventVerkauf.verkaufsstartHinweis}
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Verkaufsende (optional)</Label>
+          <Label className="text-xs">{t.eventVerkauf.verkaufsende}</Label>
           <Input type="datetime-local" value={verkaufBis}
             onChange={(e) => setVerkaufBis(e.target.value)} className="h-9 text-sm" />
           <p className="text-[11px] text-muted-foreground">
-            Danach ist online keine Buchung mehr möglich — z. B. 2 h vor Einlass.
+            {t.eventVerkauf.verkaufsendeHinweis}
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Max. Plätze pro Buchung</Label>
-          <Input type="number" min={1} max={20} placeholder="8 (Standard)"
+          <Label className="text-xs">{t.eventVerkauf.maxProBuchung}</Label>
+          <Input type="number" min={1} max={20} placeholder={t.eventVerkauf.maxPlaceholder}
             value={maxProBuchung}
             onChange={(e) => {
               const v = parseInt(e.target.value);
@@ -94,7 +96,7 @@ export default function EventVerkauf({
         </div>
 
         <Button size="sm" onClick={speichern} disabled={speichert}>
-          {speichert ? "Speichern…" : "Speichern"}
+          {speichert ? t.common.speichernLaeuft : t.common.speichern}
         </Button>
       </CardContent>
     </Card>

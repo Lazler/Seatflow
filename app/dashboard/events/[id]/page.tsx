@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { getDictionary, isLocale, type Locale } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,13 +14,6 @@ import { VeroeffentlichungsCheck } from "@/components/events/veroeffentlichungs-
 import { pruefeVeroeffentlichung } from "@/lib/event-bereitschaft";
 import { zaehleBuchbarePlaetze } from "@/lib/event-plaetze";
 import { effectivePlan, PLAN_SEAT_LIMIT } from "@/lib/plan";
-
-const STATUS_LABEL: Record<string, string> = {
-  entwurf: "Entwurf",
-  veroeffentlicht: "Veröffentlicht",
-  abgesagt: "Abgesagt",
-  beendet: "Beendet",
-};
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   entwurf: "secondary",
@@ -64,10 +59,22 @@ export default async function EventDetail({
   // ── Veröffentlichungs-Bereitschaft ──────────────────────────────────────────
   const { data: profil } = await supabase
     .from("veranstalter_profile")
-    .select("plan, abo_bis")
+    .select("plan, abo_bis, sprache")
     .eq("id", user!.id)
     .single();
   const plan = effectivePlan(profil?.plan ?? "free", profil?.abo_bis ?? null);
+
+  // Sprache: Cookie > Profil > de (wie im Dashboard-Layout)
+  const jar = await cookies();
+  const cookieLang = jar.get("dashboard_lang")?.value;
+  let locale: Locale = "de";
+  if (cookieLang && isLocale(cookieLang)) {
+    locale = cookieLang;
+  } else if (profil?.sprache && isLocale(profil.sprache)) {
+    locale = profil.sprache as Locale;
+  }
+  const dict = await getDictionary(locale);
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
 
   const { hatSaalplan, plaetze: buchbarePlaetze } = await zaehleBuchbarePlaetze(
     supabase,
@@ -98,13 +105,13 @@ export default async function EventDetail({
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold truncate">{event.titel}</h1>
             <Badge variant={STATUS_VARIANT[event.status]}>
-              {STATUS_LABEL[event.status]}
+              {dict.status[event.status as keyof typeof dict.status] ?? event.status}
             </Badge>
           </div>
           <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {new Date(event.datum).toLocaleDateString("de-DE", {
+              {new Date(event.datum).toLocaleDateString(dateLocale, {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
@@ -121,11 +128,11 @@ export default async function EventDetail({
             )}
             <span className="flex items-center gap-1">
               <Ticket className="h-3.5 w-3.5" />
-              {(event.ticket_preis_cent / 100).toLocaleString("de-DE", {
+              {(event.ticket_preis_cent / 100).toLocaleString(dateLocale, {
                 style: "currency",
                 currency: "EUR",
               })}{" "}
-              + €0,50 Servicegebühr
+              {dict.eventDetail.servicegebuehr}
             </span>
           </div>
         </div>
@@ -138,7 +145,7 @@ export default async function EventDetail({
             <Card className="min-w-0">
               <CardContent className="pt-4 px-3 sm:px-6">
                 <div className="text-lg sm:text-2xl font-bold tabular-nums">{bezahlteBuchungen.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Buchungen</p>
+                <p className="text-xs text-muted-foreground mt-1">{dict.eventDetail.buchungen}</p>
               </CardContent>
             </Card>
             <Card className="min-w-0">
@@ -148,18 +155,18 @@ export default async function EventDetail({
                     return s; // Ticket-Zählung kommt mit Sitzplan
                   }, 0) || "—"}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Tickets</p>
+                <p className="text-xs text-muted-foreground mt-1">{dict.eventDetail.tickets}</p>
               </CardContent>
             </Card>
             <Card className="min-w-0">
               <CardContent className="pt-4 px-3 sm:px-6">
                 <div className="text-lg sm:text-2xl font-bold tabular-nums truncate">
-                  {(gesamteinnahmenCent / 100).toLocaleString("de-DE", {
+                  {(gesamteinnahmenCent / 100).toLocaleString(dateLocale, {
                     style: "currency",
                     currency: "EUR",
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Einnahmen</p>
+                <p className="text-xs text-muted-foreground mt-1">{dict.eventDetail.einnahmen}</p>
               </CardContent>
             </Card>
           </div>
@@ -168,13 +175,13 @@ export default async function EventDetail({
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-4 w-4" /> Buchungen
+                <Users className="h-4 w-4" /> {dict.eventDetail.buchungen}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {(buchungen ?? []).length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  Noch keine Buchungen für dieses Event.
+                  {dict.eventDetail.keineBuchungen}
                 </p>
               ) : (
                 <div className="divide-y divide-border">
@@ -186,7 +193,7 @@ export default async function EventDetail({
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          {(buchung.gesamt_cent / 100).toLocaleString("de-DE", {
+                          {(buchung.gesamt_cent / 100).toLocaleString(dateLocale, {
                             style: "currency",
                             currency: "EUR",
                           })}
@@ -195,7 +202,7 @@ export default async function EventDetail({
                           variant={buchung.status === "bezahlt" ? "default" : "secondary"}
                           className="text-xs"
                         >
-                          {buchung.status}
+                          {dict.status[buchung.status as keyof typeof dict.status] ?? buchung.status}
                         </Badge>
                       </div>
                     </div>
@@ -223,30 +230,30 @@ export default async function EventDetail({
 
           {/* Einstellungen */}
           <Card>
-            <CardHeader><CardTitle className="text-sm">Einstellungen</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">{dict.events.einstellungen}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <Button size="sm" variant="outline" className="w-full" asChild>
                 <Link href={`/dashboard/events/${event.id}/einstellungen`}>
-                  <Settings className="h-3.5 w-3.5 mr-1.5" /> Event konfigurieren
+                  <Settings className="h-3.5 w-3.5 mr-1.5" /> {dict.eventDetail.eventKonfigurieren}
                 </Link>
               </Button>
               {event.status === "veroeffentlicht" && (
                 <Button size="sm" variant="outline" className="w-full" asChild>
                   <Link href={buchungsUrl} target="_blank">
-                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Buchungsseite öffnen
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> {dict.eventDetail.buchungsseiteOeffnen}
                   </Link>
                 </Button>
               )}
               {event.status === "veroeffentlicht" && (
                 <Button size="sm" variant="outline" className="w-full" asChild>
                   <Link href={`/scan/${event.id}`} target="_blank">
-                    <Ticket className="h-3.5 w-3.5 mr-1.5" /> Ticket-Scanner öffnen
+                    <Ticket className="h-3.5 w-3.5 mr-1.5" /> {dict.eventDetail.ticketScanner}
                   </Link>
                 </Button>
               )}
               <Button size="sm" variant="outline" className="w-full" asChild>
                 <Link href={`/dashboard/events/${event.id}/gaesteliste`}>
-                  <ListChecks className="h-3.5 w-3.5 mr-1.5" /> Gästeliste & Export
+                  <ListChecks className="h-3.5 w-3.5 mr-1.5" /> {dict.eventDetailPage.gaestelisteExport}
                 </Link>
               </Button>
               <EventRundmail
@@ -265,36 +272,36 @@ export default async function EventDetail({
           {/* Event-Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Details</CardTitle>
+              <CardTitle className="text-sm">{dict.eventDetail.details}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {event.beschreibung && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Beschreibung</p>
+                  <p className="text-muted-foreground text-xs mb-1">{dict.events.beschreibung}</p>
                   <p>{event.beschreibung}</p>
                 </div>
               )}
               {event.einlass_datum && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Einlass</p>
+                  <p className="text-muted-foreground text-xs mb-1">{dict.events.einlass}</p>
                   <p>
-                    {new Date(event.einlass_datum).toLocaleTimeString("de-DE", {
+                    {new Date(event.einlass_datum).toLocaleTimeString(dateLocale, {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}{" "}
-                    Uhr
+                    {dict.common.uhr}
                   </p>
                 </div>
               )}
               {event.max_tickets && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Max. Tickets</p>
+                  <p className="text-muted-foreground text-xs mb-1">{dict.events.maxTickets}</p>
                   <p>{event.max_tickets}</p>
                 </div>
               )}
               {venue && (
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">Veranstaltungsort</p>
+                  <p className="text-muted-foreground text-xs mb-1">{dict.eventDetailPage.veranstaltungsort}</p>
                   <Link
                     href={`/dashboard/venues/${venue.id}`}
                     className="text-primary hover:underline"

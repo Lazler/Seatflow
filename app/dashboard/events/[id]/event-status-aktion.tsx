@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, EyeSlash as EyeOff, XCircle, CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 import { toast } from "@/components/ui/toaster";
 
 type Status = "entwurf" | "veroeffentlicht" | "abgesagt" | "beendet";
@@ -63,10 +64,10 @@ export default function EventStatusAktion({
       setLaedt(false);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error("Veröffentlichen nicht möglich", data.error);
+        toast.error(t.events.veroeffentlichenNichtMoeglich, data.error);
         return;
       }
-      toast.success("Event veröffentlicht");
+      toast.success(t.events.eventVeroeffentlicht);
       router.refresh();
       return;
     }
@@ -129,7 +130,11 @@ export default function EventStatusAktion({
                 </Button>
                 {gesperrt && (
                   <p className="text-xs text-muted-foreground mt-1.5">
-                    Bitte zuerst die {harteBlocker === 1 ? "offene Pflicht-Angabe" : `${harteBlocker} offenen Pflicht-Angaben`} oben erledigen.
+                    {fmt(t.events.blockerHinweis, {
+                      angaben: harteBlocker === 1
+                        ? t.events.blockerEins
+                        : fmt(t.events.blockerMehr, { n: harteBlocker }),
+                    })}
                   </p>
                 )}
               </div>

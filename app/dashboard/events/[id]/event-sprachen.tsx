@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Globe, CircleNotch as Loader2, Check } from "@phosphor-icons/react";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
+import { useT } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 
 type LangContent = { titel: string; beschreibung: string };
 
@@ -25,6 +27,7 @@ export default function EventSprachen({
   deTitel: string;
   deBeschreibung: string | null;
 }) {
+  const t = useT();
   const [zusatzSprachen, setZusatzSprachen] = useState<Locale[]>(
     (initialSprachen.filter((l) => l !== "de") as Locale[]).filter((l) =>
       ADDITIONAL_LOCALES.includes(l)
@@ -94,7 +97,7 @@ export default function EventSprachen({
     if (res.ok) {
       setErfolg(true);
     } else {
-      setFehler("Fehler beim Speichern.");
+      setFehler(t.eventSprachen.fehlerSpeichern);
     }
   }
 
@@ -104,7 +107,7 @@ export default function EventSprachen({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Globe className="h-4 w-4" /> Sprachen
+          <Globe className="h-4 w-4" /> {t.eventEinstellungen.sprachen}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -155,27 +158,27 @@ export default function EventSprachen({
             {aktiveSprache !== "de" ? (
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Titel ({LOCALE_LABELS[aktiveSprache]})</Label>
+                  <Label className="text-xs">{fmt(t.eventSprachen.titel, { lang: LOCALE_LABELS[aktiveSprache] })}</Label>
                   <Input
                     value={content.titel}
                     onChange={(e) => setContent(aktiveSprache, "titel", e.target.value)}
-                    placeholder={`Titel auf ${LOCALE_LABELS[aktiveSprache]}`}
+                    placeholder={fmt(t.eventSprachen.titelPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
                     className="text-sm h-8"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Beschreibung ({LOCALE_LABELS[aktiveSprache]})</Label>
+                  <Label className="text-xs">{fmt(t.eventSprachen.beschreibung, { lang: LOCALE_LABELS[aktiveSprache] })}</Label>
                   <textarea
                     className="flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     value={content.beschreibung}
                     onChange={(e) => setContent(aktiveSprache, "beschreibung", e.target.value)}
-                    placeholder={`Beschreibung auf ${LOCALE_LABELS[aktiveSprache]}`}
+                    placeholder={fmt(t.eventSprachen.beschreibungPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
                   />
                 </div>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Deutsch ist die Hauptsprache und wird direkt am Event gespeichert.
+                {t.eventSprachen.hauptsprache}
               </p>
             )}
           </>
@@ -195,7 +198,7 @@ export default function EventSprachen({
           ) : erfolg ? (
             <Check className="h-3.5 w-3.5 mr-1.5" />
           ) : null}
-          {laden ? "Wird gespeichert..." : erfolg ? "Gespeichert" : "Sprachen speichern"}
+          {laden ? t.eventForm.speichert : erfolg ? t.common.gespeichert : t.eventSprachen.sprachenSpeichern}
         </Button>
       </CardContent>
     </Card>

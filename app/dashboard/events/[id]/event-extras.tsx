@@ -11,10 +11,8 @@ import { Timer, Gift, Plus, Trash as Trash2 } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toaster";
 import type { Fruehbucher, EventAddon } from "@/types/event-extras";
 import { fruehbucherAktiv } from "@/types/event-extras";
-
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-}
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt } from "@/lib/i18n/buchung";
 
 export default function EventExtras({
   eventId,
@@ -25,6 +23,11 @@ export default function EventExtras({
   initialFruehbucher: Fruehbucher | null;
   initialAddons: EventAddon[];
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const dateLocale = locale === "hu" ? "hu-HU" : locale === "en" ? "en-GB" : "de-DE";
+  const euro = (cent: number) =>
+    (cent / 100).toLocaleString(dateLocale, { style: "currency", currency: "EUR" });
   const router = useRouter();
   const [fb, setFb] = useState<Fruehbucher | null>(initialFruehbucher);
   const [fbAktiviert, setFbAktiviert] = useState(!!initialFruehbucher);
@@ -44,14 +47,14 @@ export default function EventExtras({
     setSpeichert(false);
     if (error) {
       toast.error(
-        "Speichern fehlgeschlagen",
+        t.common.speichernFehlgeschlagen,
         error.message.includes("column")
-          ? "Datenbank-Migration fehlt: supabase/migrations/20260705120000_fruehbucher_addons.sql im SQL-Editor ausführen."
+          ? t.eventExtras.migrationFehlt
           : error.message
       );
       return;
     }
-    toast.success("Gespeichert", "Frühbucher & Extras aktualisiert.");
+    toast.success(t.common.gespeichert, t.eventExtras.toastText);
     router.refresh();
   }
 
@@ -73,7 +76,7 @@ export default function EventExtras({
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Timer className="h-4 w-4 text-primary" />
-          Frühbucher & Extras
+          {t.eventExtras.titel}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -82,9 +85,9 @@ export default function EventExtras({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Frühbucher-Rabatt</p>
+              <p className="text-sm font-medium">{t.eventExtras.fruehbucherRabatt}</p>
               <p className="text-xs text-muted-foreground">
-                Rabatt auf alle Ticketpreise bis zu einem Stichtag — der stärkste Hebel für frühe Verkäufe.
+                {t.eventExtras.fruehbucherHinweis}
               </p>
             </div>
             <button
@@ -104,7 +107,7 @@ export default function EventExtras({
           {fbAktiviert && (
             <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/40 border border-border">
               <div className="space-y-1">
-                <Label className="text-xs">Rabatt in %</Label>
+                <Label className="text-xs">{t.eventExtras.rabattProzent}</Label>
                 <Input
                   type="number" min={1} max={90}
                   value={fb?.prozent ?? 15}
@@ -116,7 +119,7 @@ export default function EventExtras({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Gültig bis (inkl.)</Label>
+                <Label className="text-xs">{t.eventExtras.gueltigBis}</Label>
                 <Input
                   type="date"
                   value={fb?.bis ? fb.bis.slice(0, 10) : ""}
@@ -134,8 +137,8 @@ export default function EventExtras({
               {fbAktiviert && fb?.bis && (
                 <p className={`col-span-2 text-xs font-medium ${laeuft ? "text-green-600" : "text-muted-foreground"}`}>
                   {laeuft
-                    ? `✓ Läuft — Gäste sehen aktuell −${fb.prozent} % auf alle Plätze`
-                    : "Stichtag liegt in der Vergangenheit — Rabatt inaktiv"}
+                    ? fmt(t.eventExtras.laeuft, { p: fb.prozent })
+                    : t.eventExtras.inaktiv}
                 </p>
               )}
             </div>
@@ -149,14 +152,14 @@ export default function EventExtras({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium flex items-center gap-1.5">
-                <Gift className="h-3.5 w-3.5 text-primary" /> Add-ons im Checkout
+                <Gift className="h-3.5 w-3.5 text-primary" /> {t.eventExtras.addons}
               </p>
               <p className="text-xs text-muted-foreground">
-                Zusatzprodukte wie Garderobe, Getränkegutschein oder Programmheft — mehr Umsatz pro Bestellung.
+                {t.eventExtras.addonsHinweis}
               </p>
             </div>
             <Button size="sm" variant="outline" onClick={addonHinzufuegen} className="shrink-0">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add-on
+              <Plus className="h-3.5 w-3.5 mr-1" /> {t.eventExtras.addon}
             </Button>
           </div>
 
@@ -166,7 +169,7 @@ export default function EventExtras({
                 <div key={a.id} className={`flex items-center gap-2 p-2 rounded-lg border ${a.aktiv ? "border-border" : "border-border opacity-50"}`}>
                   <Input
                     value={a.name}
-                    placeholder="z. B. Garderobe"
+                    placeholder={t.eventExtras.addonPlaceholder}
                     onChange={(e) => addonAendern(a.id, { name: e.target.value.slice(0, 60) })}
                     className="h-9 text-sm flex-1"
                   />
@@ -186,7 +189,7 @@ export default function EventExtras({
                     type="button"
                     onClick={() => addonAendern(a.id, { aktiv: !a.aktiv })}
                     role="switch" aria-checked={a.aktiv}
-                    title={a.aktiv ? "Aktiv" : "Inaktiv"}
+                    title={a.aktiv ? t.eventExtras.aktiv : t.eventExtras.addonInaktiv}
                     className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${a.aktiv ? "bg-primary" : "bg-input"}`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${a.aktiv ? "translate-x-4" : "translate-x-0"}`} />
@@ -198,14 +201,16 @@ export default function EventExtras({
                 </div>
               ))}
               <p className="text-xs text-muted-foreground">
-                Ø-Mehrumsatz: {euro(addons.filter((a) => a.aktiv).reduce((s, a) => s + a.preis_cent, 0))} pro Bestellung, wenn alle gewählt werden.
+                {fmt(t.eventExtras.mehrumsatz, {
+                  betrag: euro(addons.filter((a) => a.aktiv).reduce((s, a) => s + a.preis_cent, 0)),
+                })}
               </p>
             </div>
           )}
         </div>
 
         <Button size="sm" onClick={speichern} disabled={speichert}>
-          {speichert ? "Speichern…" : "Speichern"}
+          {speichert ? t.common.speichernLaeuft : t.common.speichern}
         </Button>
       </CardContent>
     </Card>
