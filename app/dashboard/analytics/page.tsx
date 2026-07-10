@@ -145,6 +145,7 @@ export default async function AnalyticsSeite() {
         buchungenNachStunde={buchungenNachStunde}
         wochentage={wochentage}
         t={t.analytics}
+        locale={locale}
       />
     </div>
   );

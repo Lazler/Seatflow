@@ -999,7 +999,7 @@ export default function SitzplanCanvas({
         {/* Sitz-Tooltip (Desktop-Hover im Buchungsmodus) */}
         {istBuchungsmodus && tooltip && (() => {
           const zeile1 = tooltip.sitzId;
-          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}${tooltip.barrierefrei ? ` · ${txt.barrierefrei}` : ""}`;
+          const zeile2 = `${tooltip.kategorieName} · ${(tooltip.preisCent / 100).toLocaleString(txt.currencyLocale, { style: "currency", currency: "EUR" })}${tooltip.barrierefrei ? ` · ${txt.barrierefrei}` : ""}`;
           const W = Math.max(zeile1.length, zeile2.length) * 6.6 + 20;
           const H = 40;
           return (

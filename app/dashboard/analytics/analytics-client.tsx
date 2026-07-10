@@ -2,24 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Dict } from "@/lib/i18n";
+import type { Dict, Locale } from "@/lib/i18n";
+import { intlLocale } from "@/lib/i18n/buchung";
 
 type ChartDatum = { datum: string; cent: number };
 type EventDatum = { id: string; titel: string; cent: number };
 
-function euro(cent: number) {
-  return (cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+function euro(cent: number, loc: string) {
+  return (cent / 100).toLocaleString(loc, { style: "currency", currency: "EUR" });
 }
 
 // Kompakte Zahl für die direkten Balken-Labels (1.234, 12,3k)
-function kompakt(v: number) {
-  if (v >= 1000) return `${(v / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })}k`;
-  return v.toLocaleString("de-DE");
+function kompakt(v: number, loc: string) {
+  if (v >= 1000) return `${(v / 1000).toLocaleString(loc, { maximumFractionDigits: 1 })}k`;
+  return v.toLocaleString(loc);
 }
-function euroKompakt(cent: number) {
+function euroKompakt(cent: number, loc: string) {
   const v = cent / 100;
-  if (v >= 1000) return `${(v / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })}k €`;
-  return `${Math.round(v).toLocaleString("de-DE")} €`;
+  if (v >= 1000) return `${(v / 1000).toLocaleString(loc, { maximumFractionDigits: 1 })}k €`;
+  return `${Math.round(v).toLocaleString(loc)} €`;
 }
 
 const BAR_TRACK = 128; // px — Höhe der Balkenfläche (h-32)
@@ -126,6 +127,7 @@ export default function AnalyticsClient({
   buchungenNachStunde,
   wochentage,
   t,
+  locale,
 }: {
   chartDaten: ChartDatum[];
   topEvents: EventDatum[];
@@ -133,7 +135,12 @@ export default function AnalyticsClient({
   buchungenNachStunde: number[];
   wochentage: string[];
   t: Dict["analytics"];
+  locale: Locale;
 }) {
+  const loc = intlLocale(locale);
+  const euroL = (c: number) => euro(c, loc);
+  const kompaktL = (v: number) => kompakt(v, loc);
+  const euroKompaktL = (c: number) => euroKompakt(c, loc);
   const [zeitraum, setZeitraum] = useState<7 | 14 | 30>(30);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -148,7 +155,7 @@ export default function AnalyticsClient({
   const maxTopEvent = Math.max(...topEvents.map((e) => e.cent), 1);
 
   const revenueBarData = sichtbareDaten.map((d) => ({
-    label: new Date(d.datum).toLocaleDateString("de-DE", { day: "numeric", month: "short" }),
+    label: new Date(d.datum).toLocaleDateString(loc, { day: "numeric", month: "short" }),
     value: d.cent,
   }));
 
@@ -174,7 +181,7 @@ export default function AnalyticsClient({
         <CardContent>
           {/* Horizontal scrollbar bei vielen Tagen — feste Balkenbreite, Datum je Balken */}
           <div className="overflow-x-auto -mx-1 px-1 pb-1">
-            <BarChart data={revenueBarData} maxValue={maxCent} tooltipFn={euro} labelFn={euroKompakt} color="bg-emerald-500" emptyLabel={t.nochKeineDaten} scrollable />
+            <BarChart data={revenueBarData} maxValue={maxCent} tooltipFn={euroL} labelFn={euroKompaktL} color="bg-emerald-500" emptyLabel={t.nochKeineDaten} scrollable />
           </div>
         </CardContent>
       </Card>
@@ -191,7 +198,7 @@ export default function AnalyticsClient({
                   <div key={e.id} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="truncate max-w-[180px] font-medium">{e.titel}</span>
-                      <span className="text-muted-foreground tabular-nums shrink-0 ml-2">{euro(e.cent)}</span>
+                      <span className="text-muted-foreground tabular-nums shrink-0 ml-2">{euroL(e.cent)}</span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div className="h-full bg-blue-500 rounded-full transition-[width] duration-700 ease-out"
@@ -209,7 +216,7 @@ export default function AnalyticsClient({
           <CardContent>
             <BarChart
               data={buchungenNachWochentag.map((v, i) => ({ label: wochentage[i], value: v }))}
-              maxValue={maxWochentag} tooltipFn={kompakt} labelFn={kompakt} color="bg-violet-500" emptyLabel={t.nochKeineDaten}
+              maxValue={maxWochentag} tooltipFn={kompaktL} labelFn={kompaktL} color="bg-violet-500" emptyLabel={t.nochKeineDaten}
             />
           </CardContent>
         </Card>
@@ -220,7 +227,7 @@ export default function AnalyticsClient({
         <CardContent>
           <BarChart
             data={buchungenNachStunde.map((v, i) => ({ label: i % 3 === 0 ? `${i}` : "", value: v }))}
-            maxValue={maxStunde} tooltipFn={kompakt} labelFn={kompakt} color="bg-amber-500" emptyLabel={t.nochKeineDaten}
+            maxValue={maxStunde} tooltipFn={kompaktL} labelFn={kompaktL} color="bg-amber-500" emptyLabel={t.nochKeineDaten}
           />
         </CardContent>
       </Card>

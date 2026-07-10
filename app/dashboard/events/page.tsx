@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getServerDict } from "@/lib/i18n/server";
+import { getServerDict, getServerLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/buchung";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,8 @@ import { Calendar, Plus } from "@phosphor-icons/react/dist/ssr";
 import EventDuplizieren from "./event-duplizieren";
 
 export default async function EventsSeite() {
-  const [t, supabase] = await Promise.all([getServerDict(), createClient()]);
+  const [t, supabase, locale] = await Promise.all([getServerDict(), createClient(), getServerLocale()]);
+  const dateLocale = intlLocale(locale);
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: events } = await supabase
@@ -59,12 +61,12 @@ export default async function EventsSeite() {
                 <div className="min-w-0">
                   <p className="font-medium truncate">{event.titel}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(event.datum).toLocaleDateString("de-DE", {
+                    {new Date(event.datum).toLocaleDateString(dateLocale, {
                       weekday: "short", day: "numeric", month: "long", year: "numeric",
                       hour: "2-digit", minute: "2-digit",
                     })}
                     {" · "}
-                    {(event.ticket_preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
+                    {(event.ticket_preis_cent / 100).toLocaleString(dateLocale, { style: "currency", currency: "EUR" })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
