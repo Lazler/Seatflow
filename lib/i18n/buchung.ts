@@ -93,6 +93,32 @@ const de = {
   zoomReset: "Ansicht zurücksetzen",
   zurueck: "Zurück",
   sitzplanLaedt: "Sitzplan wird geladen…",
+
+  // Gast-Seiten (Bestätigung, „Meine Tickets")
+  zahlungBestaetigt: "Zahlung bestätigt!",
+  buchungErfasst: "Buchung erfasst",
+  ticketsPerMail: "Deine Tickets wurden per E-Mail an {email} verschickt.",
+  zahlungWirdVerarbeitet: "Die Zahlung wird noch verarbeitet. Deine Tickets erhältst du per E-Mail.",
+  ticketsOnlineAnsehen: "Tickets online ansehen",
+  qrEinlass: "QR-Code für den Einlass (auch im PDF-Anhang):",
+  qrAlt: "Ticket QR-Code",
+  gesamtBezahlt: "Gesamt bezahlt",
+  rechnungNr: "Rechnung {nr}",
+  ticketsRechnungDownload: "Tickets & Rechnung herunterladen",
+  beiFragen: "Bei Fragen wende dich an den Veranstalter.",
+  meineTicketsTitel: "Deine Tickets",
+  qrPlatzAlt: "QR-Code für Platz {platz}",
+  bereitsEingeloest: "Bereits eingelöst ({zeit})",
+  qrHandyHinweis: "Zeige den QR-Code am Einlass direkt vom Handy — Ausdrucken ist nicht nötig.",
+  buchungsnummer: "Buchungsnummer:",
+  sendenFehlgeschlagen: "Senden fehlgeschlagen",
+  emailUnterwegs: "E-Mail unterwegs",
+  ticketsGesendetAn: "Tickets wurden an {email} gesendet.",
+  pdfHerunterladen: "PDF herunterladen",
+  sendeLaeuft: "Sende…",
+  gesendetAn: "Gesendet an {email}",
+  erneutSenden: "Erneut per E-Mail senden",
+  zumKalender: "Zum Kalender",
 };
 
 export type BuchungsStrings = typeof de;
@@ -182,6 +208,31 @@ const en: BuchungsStrings = {
   zoomReset: "Reset view",
   zurueck: "Back",
   sitzplanLaedt: "Loading seating plan…",
+
+  zahlungBestaetigt: "Payment confirmed!",
+  buchungErfasst: "Booking received",
+  ticketsPerMail: "Your tickets have been emailed to {email}.",
+  zahlungWirdVerarbeitet: "Your payment is still being processed. You'll receive your tickets by email.",
+  ticketsOnlineAnsehen: "View tickets online",
+  qrEinlass: "QR code for entry (also in the PDF attachment):",
+  qrAlt: "Ticket QR code",
+  gesamtBezahlt: "Total paid",
+  rechnungNr: "Invoice {nr}",
+  ticketsRechnungDownload: "Download tickets & invoice",
+  beiFragen: "For questions, please contact the organiser.",
+  meineTicketsTitel: "Your tickets",
+  qrPlatzAlt: "QR code for seat {platz}",
+  bereitsEingeloest: "Already redeemed ({zeit})",
+  qrHandyHinweis: "Show the QR code at the entrance straight from your phone — no need to print.",
+  buchungsnummer: "Booking number:",
+  sendenFehlgeschlagen: "Sending failed",
+  emailUnterwegs: "Email on its way",
+  ticketsGesendetAn: "Tickets have been sent to {email}.",
+  pdfHerunterladen: "Download PDF",
+  sendeLaeuft: "Sending…",
+  gesendetAn: "Sent to {email}",
+  erneutSenden: "Resend by email",
+  zumKalender: "Add to calendar",
 };
 
 const hu: BuchungsStrings = {
@@ -269,9 +320,39 @@ const hu: BuchungsStrings = {
   zoomReset: "Nézet visszaállítása",
   zurueck: "Vissza",
   sitzplanLaedt: "Ülésrend betöltése…",
+
+  zahlungBestaetigt: "Fizetés megerősítve!",
+  buchungErfasst: "Foglalás rögzítve",
+  ticketsPerMail: "A jegyeidet elküldtük e-mailben a következő címre: {email}.",
+  zahlungWirdVerarbeitet: "A fizetés feldolgozása folyamatban van. A jegyeidet e-mailben kapod meg.",
+  ticketsOnlineAnsehen: "Jegyek megtekintése online",
+  qrEinlass: "QR-kód a belépéshez (a PDF-mellékletben is):",
+  qrAlt: "Jegy QR-kód",
+  gesamtBezahlt: "Fizetett összesen",
+  rechnungNr: "Számla {nr}",
+  ticketsRechnungDownload: "Jegyek és számla letöltése",
+  beiFragen: "Kérdés esetén fordulj a szervezőhöz.",
+  meineTicketsTitel: "Jegyeid",
+  qrPlatzAlt: "QR-kód a(z) {platz} helyhez",
+  bereitsEingeloest: "Már beváltva ({zeit})",
+  qrHandyHinweis: "Mutasd a QR-kódot a belépésnél közvetlenül a telefonodról — nem kell kinyomtatni.",
+  buchungsnummer: "Foglalási szám:",
+  sendenFehlgeschlagen: "A küldés nem sikerült",
+  emailUnterwegs: "E-mail úton van",
+  ticketsGesendetAn: "A jegyeket elküldtük a következő címre: {email}.",
+  pdfHerunterladen: "PDF letöltése",
+  sendeLaeuft: "Küldés…",
+  gesendetAn: "Elküldve: {email}",
+  erneutSenden: "Újraküldés e-mailben",
+  zumKalender: "Naptárhoz adás",
 };
 
 export const BUCHUNG_STRINGS: Record<BuchungsSprache, BuchungsStrings> = { de, en, hu };
+
+// Intl-Locale passend zur Buchungssprache (für Datum/Währung auf Gast-Seiten)
+export function intlLocale(s: BuchungsSprache): string {
+  return s === "hu" ? "hu-HU" : s === "en" ? "en-GB" : "de-DE";
+}
 
 export function fmt(vorlage: string, werte: Record<string, string | number>): string {
   return Object.entries(werte).reduce(

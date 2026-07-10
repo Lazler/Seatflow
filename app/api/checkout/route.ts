@@ -204,6 +204,7 @@ export async function POST(req: NextRequest) {
       gaest_email: email,
       gesamt_cent: gesamtCent,
       status: "ausstehend",
+      sprache: sprache ?? "de",
       ...(firstTicketTyp ? { ticket_typ: firstTicketTyp } : {}),
     })
     .select("id")
