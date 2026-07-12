@@ -30,13 +30,13 @@ export function DashboardNavigation() {
 
   const NAVIGATION = [
     { href: "/dashboard",                  label: t.nav.uebersicht,       icon: LayoutDashboard, exakt: true  },
-    { href: "/dashboard/buchungen",        label: t.nav.buchungen,        icon: ReceiptText,     exakt: false },
+    { href: "/dashboard/bookings",        label: t.nav.buchungen,        icon: ReceiptText,     exakt: false },
     { href: "/dashboard/events",           label: t.nav.events,           icon: Calendar,        exakt: false },
     { href: "/dashboard/analytics",        label: t.nav.analytics,        icon: BarChart2,       exakt: false },
     { href: "/dashboard/venues",           label: t.nav.venues,           icon: MapPin,          exakt: false },
-    { href: "/dashboard/gutscheine",       label: t.nav.gutscheine,       icon: Tag,             exakt: false },
+    { href: "/dashboard/vouchers",       label: t.nav.gutscheine,       icon: Tag,             exakt: false },
     { href: "/dashboard/ticket-templates", label: t.nav.ticketTemplates,  icon: Ticket,          exakt: false },
-    { href: "/dashboard/abo",              label: t.nav.abo ?? "Abo",     icon: CreditCard,      exakt: true  },
+    { href: "/dashboard/subscription",              label: t.nav.abo ?? "Abo",     icon: CreditCard,      exakt: true  },
   ];
 
   // Bottom tab bar shows the 5 most important items
@@ -49,7 +49,7 @@ export function DashboardNavigation() {
   async function abmelden() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/anmelden");
+    router.push("/login");
     router.refresh();
   }
 

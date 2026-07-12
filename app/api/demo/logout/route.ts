@@ -14,5 +14,5 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
-  return NextResponse.redirect(new URL("/registrieren", base));
+  return NextResponse.redirect(new URL("/register", base));
 }

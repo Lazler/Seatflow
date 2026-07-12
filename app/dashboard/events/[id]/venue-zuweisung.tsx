@@ -74,7 +74,7 @@ export default function VenueZuweisung({
           <div className="text-xs text-muted-foreground space-y-2">
             <p>{t.eventForm.keinVenue}</p>
             <Button size="sm" variant="outline" asChild>
-              <Link href="/dashboard/venues/neu">
+              <Link href="/dashboard/venues/new">
                 <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.venues.venueAnlegen}
               </Link>
             </Button>

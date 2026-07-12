@@ -177,7 +177,7 @@ export default function CikkOsszehasonlitas() {
           Rajzolja meg az alaprajzot, hozzon létre egy eseményt, ossza meg a foglalási linket – bankkártya és havidíj nélkül.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Ingyenes kezdés →</Link>
+          <Link href="/register">Ingyenes kezdés →</Link>
         </Button>
       </div>
     </article>

@@ -22,7 +22,7 @@ export function pruefeVeroeffentlichung(args: {
   sitzLimit?: number | null;
 }): { anforderungen: Anforderung[]; harteBlocker: number } {
   const { eventId, hatVenue, hatSaalplan, buchbarePlaetze, hatBild, plan = "pro", sitzLimit = null } = args;
-  const einst = `/dashboard/events/${eventId}/einstellungen`;
+  const einst = `/dashboard/events/${eventId}/settings`;
 
   const anforderungen: Anforderung[] = [
     {
@@ -67,7 +67,7 @@ export function pruefeVeroeffentlichung(args: {
       pflicht: true,
       label: `Free-Tarif: höchstens ${sitzLimit} Plätze`,
       hinweis: `Dieser Saalplan hat ${buchbarePlaetze} Plätze. Im Free-Tarif sind bis zu ${sitzLimit} möglich — mit Pro unbegrenzt.`,
-      fixHref: "/dashboard/abo",
+      fixHref: "/dashboard/subscription",
     });
   }
 

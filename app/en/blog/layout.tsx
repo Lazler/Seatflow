@@ -33,11 +33,11 @@ export default function EnBlogLayout({ children }: { children: React.ReactNode }
         <div className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <span>© 2026 SeatFlow</span>
           <div className="flex gap-5">
-            <Link href="/agb" className="hover:text-foreground transition-colors">Terms</Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">Privacy</Link>
-            <Link href="/impressum" className="hover:text-foreground transition-colors">Imprint</Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+            <Link href="/imprint" className="hover:text-foreground transition-colors">Imprint</Link>
           </div>
-          <Link href="/registrieren" className="text-primary font-medium hover:text-primary/80 transition-colors">
+          <Link href="/register" className="text-primary font-medium hover:text-primary/80 transition-colors">
             Start free →
           </Link>
         </div>

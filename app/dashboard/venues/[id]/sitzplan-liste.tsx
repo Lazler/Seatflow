@@ -47,7 +47,7 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
     setDupliziert(null);
     if (insertFehler || !kopie) { toast.error(t.duplizierenFehlgeschlagen); return; }
     toast.success(t.planDupliziert, fmt(t.planDupliziertText, { name: kopieName }));
-    router.push(`/dashboard/venues/${venueId}/raumplan/${kopie.id}`);
+    router.push(`/dashboard/venues/${venueId}/seatmap/${kopie.id}`);
   }
 
   async function loeschen(planId: string) {
@@ -81,7 +81,7 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
       <div className="text-center py-8">
         <p className="text-sm text-muted-foreground mb-3">{t.keinSaalplan}</p>
         <Button size="sm" asChild>
-          <Link href={`/dashboard/venues/${venueId}/raumplan/neu`}>{t.erstenSaalplanErstellen}</Link>
+          <Link href={`/dashboard/venues/${venueId}/seatmap/new`}>{t.erstenSaalplanErstellen}</Link>
         </Button>
       </div>
     );
@@ -94,7 +94,7 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
           <span className="text-sm font-medium truncate flex-1 min-w-0 mr-2">{plan.name}</span>
           <div className="flex items-center gap-1 shrink-0">
             <Button size="sm" variant="ghost" asChild>
-              <Link href={`/dashboard/venues/${venueId}/raumplan/${plan.id}`}>{dict.common.bearbeiten}</Link>
+              <Link href={`/dashboard/venues/${venueId}/seatmap/${plan.id}`}>{dict.common.bearbeiten}</Link>
             </Button>
             <Button size="icon" variant="ghost"
               className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors"

@@ -119,7 +119,7 @@ export async function sendTicketMail(params: TicketMailParams) {
 
       <!-- Self-Service: Tickets jederzeit online abrufbar -->
       <div style="text-align:center;margin-bottom:24px">
-        <a href="${appUrl}/buchung/${buchungId}"
+        <a href="${appUrl}/booking/${buchungId}"
           style="display:inline-block;padding:12px 24px;border-radius:8px;background:#c2670b;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">
           ${emailStrings.onlineAnsehen}
         </a>

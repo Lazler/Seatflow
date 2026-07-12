@@ -87,7 +87,7 @@ export default function EventSprachen({
       }
     }
 
-    const res = await fetch(`/api/events/${eventId}/sprachen`, {
+    const res = await fetch(`/api/events/${eventId}/languages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sprachen: alleSprachen, translations: translationsClean }),

@@ -26,7 +26,7 @@ export default async function VenuesSeite() {
           <p className="text-muted-foreground">{t.venues.subtitle}</p>
         </div>
         <Button asChild className="self-start sm:self-auto shrink-0">
-          <Link href="/dashboard/venues/neu">
+          <Link href="/dashboard/venues/new">
             <Plus className="h-4 w-4 mr-1" /> {t.venues.neuesVenue}
           </Link>
         </Button>
@@ -41,7 +41,7 @@ export default async function VenuesSeite() {
               {t.venues.ersteVenue}
             </p>
             <Button asChild>
-              <Link href="/dashboard/venues/neu">
+              <Link href="/dashboard/venues/new">
                 <Plus className="h-4 w-4 mr-1" /> {t.venues.venueAnlegen}
               </Link>
             </Button>

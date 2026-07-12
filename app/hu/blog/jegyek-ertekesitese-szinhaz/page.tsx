@@ -102,7 +102,7 @@ export default function CikkSzinhaz() {
           Rajzolja meg az alaprajzot, hozzon létre egy eseményt, ossza meg a foglalási linket. Nincs szükség bankkártyára vagy lemondásra.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Ingyenes kezdés →</Link>
+          <Link href="/register">Ingyenes kezdés →</Link>
         </Button>
       </div>
     </article>

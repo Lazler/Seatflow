@@ -425,9 +425,9 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
           </div>
           <div className="flex gap-5">
             <Link href={blogPath} className="hover:text-foreground transition-colors">Blog</Link>
-            <Link href="/agb" className="hover:text-foreground transition-colors">AGB</Link>
-            <Link href="/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link>
-            <Link href="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">AGB</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">Datenschutz</Link>
+            <Link href="/imprint" className="hover:text-foreground transition-colors">Impressum</Link>
           </div>
           <div className="flex gap-3">
             <Link href={loginPath} className="hover:text-foreground transition-colors">{c.nav.anmelden}</Link>

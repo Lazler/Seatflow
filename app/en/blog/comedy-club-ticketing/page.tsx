@@ -128,7 +128,7 @@ export default function ArticleComedyClub() {
           No credit card, no developer, no lock-in. The Free plan covers up to 3 events per month.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Start free →</Link>
+          <Link href="/register">Start free →</Link>
         </Button>
       </div>
     </article>

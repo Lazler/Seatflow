@@ -169,7 +169,7 @@ export default function ArtikelComedyClub() {
           Free-Plan: 3 Events/Monat, bis 80 Plätze. In einer Stunde live.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Kostenlos starten →</Link>
+          <Link href="/register">Kostenlos starten →</Link>
         </Button>
       </div>
     </article>

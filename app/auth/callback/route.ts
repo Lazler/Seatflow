@@ -37,5 +37,5 @@ export async function GET(req: NextRequest) {
   }
 
   // Fehlgeschlagen / abgelaufen → zurück zur Anmeldung mit Hinweis
-  return ziel("/anmelden?fehler=link");
+  return ziel("/login?fehler=link");
 }

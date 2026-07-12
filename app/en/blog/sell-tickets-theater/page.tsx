@@ -102,7 +102,7 @@ export default function ArticleTheater() {
           Draw a floor plan, create an event, share the booking link. No credit card, no cancellation needed.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Start free →</Link>
+          <Link href="/register">Start free →</Link>
         </Button>
       </div>
     </article>

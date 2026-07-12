@@ -284,7 +284,7 @@ export default function BuchungsSeiteClient({
         { event: "DELETE", schema: "public", table: "tickets" },
         async () => {
           try {
-            const res = await fetch(`/api/events/${eventId}/belegte`);
+            const res = await fetch(`/api/events/${eventId}/occupied`);
             const json = await res.json() as { belegte?: string[] };
             if (Array.isArray(json.belegte)) setBelegte(new Set(json.belegte));
           } catch { /* nächster Reload korrigiert */ }
@@ -884,9 +884,9 @@ export default function BuchungsSeiteClient({
               />
               <span className="text-xs text-muted-foreground leading-relaxed">
                 {uiStrings.agbTeil1}{" "}
-                <a href="/agb" target="_blank" className="text-primary underline underline-offset-2">{uiStrings.agbLabel}</a>{" "}
+                <a href="/terms" target="_blank" className="text-primary underline underline-offset-2">{uiStrings.agbLabel}</a>{" "}
                 {uiStrings.und}{" "}
-                <a href="/datenschutz" target="_blank" className="text-primary underline underline-offset-2">{uiStrings.datenschutzLabel}</a>.{" "}
+                <a href="/privacy" target="_blank" className="text-primary underline underline-offset-2">{uiStrings.datenschutzLabel}</a>.{" "}
                 {uiStrings.widerruf}
               </span>
             </label>

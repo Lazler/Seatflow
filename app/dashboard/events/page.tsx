@@ -34,7 +34,7 @@ export default async function EventsSeite() {
           <p className="text-muted-foreground">{t.events.subtitle}</p>
         </div>
         <Button asChild className="self-start sm:self-auto shrink-0">
-          <Link href="/dashboard/events/neu">
+          <Link href="/dashboard/events/new">
             <Plus className="h-4 w-4 mr-1" /> {t.events.neuesEvent}
           </Link>
         </Button>
@@ -47,7 +47,7 @@ export default async function EventsSeite() {
             <p className="font-medium mb-1">{t.events.nochKeineEvents}</p>
             <p className="text-sm text-muted-foreground mb-4">{t.events.erstelleErstesEvent}</p>
             <Button asChild>
-              <Link href="/dashboard/events/neu">
+              <Link href="/dashboard/events/new">
                 <Plus className="h-4 w-4 mr-1" /> {t.events.eventErstellen}
               </Link>
             </Button>

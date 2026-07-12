@@ -102,7 +102,7 @@ export default function ArtikelTheater() {
           Raumplan zeichnen, Event anlegen, Buchungslink teilen. Keine Kreditkarte, keine Kündigung nötig.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Kostenlos starten →</Link>
+          <Link href="/register">Kostenlos starten →</Link>
         </Button>
       </div>
     </article>

@@ -188,7 +188,7 @@ export default function EnPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
-      <LandingPage c={EN} registerPath="/registrieren" loginPath="/anmelden" blogPath="/en/blog" />
+      <LandingPage c={EN} registerPath="/register" loginPath="/login" blogPath="/en/blog" />
     </>
   );
 }

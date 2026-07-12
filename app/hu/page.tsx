@@ -188,7 +188,7 @@ export default function HuPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
-      <LandingPage c={HU} registerPath="/registrieren" loginPath="/anmelden" blogPath="/hu/blog" />
+      <LandingPage c={HU} registerPath="/register" loginPath="/login" blogPath="/hu/blog" />
     </>
   );
 }

@@ -107,7 +107,7 @@ export default function CikkKabare() {
           Állítsa be az alaprajzot, hozzon létre egy eseményt, ossza meg a linket. Nincs szükség bankkártyára, bármikor lemondható.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Ingyenes kezdés →</Link>
+          <Link href="/register">Ingyenes kezdés →</Link>
         </Button>
       </div>
     </article>

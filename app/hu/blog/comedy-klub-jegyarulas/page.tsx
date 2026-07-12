@@ -101,7 +101,7 @@ export default function CikkComedyKlub() {
           Nincs bankkártya, fejlesztő vagy megkötöttség. Az ingyenes csomag havi 3 eseményt fed le.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Ingyenes kezdés →</Link>
+          <Link href="/register">Ingyenes kezdés →</Link>
         </Button>
       </div>
     </article>

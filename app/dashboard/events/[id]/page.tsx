@@ -52,7 +52,7 @@ export default async function EventDetail({
 
   const venue = event.venues as { id: string; name: string; adresse: string | null } | null;
 
-  const buchungsUrl = `/buchen/${event.id}`;
+  const buchungsUrl = `/book/${event.id}`;
   const bezahlteBuchungen = (buchungen ?? []).filter((b) => b.status === "bezahlt");
   const gesamteinnahmenCent = bezahlteBuchungen.reduce((s, b) => s + b.gesamt_cent, 0);
 
@@ -233,7 +233,7 @@ export default async function EventDetail({
             <CardHeader><CardTitle className="text-sm">{dict.events.einstellungen}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <Button size="sm" variant="outline" className="w-full" asChild>
-                <Link href={`/dashboard/events/${event.id}/einstellungen`}>
+                <Link href={`/dashboard/events/${event.id}/settings`}>
                   <Settings className="h-3.5 w-3.5 mr-1.5" /> {dict.eventDetail.eventKonfigurieren}
                 </Link>
               </Button>
@@ -252,7 +252,7 @@ export default async function EventDetail({
                 </Button>
               )}
               <Button size="sm" variant="outline" className="w-full" asChild>
-                <Link href={`/dashboard/events/${event.id}/gaesteliste`}>
+                <Link href={`/dashboard/events/${event.id}/guest-list`}>
                   <ListChecks className="h-3.5 w-3.5 mr-1.5" /> {dict.eventDetailPage.gaestelisteExport}
                 </Link>
               </Button>

@@ -138,7 +138,7 @@ export default function ArtikelKabarett() {
           Sitzplan zeichnen, Preise setzen, sofort live. Free-Plan ohne Monatsgebühr.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Kostenlos ausprobieren →</Link>
+          <Link href="/register">Kostenlos ausprobieren →</Link>
         </Button>
       </div>
     </article>

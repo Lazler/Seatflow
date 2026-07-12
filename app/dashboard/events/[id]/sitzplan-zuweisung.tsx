@@ -133,7 +133,7 @@ export default function SitzplanZuweisung({
             <div className="text-xs text-muted-foreground space-y-2">
               <p>{t.sitzplanZuweisung.keinSitzplanVenue}</p>
               <Button size="sm" variant="outline" asChild>
-                <Link href={`/dashboard/venues/${venueId}/raumplan/neu`}>
+                <Link href={`/dashboard/venues/${venueId}/seatmap/new`}>
                   <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.sitzplanZuweisung.sitzplanErstellen}
                 </Link>
               </Button>

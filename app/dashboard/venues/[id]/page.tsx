@@ -96,7 +96,7 @@ export default async function VenueDetail({
               </div>
               {(sitzplaene ?? []).length > 0 && (
                 <Button size="sm" variant="outline" asChild>
-                  <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
+                  <Link href={`/dashboard/venues/${id}/seatmap/new`}>
                     <Plus className="h-4 w-4 mr-1" /> {t.neuerPlan}
                   </Link>
                 </Button>
@@ -110,7 +110,7 @@ export default async function VenueDetail({
                     {t.naechsterSchrittText}
                   </p>
                   <Button size="sm" asChild>
-                    <Link href={`/dashboard/venues/${id}/raumplan/neu`}>
+                    <Link href={`/dashboard/venues/${id}/seatmap/new`}>
                       <Plus className="h-4 w-4 mr-1.5" /> {t.saalplanErstellen}
                     </Link>
                   </Button>
@@ -130,7 +130,7 @@ export default async function VenueDetail({
                 <Calendar className="h-4 w-4" /> {t.eventsHier}
               </CardTitle>
               <Button size="sm" variant="ghost" asChild>
-                <Link href={`/dashboard/events/neu?venue=${id}`}>
+                <Link href={`/dashboard/events/new?venue=${id}`}>
                   <Plus className="h-4 w-4" />
                 </Link>
               </Button>
@@ -141,7 +141,7 @@ export default async function VenueDetail({
                   <p className="text-sm text-muted-foreground mb-3">{t.keineEventsHier}</p>
                   {(sitzplaene ?? []).length > 0 && (
                     <Button size="sm" variant="outline" asChild>
-                      <Link href={`/dashboard/events/neu?venue=${id}`}>
+                      <Link href={`/dashboard/events/new?venue=${id}`}>
                         <Plus className="h-4 w-4 mr-1.5" /> {t.eventHierAnlegen}
                       </Link>
                     </Button>

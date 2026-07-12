@@ -15,7 +15,7 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/anmelden");
+  if (!user) redirect("/login");
 
   // Language priority: cookie > profile > de
   const jar = await cookies();

@@ -208,7 +208,7 @@ export default async function Startseite({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
-      <LandingPage c={content} registerPath="/registrieren" loginPath="/anmelden" />
+      <LandingPage c={content} registerPath="/register" loginPath="/login" />
     </>
   );
 }

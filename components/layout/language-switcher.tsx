@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
 
   async function changeLanguage(lang: Locale) {
     setOpen(false);
-    await fetch("/api/sprache", {
+    await fetch("/api/language", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lang }),

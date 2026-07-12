@@ -78,7 +78,7 @@ export async function POST(
         nachricht,
         eventTitel: event.titel,
         veranstalterName: profil?.name ?? "dem Veranstalter",
-        buchungLink: `${appUrl}/buchung/${buchungId}`,
+        buchungLink: `${appUrl}/booking/${buchungId}`,
       })
     )
   );

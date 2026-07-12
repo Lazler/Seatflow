@@ -148,7 +148,7 @@ export default async function Dashboard() {
           </p>
         </div>
         <Button asChild size="sm" className="self-start sm:self-auto shrink-0">
-          <Link href="/dashboard/events/neu">
+          <Link href="/dashboard/events/new">
             <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard.neuesEvent}
           </Link>
         </Button>
@@ -220,10 +220,10 @@ export default async function Dashboard() {
       {/* ── Geführtes Onboarding (bis zur ersten Veröffentlichung) ── */}
       {!hatLive && (() => {
         const schritte = [
-          { done: hatVenue, titel: t.dashboardHome.schritt1Titel, desc: t.dashboardHome.schritt1Desc, href: "/dashboard/venues/neu" },
+          { done: hatVenue, titel: t.dashboardHome.schritt1Titel, desc: t.dashboardHome.schritt1Desc, href: "/dashboard/venues/new" },
           { done: hatPlan, titel: t.dashboardHome.schritt2Titel, desc: t.dashboardHome.schritt2Desc,
-            href: ersteVenueId ? `/dashboard/venues/${ersteVenueId}` : "/dashboard/venues/neu" },
-          { done: hatEvent, titel: t.dashboardHome.schritt3Titel, desc: t.dashboardHome.schritt3Desc, href: "/dashboard/events/neu" },
+            href: ersteVenueId ? `/dashboard/venues/${ersteVenueId}` : "/dashboard/venues/new" },
+          { done: hatEvent, titel: t.dashboardHome.schritt3Titel, desc: t.dashboardHome.schritt3Desc, href: "/dashboard/events/new" },
           { done: hatLive, titel: t.dashboardHome.schritt4Titel, desc: t.dashboardHome.schritt4Desc, href: "/dashboard/events" },
         ];
         const erledigte = schritte.filter((s) => s.done).length;

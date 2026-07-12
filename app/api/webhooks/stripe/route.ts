@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
           anzahlTickets: tickets.length,
           gesamtCent: buchung.gesamt_cent,
           verkauftGesamt: verkauftGesamt ?? tickets.length,
-          dashboardLink: `${appUrl}/dashboard/buchungen/${buchungId}`,
+          dashboardLink: `${appUrl}/dashboard/bookings/${buchungId}`,
         });
       }
     } catch {

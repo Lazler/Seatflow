@@ -271,8 +271,8 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const successUrl = event.success_url
     ? `${event.success_url}${event.success_url.includes("?") ? "&" : "?"}buchung_id=${buchung.id}`
-    : `${appUrl}/buchen/${eventId}/bestaetigung?session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = event.cancel_url ?? `${appUrl}/buchen/${eventId}`;
+    : `${appUrl}/book/${eventId}/confirmation?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = event.cancel_url ?? `${appUrl}/book/${eventId}`;
 
   const applicationFeeCent = serviceGebuehrCent * validatedSitzplaetze.length;
 

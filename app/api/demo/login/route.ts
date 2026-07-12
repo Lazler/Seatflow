@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     admin = createAdminClient();
   } catch {
     // Ohne Service-Key kein Demo-Login möglich → zur Registrierung
-    return ziel("/registrieren");
+    return ziel("/register");
   }
 
   const { data, error } = await admin.auth.admin.generateLink({
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const tokenHash = data?.properties?.hashed_token;
   if (error || !tokenHash) {
     console.error("[demo/login] generateLink fehlgeschlagen:", error);
-    return ziel("/anmelden");
+    return ziel("/login");
   }
 
   const supabase = await createClient();
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   });
   if (verifyError) {
     console.error("[demo/login] verifyOtp fehlgeschlagen:", verifyError);
-    return ziel("/anmelden");
+    return ziel("/login");
   }
 
   return ziel("/dashboard");

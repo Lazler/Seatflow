@@ -201,7 +201,7 @@ export default function ArticleComparison() {
           Draw a floor plan, create an event, share the booking link — no credit card, no monthly fees. The Free plan is enough for seasonal operations.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Start free →</Link>
+          <Link href="/register">Start free →</Link>
         </Button>
       </div>
     </article>

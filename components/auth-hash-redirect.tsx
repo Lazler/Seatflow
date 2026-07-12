@@ -13,8 +13,8 @@ export function AuthHashRedirect() {
     const hash = window.location.hash.slice(1);
     if (!hash) return;
     const params = new URLSearchParams(hash);
-    if (params.get("type") === "recovery" && pathname !== "/passwort-zuruecksetzen") {
-      router.replace(`/passwort-zuruecksetzen#${hash}`);
+    if (params.get("type") === "recovery" && pathname !== "/reset-password") {
+      router.replace(`/reset-password#${hash}`);
     }
   }, [pathname, router]);
 

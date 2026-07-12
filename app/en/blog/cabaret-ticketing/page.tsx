@@ -113,7 +113,7 @@ export default function ArticleCabaret() {
           Set up a floor plan, create an event, share the link. No credit card needed, cancel any time.
         </p>
         <Button asChild>
-          <Link href="/registrieren">Start free →</Link>
+          <Link href="/register">Start free →</Link>
         </Button>
       </div>
     </article>
