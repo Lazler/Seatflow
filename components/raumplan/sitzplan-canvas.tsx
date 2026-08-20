@@ -5,6 +5,7 @@ import { Stage, Layer, Rect, Circle, Text, Group, Line, Path, Transformer } from
 import type Konva from "konva";
 import { MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, CornersOut as Maximize } from "@phosphor-icons/react";
 import { fmt } from "@/lib/i18n/buchung";
+import { reihenBreite, reihenSitzPositionen, rundtischSitzRadius, rundtischSitzPositionen } from "@/lib/sitzplan-geometrie";
 import {
   type SitzplanElement,
   type ReiheElement,
@@ -206,15 +207,9 @@ type ElementProps<T> = {
 // ── Reihe ─────────────────────────────────────────────────────────────────────
 
 const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<ReiheElement>) {
-  const breite = (el.anzahlSitze - 1) * el.sitzAbstand;
+  const breite = reihenBreite(el);
   const bogen = el.bogen ?? 0;
-  // Parabel-Approximation eines Kreisbogens: Mitte bei 0, Enden bei -bogen
-  // (negativ = zur Raum-Rückseite hin, von der Bühne weg gewölbt)
-  const bogenY = (i: number) => {
-    if (bogen === 0 || el.anzahlSitze < 2) return 0;
-    const t = (2 * i) / (el.anzahlSitze - 1) - 1; // -1 … 1
-    return bogen * t * t;
-  };
+  const sitze = reihenSitzPositionen(el);
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel} offsetX={breite / 2}
       draggable={!istBuchungsmodus && !sperrModus}
@@ -226,33 +221,26 @@ const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kate
     >
       {/* Row label — pill chip, anchored left of first seat */}
       {!el.labelAusblenden && (
-        <LabelChip x={-(SITZ_RADIUS + 20)} y={bogenY(0)} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+        <LabelChip x={-(SITZ_RADIUS + 20)} y={sitze[0]?.y ?? 0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
       )}
-      {Array.from({ length: el.anzahlSitze }, (_, i) => {
-        // rtl: Hausrechte Zählweise — Nummern laufen von rechts nach links
-        const nummer = (el.nummerRichtung === "rtl")
-          ? (el.nummerStart ?? 1) + (el.anzahlSitze - 1 - i)
-          : (el.nummerStart ?? 1) + i;
-        const sitzId = `${el.bezeichnung}-${nummer}`;
-        return (
-          <SitzKreis key={sitzId}
-            x={i * el.sitzAbstand} y={bogenY(i)}
-            sitzId={sitzId} nummer={nummer}
-            kategoriefarbe={kategoriefarbe}
-            belegt={belegte.has(sitzId)}
-            buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
-            editorAusgewaehlt={editorAusgewaehlt}
-            istBuchungsmodus={istBuchungsmodus}
-            elementWinkel={el.winkel}
-            nummerAusblenden={nummerAusblenden}
-            onSitzKlick={onSitzKlick}
-            kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
-            sperrModus={sperrModus}
-            barrierefrei={barrierefreie.has(sitzId)}
-            onHoverInfo={onHoverInfo}
-          />
-        );
-      })}
+      {sitze.map(({ sitzId, nummer, x, y }) => (
+        <SitzKreis key={sitzId}
+          x={x} y={y}
+          sitzId={sitzId} nummer={nummer}
+          kategoriefarbe={kategoriefarbe}
+          belegt={belegte.has(sitzId)}
+          buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+          editorAusgewaehlt={editorAusgewaehlt}
+          istBuchungsmodus={istBuchungsmodus}
+          elementWinkel={el.winkel}
+          nummerAusblenden={nummerAusblenden}
+          onSitzKlick={onSitzKlick}
+          kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
+          sperrModus={sperrModus}
+          barrierefrei={barrierefreie.has(sitzId)}
+          onHoverInfo={onHoverInfo}
+        />
+      ))}
       {editorAusgewaehlt && (
         <Rect
           x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
@@ -357,9 +345,10 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
 const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
-  const sitzAbstand = el.tischRadius + SITZ_RADIUS + 8;
+  const sitzAbstand = rundtischSitzRadius(el);
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
+  const sitze = rundtischSitzPositionen(el);
   return (
     <Group x={el.x} y={el.y} rotation={el.winkel}
       draggable={!istBuchungsmodus}
@@ -391,29 +380,24 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
         fill="#1e3a5f" fontSize={12} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
-      {Array.from({ length: el.anzahlSitze }, (_, i) => {
-        const winkelRad = (2 * Math.PI * i) / el.anzahlSitze - Math.PI / 2;
-        const sitzId = `${el.bezeichnung}-${i + 1}`;
-        return (
-          <SitzKreis key={i}
-            x={Math.cos(winkelRad) * sitzAbstand}
-            y={Math.sin(winkelRad) * sitzAbstand}
-            sitzId={sitzId} nummer={i + 1}
-            kategoriefarbe={kategoriefarbe}
-            belegt={belegte.has(sitzId)}
-            buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
-            editorAusgewaehlt={editorAusgewaehlt}
-            istBuchungsmodus={istBuchungsmodus}
-            elementWinkel={el.winkel}
-            nummerAusblenden={nummerAusblenden}
-            onSitzKlick={onSitzKlick}
-            kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
-            sperrModus={sperrModus}
-            barrierefrei={barrierefreie.has(sitzId)}
-            onHoverInfo={onHoverInfo}
-          />
-        );
-      })}
+      {sitze.map(({ sitzId, nummer, x, y }) => (
+        <SitzKreis key={sitzId}
+          x={x} y={y}
+          sitzId={sitzId} nummer={nummer}
+          kategoriefarbe={kategoriefarbe}
+          belegt={belegte.has(sitzId)}
+          buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+          editorAusgewaehlt={editorAusgewaehlt}
+          istBuchungsmodus={istBuchungsmodus}
+          elementWinkel={el.winkel}
+          nummerAusblenden={nummerAusblenden}
+          onSitzKlick={onSitzKlick}
+          kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
+          sperrModus={sperrModus}
+          barrierefrei={barrierefreie.has(sitzId)}
+          onHoverInfo={onHoverInfo}
+        />
+      ))}
       {editorAusgewaehlt && (
         <Circle
           radius={sitzAbstand + SITZ_RADIUS + 8}
