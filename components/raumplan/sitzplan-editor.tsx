@@ -14,6 +14,7 @@ import {
   type StehplatzElement, type TextElement,
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, doppelteSitzIds, DEFAULT_KATEGORIEN,
 } from "@/types/sitzplan";
+import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } from "@/lib/bestuhlung-generator";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
@@ -248,83 +249,24 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
 
   // ── Bestuhlungs-Generator ─────────────────────────────────────────────────
-  const SITZ_ABSTAND_GEN = 32;
-  const REIHEN_ABSTAND_GEN = 46;
-
+  // Reine Generier-Logik liegt in lib/bestuhlung-generator.ts (getestet); hier
+  // nur das Anwenden aufs Editor-State.
   function bestuhlungErzeugen(reihen: number, sitzeProReihe: number, mittelgang: boolean) {
-    const kat = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
-    const startY = konfig.buehne.y + konfig.buehne.hoehe / 2 + 90;
-    const mitteX = konfig.breite / 2;
-    const gangHalb = 28;
-    const neu: SitzplanElement[] = [];
-    const basisElemente = [...konfig.elemente];
-
-    for (let r = 0; r < reihen; r++) {
-      const y = startY + r * REIHEN_ABSTAND_GEN;
-      const bez = naechsteBezeichnung([...basisElemente, ...neu], "");
-      const gemeinsam = { winkel: 0, kategorie_id: kat };
-      if (mittelgang && sitzeProReihe >= 4) {
-        const links = Math.ceil(sitzeProReihe / 2);
-        const rechts = sitzeProReihe - links;
-        const wLinks = (links - 1) * SITZ_ABSTAND_GEN;
-        const wRechts = (rechts - 1) * SITZ_ABSTAND_GEN;
-        neu.push({
-          ...gemeinsam, typ: "reihe", id: crypto.randomUUID(), bezeichnung: bez,
-          x: Math.round(mitteX - gangHalb - wLinks / 2), y,
-          anzahlSitze: links, sitzAbstand: SITZ_ABSTAND_GEN,
-        } satisfies ReiheElement);
-        neu.push({
-          ...gemeinsam, typ: "reihe", id: crypto.randomUUID(), bezeichnung: bez,
-          x: Math.round(mitteX + gangHalb + wRechts / 2), y,
-          anzahlSitze: rechts, sitzAbstand: SITZ_ABSTAND_GEN,
-          nummerStart: links + 1, labelAusblenden: true,
-        } satisfies ReiheElement);
-      } else {
-        neu.push({
-          ...gemeinsam, typ: "reihe", id: crypto.randomUUID(), bezeichnung: bez,
-          x: Math.round(mitteX), y,
-          anzahlSitze: sitzeProReihe, sitzAbstand: SITZ_ABSTAND_GEN,
-        } satisfies ReiheElement);
-      }
-    }
-
-    // Raum bei Bedarf mitwachsen lassen, damit nichts abgeschnitten wird
-    const noetigeHoehe = Math.ceil(startY + reihen * REIHEN_ABSTAND_GEN + 60);
-    const noetigeBreite = Math.ceil(sitzeProReihe * SITZ_ABSTAND_GEN + (mittelgang ? 56 : 0) + 160);
+    const { neu, hoeheNoetig, breiteNoetig } = erzeugeReihenbestuhlung(konfig, reihen, sitzeProReihe, mittelgang);
     mutiere((k) => ({
       ...k,
-      hoehe: Math.max(k.hoehe, noetigeHoehe),
-      breite: Math.max(k.breite, noetigeBreite),
+      hoehe: Math.max(k.hoehe, hoeheNoetig),
+      breite: Math.max(k.breite, breiteNoetig),
       elemente: [...k.elemente, ...neu],
     }));
     setAuswahl(null);
   }
 
   function rundtischGruppeErzeugen(anzahl: number, sitzeProTisch: number, startYOffset = 90) {
-    const kat = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
-    const startY = konfig.buehne.y + konfig.buehne.hoehe / 2 + startYOffset;
-    const proZeile = Math.min(3, anzahl);
-    const dx = 200, dy = 180, radius = 32;
-    const mitteX = konfig.breite / 2;
-    const neu: SitzplanElement[] = [];
-    const basisElemente = [...konfig.elemente];
-    for (let i = 0; i < anzahl; i++) {
-      const spalte = i % proZeile;
-      const zeile = Math.floor(i / proZeile);
-      const zeilenBreite = (Math.min(proZeile, anzahl - zeile * proZeile) - 1) * dx;
-      neu.push({
-        typ: "rundtisch", id: crypto.randomUUID(),
-        bezeichnung: naechsteBezeichnung([...basisElemente, ...neu], "R"),
-        x: Math.round(mitteX - zeilenBreite / 2 + spalte * dx),
-        y: Math.round(startY + 70 + zeile * dy),
-        winkel: 0, kategorie_id: kat,
-        anzahlSitze: sitzeProTisch, tischRadius: radius,
-      } satisfies RundtischElement);
-    }
-    const zeilen = Math.ceil(anzahl / proZeile);
+    const { neu, hoeheNoetig } = erzeugeRundtischGruppe(konfig, anzahl, sitzeProTisch, startYOffset);
     mutiere((k) => ({
       ...k,
-      hoehe: Math.max(k.hoehe, Math.ceil(startY + 70 + zeilen * dy + 80)),
+      hoehe: Math.max(k.hoehe, hoeheNoetig),
       elemente: [...k.elemente, ...neu],
     }));
     setAuswahl(null);
