@@ -63,21 +63,48 @@ function AbschnittsTitel({ icon: Icon, children }: { icon: React.ElementType; ch
   );
 }
 
-// ── Modal: "Element hinzufügen" ─────────────────────────────────────────────
-export function ElementHinzufuegenInhalt({ onHinzufuegen }: { onHinzufuegen: (typ: ElementTyp) => void }) {
+// ── Modal: "Element hinzufügen" (+ Bühne, die immer schon existiert) ───────
+export function ElementHinzufuegenInhalt({ onHinzufuegen, buehne, onBuehneAktualisieren }: {
+  onHinzufuegen: (typ: ElementTyp) => void;
+  buehne: Buehne;
+  onBuehneAktualisieren: (delta: Partial<Buehne>) => void;
+}) {
   const t = useT();
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {(Object.keys(TYP_ICON) as ElementTyp[]).map((typ) => {
-        const Icon = TYP_ICON[typ];
-        return (
-          <button key={typ} onClick={() => onHinzufuegen(typ)}
-            className="flex flex-col items-center gap-1.5 py-4 px-1 rounded-lg border border-input hover:bg-accent hover:border-brand/50 text-xs font-medium transition-colors min-h-[64px]">
-            <Icon className="h-5 w-5" />
-            <span className="leading-none text-center">{t.editorToolbar.elementTypen[typ]}</span>
-          </button>
-        );
-      })}
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-2">
+        {(Object.keys(TYP_ICON) as ElementTyp[]).map((typ) => {
+          const Icon = TYP_ICON[typ];
+          return (
+            <button key={typ} onClick={() => onHinzufuegen(typ)}
+              className="flex flex-col items-center gap-1.5 py-4 px-1 rounded-lg border border-input hover:bg-accent hover:border-brand/50 text-xs font-medium transition-colors min-h-[64px]">
+              <Icon className="h-5 w-5" />
+              <span className="leading-none text-center">{t.editorToolbar.elementTypen[typ]}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-3 pt-4 border-t border-border">
+        <AbschnittsTitel icon={Theater}>{t.editorToolbar.buehnePodium}</AbschnittsTitel>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">{t.editorToolbar.beschriftung}</Label>
+          <Input value={buehne.label} onChange={(e) => onBuehneAktualisieren({ label: e.target.value })} className="h-8 text-sm" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <ZahlInput label={t.editorToolbar.breite} value={buehne.breite} min={80} max={1200} schritt={10} onChange={(v) => onBuehneAktualisieren({ breite: v })} einheit="px" />
+          <ZahlInput label={t.editorToolbar.hoehe}   value={buehne.hoehe}  min={20} max={300}  schritt={10} onChange={(v) => onBuehneAktualisieren({ hoehe:  v })} einheit="px" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <RotateCw className="h-3 w-3" /> {fmt(t.editorToolbar.winkel, { winkel: Math.round(buehne.winkel) })}
+          </Label>
+          <input type="range" min={-180} max={180} step={1} value={buehne.winkel}
+            onChange={(e) => onBuehneAktualisieren({ winkel: Number(e.target.value) })}
+            className="w-full h-1.5 accent-brand cursor-pointer" />
+        </div>
+        <p className="text-xs text-muted-foreground">{t.editorToolbar.canvasZiehen}</p>
+      </div>
     </div>
   );
 }
@@ -138,14 +165,12 @@ export function PreiskategorienInhalt({ kategorien, onChange }: {
   );
 }
 
-// ── Modal: "Planeinstellungen" (Raumgröße + Bühne + Bestuhlungs-Generator) ──
+// ── Modal: "Planeinstellungen" (Raumgröße + Bestuhlungs-Generator) ─────────
 export function PlaneinstellungenInhalt({
   raumbreite, raumhoehe, onRaumgroesseAktualisieren,
-  buehne, onBuehneAktualisieren,
   leer, onBestuhlungErzeugen, onVorlage,
 }: {
   raumbreite: number; raumhoehe: number; onRaumgroesseAktualisieren: (b: number, h: number) => void;
-  buehne: Buehne; onBuehneAktualisieren: (delta: Partial<Buehne>) => void;
   leer: boolean;
   onBestuhlungErzeugen: (reihen: number, sitzeProReihe: number, mittelgang: boolean) => void;
   onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
@@ -212,27 +237,6 @@ export function PlaneinstellungenInhalt({
           <ZahlInput label={t.editorToolbar.breite} value={raumbreite} min={400} max={2000} onChange={(v) => onRaumgroesseAktualisieren(v, raumhoehe)} einheit="px" />
           <ZahlInput label={t.editorToolbar.hoehe}  value={raumhoehe}  min={300} max={1500} onChange={(v) => onRaumgroesseAktualisieren(raumbreite, v)} einheit="px" />
         </div>
-      </div>
-
-      <div className="space-y-3 pt-4 border-t border-border">
-        <AbschnittsTitel icon={Theater}>{t.editorToolbar.buehnePodium}</AbschnittsTitel>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">{t.editorToolbar.beschriftung}</Label>
-          <Input value={buehne.label} onChange={(e) => onBuehneAktualisieren({ label: e.target.value })} className="h-8 text-sm" />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <ZahlInput label={t.editorToolbar.breite} value={buehne.breite} min={80} max={1200} schritt={10} onChange={(v) => onBuehneAktualisieren({ breite: v })} einheit="px" />
-          <ZahlInput label={t.editorToolbar.hoehe}   value={buehne.hoehe}  min={20} max={300}  schritt={10} onChange={(v) => onBuehneAktualisieren({ hoehe:  v })} einheit="px" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <RotateCw className="h-3 w-3" /> {fmt(t.editorToolbar.winkel, { winkel: Math.round(buehne.winkel) })}
-          </Label>
-          <input type="range" min={-180} max={180} step={1} value={buehne.winkel}
-            onChange={(e) => onBuehneAktualisieren({ winkel: Number(e.target.value) })}
-            className="w-full h-1.5 accent-brand cursor-pointer" />
-        </div>
-        <p className="text-xs text-muted-foreground">{t.editorToolbar.canvasZiehen}</p>
       </div>
     </div>
   );
