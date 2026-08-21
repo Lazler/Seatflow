@@ -220,6 +220,16 @@ const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kate
       onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
+      {/* Unsichtbare Hit-Area: im Editor sind einzelne Sitze meist listening=false
+          (Performance), damit ohne diese Fläche nichts im Group hit-testbar wäre
+          und die Reihe weder anklick- noch verschiebbar wäre. */}
+      {!istBuchungsmodus && (
+        <Rect
+          x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
+          width={breite + SITZ_RADIUS * 2 + 20} height={SITZ_RADIUS * 2 + 16 + bogen}
+          fill="transparent" listening perfectDrawEnabled={false}
+        />
+      )}
       {/* Row label — pill chip, anchored left of first seat */}
       {!el.labelAusblenden && (
         <LabelChip x={-(SITZ_RADIUS + 20)} y={sitze[0]?.y ?? 0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />

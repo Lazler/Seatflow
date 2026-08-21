@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Trash as Trash2, Minus, Plus, ArrowCounterClockwise as RotateCcw, CaretLeft as ChevronLeft, Users, Check, Copy, TextT as Type } from "@phosphor-icons/react";
+import { Input } from "@/components/ui/input";
+import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Trash as Trash2, Minus, Plus, ArrowCounterClockwise as RotateCcw, CaretLeft as ChevronLeft, Users, Check, Copy, TextT as Type, MaskHappy as Theater } from "@phosphor-icons/react";
 import {
-  type SitzplanElement, type Preiskategorie, type ElementTyp,
+  type SitzplanElement, type Preiskategorie, type ElementTyp, type Buehne,
   FARBE_ELEMENT_SELEKTIERT, elementSitzIds,
 } from "@/types/sitzplan";
 import { useT, useLocale } from "@/components/i18n-provider";
@@ -298,6 +299,84 @@ export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzId
             <Trash2 className="h-3.5 w-3.5" /> {t.elementPanel.elementLoeschen}
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Bühne: existiert immer (kein Duplizieren/Löschen), sonst dasselbe
+// Auswahl-Panel-Muster wie jedes andere Element. ───────────────────────────
+export function BuehneEigenschaftenPanel({ buehne, onChange, onSchliessen }: {
+  buehne: Buehne;
+  onChange: (delta: Partial<Buehne>) => void;
+  onSchliessen: () => void;
+}) {
+  const t = useT();
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onSchliessen(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onSchliessen]);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden animate-slide-up">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0"
+        style={{ borderBottomColor: FARBE_ELEMENT_SELEKTIERT + "60" }}>
+        <button type="button" onClick={onSchliessen}
+          className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shrink-0">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+            style={{ background: FARBE_ELEMENT_SELEKTIERT + "20" }}>
+            <Theater className="h-3.5 w-3.5" style={{ color: FARBE_ELEMENT_SELEKTIERT }} />
+          </span>
+          <p className="text-sm font-semibold truncate flex-1 min-w-0" style={{ color: FARBE_ELEMENT_SELEKTIERT }}>
+            {t.editorToolbar.buehnePodium}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <SectionLabel>{t.elementPanel.bezeichnung}</SectionLabel>
+        <div className="px-4 pb-2">
+          <Input value={buehne.label} onChange={(e) => onChange({ label: e.target.value })} className="h-9 text-sm" />
+        </div>
+
+        <Divider />
+
+        <SectionLabel>{t.elementPanel.konfiguration}</SectionLabel>
+        <Stepper label={t.editorToolbar.breite} value={buehne.breite} min={80} max={1200} schritt={10} einheit="px"
+          onChange={(v) => onChange({ breite: v })} />
+        <Stepper label={t.editorToolbar.hoehe} value={buehne.hoehe} min={20} max={300} schritt={10} einheit="px"
+          onChange={(v) => onChange({ hoehe: v })} />
+
+        <Divider />
+
+        <SectionLabel>{t.elementPanel.winkel}</SectionLabel>
+        <div className="px-4 pb-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <input type="range" min={-180} max={180} step={1} value={buehne.winkel}
+              onChange={(e) => onChange({ winkel: Number(e.target.value) })}
+              className="flex-1 h-1.5 accent-primary cursor-pointer" />
+            <input type="number" min={-180} max={180} value={Math.round(buehne.winkel)}
+              className={`h-7 w-14 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
+              onChange={(e) => {
+                const v = parseInt(e.target.value);
+                if (!isNaN(v)) onChange({ winkel: Math.min(180, Math.max(-180, v)) });
+              }} />
+            <span className="text-xs text-muted-foreground w-4">°</span>
+          </div>
+          <button type="button"
+            onClick={() => onChange({ winkel: 0 })}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md px-2 py-1 transition-colors w-full">
+            <RotateCcw className="h-3 w-3" /> {t.elementPanel.winkelZuruecksetzen}
+          </button>
+        </div>
+
+        <Divider />
+        <p className="px-4 py-3 text-xs text-muted-foreground leading-relaxed">{t.editorToolbar.canvasZiehen}</p>
       </div>
     </div>
   );

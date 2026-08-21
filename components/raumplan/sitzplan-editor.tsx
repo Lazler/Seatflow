@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ElementHinzufuegenInhalt, PreiskategorienInhalt, PlaneinstellungenInhalt } from "./editor-toolbar";
 import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
-import ElementEigenschaftenPanel from "./element-eigenschaften-panel";
+import ElementEigenschaftenPanel, { BuehneEigenschaftenPanel } from "./element-eigenschaften-panel";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
@@ -453,6 +453,15 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </div>
       );
     }
+    if (auswahl?.typ === "buehne") {
+      return (
+        <BuehneEigenschaftenPanel
+          buehne={konfig.buehne}
+          onChange={buehneAktualisieren}
+          onSchliessen={() => { setAuswahl(null); onClose?.(); }}
+        />
+      );
+    }
     if (ausgewaehltesElement) {
       return (
         <ElementEigenschaftenPanel
@@ -688,8 +697,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           <DialogBody>
             <ElementHinzufuegenInhalt
               onHinzufuegen={(typ) => { elementHinzufuegen(typ); setModalOffen(null); }}
-              buehne={konfig.buehne}
-              onBuehneAktualisieren={buehneAktualisieren}
+              onBuehneAuswaehlen={() => { waehleAus({ typ: "buehne" }); setModalOffen(null); }}
             />
           </DialogBody>
         </DialogContent>

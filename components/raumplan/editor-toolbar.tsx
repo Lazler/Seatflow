@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, ArrowClockwise as RotateCw, PencilSimple as Pencil, Check, X, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2, ArrowsOutSimple as Maximize2, MaskHappy as Theater } from "@phosphor-icons/react";
+import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, PencilSimple as Pencil, Check, X, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2, ArrowsOutSimple as Maximize2, MaskHappy as Theater } from "@phosphor-icons/react";
 import {
-  type Buehne, type ElementTyp, type Preiskategorie,
+  type ElementTyp, type Preiskategorie,
 } from "@/types/sitzplan";
 import { useT, useLocale } from "@/components/i18n-provider";
 import { fmt, intlLocale } from "@/lib/i18n/buchung";
@@ -63,48 +63,32 @@ function AbschnittsTitel({ icon: Icon, children }: { icon: React.ElementType; ch
   );
 }
 
-// ── Modal: "Element hinzufügen" (+ Bühne, die immer schon existiert) ───────
-export function ElementHinzufuegenInhalt({ onHinzufuegen, buehne, onBuehneAktualisieren }: {
+// ── Modal: "Element hinzufügen" — Bühne verhält sich wie die anderen Kacheln:
+// ein Klick wählt sie aus, ihre Eigenschaften erscheinen im selben rechten
+// Auswahl-Panel wie bei jedem anderen Element (sie existiert nur schon immer,
+// statt neu erzeugt zu werden). ─────────────────────────────────────────────
+export function ElementHinzufuegenInhalt({ onHinzufuegen, onBuehneAuswaehlen }: {
   onHinzufuegen: (typ: ElementTyp) => void;
-  buehne: Buehne;
-  onBuehneAktualisieren: (delta: Partial<Buehne>) => void;
+  onBuehneAuswaehlen: () => void;
 }) {
   const t = useT();
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-2">
-        {(Object.keys(TYP_ICON) as ElementTyp[]).map((typ) => {
-          const Icon = TYP_ICON[typ];
-          return (
-            <button key={typ} onClick={() => onHinzufuegen(typ)}
-              className="flex flex-col items-center gap-1.5 py-4 px-1 rounded-lg border border-input hover:bg-accent hover:border-brand/50 text-xs font-medium transition-colors min-h-[64px]">
-              <Icon className="h-5 w-5" />
-              <span className="leading-none text-center">{t.editorToolbar.elementTypen[typ]}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="space-y-3 pt-4 border-t border-border">
-        <AbschnittsTitel icon={Theater}>{t.editorToolbar.buehnePodium}</AbschnittsTitel>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">{t.editorToolbar.beschriftung}</Label>
-          <Input value={buehne.label} onChange={(e) => onBuehneAktualisieren({ label: e.target.value })} className="h-8 text-sm" />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <ZahlInput label={t.editorToolbar.breite} value={buehne.breite} min={80} max={1200} schritt={10} onChange={(v) => onBuehneAktualisieren({ breite: v })} einheit="px" />
-          <ZahlInput label={t.editorToolbar.hoehe}   value={buehne.hoehe}  min={20} max={300}  schritt={10} onChange={(v) => onBuehneAktualisieren({ hoehe:  v })} einheit="px" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <RotateCw className="h-3 w-3" /> {fmt(t.editorToolbar.winkel, { winkel: Math.round(buehne.winkel) })}
-          </Label>
-          <input type="range" min={-180} max={180} step={1} value={buehne.winkel}
-            onChange={(e) => onBuehneAktualisieren({ winkel: Number(e.target.value) })}
-            className="w-full h-1.5 accent-brand cursor-pointer" />
-        </div>
-        <p className="text-xs text-muted-foreground">{t.editorToolbar.canvasZiehen}</p>
-      </div>
+    <div className="grid grid-cols-3 gap-2">
+      {(Object.keys(TYP_ICON) as ElementTyp[]).map((typ) => {
+        const Icon = TYP_ICON[typ];
+        return (
+          <button key={typ} onClick={() => onHinzufuegen(typ)}
+            className="flex flex-col items-center gap-1.5 py-4 px-1 rounded-lg border border-input hover:bg-accent hover:border-brand/50 text-xs font-medium transition-colors min-h-[64px]">
+            <Icon className="h-5 w-5" />
+            <span className="leading-none text-center">{t.editorToolbar.elementTypen[typ]}</span>
+          </button>
+        );
+      })}
+      <button onClick={onBuehneAuswaehlen}
+        className="flex flex-col items-center gap-1.5 py-4 px-1 rounded-lg border border-input hover:bg-accent hover:border-brand/50 text-xs font-medium transition-colors min-h-[64px]">
+        <Theater className="h-5 w-5" />
+        <span className="leading-none text-center">{t.editorToolbar.buehnePodium}</span>
+      </button>
     </div>
   );
 }
