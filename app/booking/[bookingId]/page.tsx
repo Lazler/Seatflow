@@ -67,9 +67,6 @@ export default async function MeineTickets({
     <div className="min-h-screen bg-muted/40">
       <nav className="border-b border-border bg-background">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
-          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold text-[10px]">SF</span>
-          </div>
           <span className="font-semibold text-sm">{t.meineTicketsTitel}</span>
         </div>
       </nav>

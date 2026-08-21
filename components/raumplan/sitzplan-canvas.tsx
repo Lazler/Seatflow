@@ -22,6 +22,7 @@ import {
   TISCH_SEAT_GAP,
   FARBE_BELEGT,
   FARBE_AUSGEWAEHLT,
+  FARBE_AUSGEWAEHLT_RING,
   FARBE_ELEMENT_SELEKTIERT,
   tischreiheBreite,
   elementSitzIds,
@@ -119,18 +120,18 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
         }
       }}
     >
-      {/* Emerald glow ring when selected */}
+      {/* Brand-coral glow ring when selected — the brand moment */}
       {buchungAusgewaehlt && (
-        <Circle radius={SITZ_RADIUS + 5} fill={FARBE_AUSGEWAEHLT} opacity={0.22} listening={false} perfectDrawEnabled={false} />
+        <Circle radius={SITZ_RADIUS + 5} fill={FARBE_AUSGEWAEHLT_RING} opacity={0.22} listening={false} perfectDrawEnabled={false} />
       )}
       <Circle
         radius={SITZ_RADIUS}
         fill={fill}
-        stroke={belegt ? "transparent" : "rgba(255,255,255,0.6)"}
-        strokeWidth={1.5}
+        stroke={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT_RING : belegt ? "transparent" : "rgba(255,255,255,0.6)"}
+        strokeWidth={buchungAusgewaehlt ? 2.5 : 1.5}
         // Schatten NUR auf ausgewählten Sitzen — auf allen wäre es der teuerste
         // Posten beim Layer-Neuzeichnen (killt Zoom/Tap-Performance)
-        shadowColor={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT : undefined}
+        shadowColor={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT_RING : undefined}
         shadowBlur={buchungAusgewaehlt ? 10 : 0}
         shadowOpacity={buchungAusgewaehlt ? 0.35 : 0}
         shadowEnabled={buchungAusgewaehlt}
@@ -153,8 +154,8 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
       {/* Barrierefrei-Badge (Rollstuhl-Symbol, immer aufrecht) */}
       {barrierefrei && (
         <Group x={SITZ_RADIUS - 4} y={SITZ_RADIUS - 4} rotation={-elementWinkel} listening={false}>
-          <Circle radius={7} fill="#ffffff" stroke="#0369a1" strokeWidth={1.2} perfectDrawEnabled={false} />
-          <Path data={ROLLSTUHL_PFAD} fill="#0369a1"
+          <Circle radius={7} fill="#ffffff" stroke="#17181a" strokeWidth={1.2} perfectDrawEnabled={false} />
+          <Path data={ROLLSTUHL_PFAD} fill="#17181a"
             x={-4.5} y={-4.5} scaleX={9 / 256} scaleY={9 / 256} perfectDrawEnabled={false} />
         </Group>
       )}
@@ -176,12 +177,12 @@ function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
         fill="rgba(255,255,255,0.97)"
         stroke={kategoriefarbe} strokeWidth={1.5}
         cornerRadius={H / 2}
-        shadowColor="#0f172a" shadowBlur={6} shadowOpacity={0.12} shadowOffsetY={1}
+        shadowColor="#17181a" shadowBlur={6} shadowOpacity={0.12} shadowOffsetY={1}
         perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
       <Text
         x={-W / 2} y={-H / 2} width={W} height={H}
-        text={text} fill="#0f172a" fontSize={11} fontStyle="bold"
+        text={text} fill="#17181a" fontSize={11} fontStyle="bold"
         align="center" verticalAlign="middle"
       />
     </Group>
@@ -246,7 +247,7 @@ const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kate
           x={-SITZ_RADIUS - 10} y={-SITZ_RADIUS - 8}
           width={breite + SITZ_RADIUS * 2 + 20} height={SITZ_RADIUS * 2 + 16 + bogen}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
-          fill="rgba(245,158,11,0.04)" cornerRadius={10}
+          fill="rgba(217,72,31,0.05)" cornerRadius={10}
           dash={[6, 4]} listening={false}
         />
       )}
@@ -290,7 +291,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
         offsetX={tischBreite / 2} offsetY={TISCH_HOEHE / 2}
         rotation={-el.winkel}
         width={tischBreite} height={TISCH_HOEHE}
-        text={el.bezeichnung} fill="#1e3a5f" fontSize={11} fontStyle="bold"
+        text={el.bezeichnung} fill={istBuchungsmodus ? "rgba(255,255,255,0.92)" : "#17181a"} fontSize={11} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
       {/* Top seats */}
@@ -334,7 +335,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
           x={-8} y={selTop}
           width={tischBreite + 16} height={selBot - selTop}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
-          fill="rgba(245,158,11,0.04)" cornerRadius={10}
+          fill="rgba(217,72,31,0.05)" cornerRadius={10}
           dash={[6, 4]} listening={false}
         />
       )}
@@ -364,7 +365,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
         fill={kategoriefarbe + "22"}
         stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
         strokeWidth={2}
-        shadowColor="#0f172a"
+        shadowColor="#17181a"
         shadowBlur={10}
         shadowOpacity={0.12}
         shadowOffsetY={2}
@@ -377,7 +378,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
         rotation={-el.winkel}
         width={labelD} height={labelD}
         text={el.bezeichnung}
-        fill="#1e3a5f" fontSize={12} fontStyle="bold"
+        fill={istBuchungsmodus ? "rgba(255,255,255,0.92)" : "#17181a"} fontSize={12} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
       {sitze.map(({ sitzId, nummer, x, y }) => (
@@ -402,7 +403,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
         <Circle
           radius={sitzAbstand + SITZ_RADIUS + 8}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
-          fill="rgba(245,158,11,0.04)"
+          fill="rgba(217,72,31,0.05)"
           dash={[6, 4]} listening={false}
         />
       )}
@@ -446,7 +447,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
         <Text
           x={-el.breite / 2} y={-20} width={el.breite} height={16}
           text={`${zonenTexte.stehplatz} ${el.bezeichnung}`}
-          fill="#334155" fontSize={11} fontStyle="bold" letterSpacing={1.5}
+          fill={istBuchungsmodus ? "rgba(255,255,255,0.92)" : "#17181a"} fontSize={11} fontStyle="bold" letterSpacing={1.5}
           align="center" verticalAlign="middle"
         />
         <Text
@@ -456,7 +457,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
                 ? zonenTexte.zoneAusverkauft
                 : `${freie.length} ${zonenTexte.zoneFrei}${gewaehlt > 0 ? ` · ${gewaehlt} ${zonenTexte.zoneGewaehlt}` : ""}`)
             : fmt(zonenTexte.stehplatzInfo, { kapazitaet: el.kapazitaet, kategorieName, preis: (kategoriePreisCent / 100).toLocaleString(zonenTexte.currencyLocale, { style: "currency", currency: "EUR" }) })}
-          fill="#64748b" fontSize={10}
+          fill={istBuchungsmodus ? "rgba(255,255,255,0.6)" : "#6b6e73"} fontSize={10}
           align="center" verticalAlign="middle"
         />
         {istBuchungsmodus && klickbar && (
@@ -471,7 +472,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
       {editorAusgewaehlt && (
         <Rect x={-6} y={-6} width={el.breite + 12} height={el.hoehe + 12}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
-          fill="rgba(245,158,11,0.04)" cornerRadius={12} dash={[6, 4]} listening={false} />
+          fill="rgba(217,72,31,0.05)" cornerRadius={12} dash={[6, 4]} listening={false} />
       )}
     </Group>
   );
@@ -499,13 +500,13 @@ function TextKomponente({ el, stageScale, snapRaster, editorAusgewaehlt, istBuch
       <Text
         width={geschaetzteBreite} height={H}
         text={el.text || zonenTexte.textFallback}
-        fill="#475569" fontSize={el.fontSize} fontStyle="bold" letterSpacing={0.5}
+        fill={istBuchungsmodus ? "rgba(255,255,255,0.75)" : "#3a3c40"} fontSize={el.fontSize} fontStyle="bold" letterSpacing={0.5}
         align="center" verticalAlign="middle"
       />
       {editorAusgewaehlt && (
         <Rect x={-6} y={-4} width={geschaetzteBreite + 12} height={H + 8}
           stroke={FARBE_ELEMENT_SELEKTIERT} strokeWidth={1.5}
-          fill="rgba(245,158,11,0.04)" cornerRadius={6} dash={[6, 4]} listening={false} />
+          fill="rgba(217,72,31,0.05)" cornerRadius={6} dash={[6, 4]} listening={false} />
       )}
     </Group>
   );
@@ -543,7 +544,7 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
         width={buehne.breite} height={buehne.hoehe}
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{ x: 0, y: buehne.hoehe }}
-        fillLinearGradientColorStops={[0, "#334155", 1, "#0f172a"]}
+        fillLinearGradientColorStops={[0, "#3a3c40", 1, "#17181a"]}
         cornerRadius={8}
         stroke={ausgewaehlt ? FARBE_ELEMENT_SELEKTIERT : "rgba(255,255,255,0.10)"}
         strokeWidth={ausgewaehlt ? 2 : 1}
@@ -746,7 +747,7 @@ export default function SitzplanCanvas({
     const istAusgewaehlt = auswahl?.typ === "element" && auswahl.ids.includes(el.id);
     const kat = kategorienMap.get(el.kategorie_id);
     const gemeinsam = {
-      kategoriefarbe: kat?.farbe ?? "#3b82f6",
+      kategoriefarbe: kat?.farbe ?? "#3a3c40",
       kategorieName: kat?.name ?? "",
       kategoriePreisCent: kat?.preis_cent ?? 0,
       stageScale: scale,
@@ -931,19 +932,19 @@ export default function SitzplanCanvas({
       }}
     >
       <Layer ref={layerRef}>
-        {/* Background — im Buchungsmodus ohne Baustellen-Raster */}
+        {/* Background — Buchungsmodus: dunkler Bühnenrahmen (die Marke). Editor: helle Bone-Fläche. */}
         <Rect id="bg" x={0} y={0} width={raumbreite} height={raumhoehe}
-          fill={istBuchungsmodus ? "#fbfcfe" : "#f5f7fc"} />
+          fill={istBuchungsmodus ? "#1c1d20" : "#ffffff"} />
         {/* Editor-Raster (nur im Editor sichtbar) */}
         {!istBuchungsmodus && Array.from({ length: Math.ceil(raumhoehe / 40) }, (_, i) => (
-          <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e4e9f2" strokeWidth={0.75} listening={false} />
+          <Line key={`h${i}`} points={[0, i * 40, raumbreite, i * 40]} stroke="#e5e5e7" strokeWidth={0.75} listening={false} />
         ))}
         {!istBuchungsmodus && Array.from({ length: Math.ceil(raumbreite / 40) }, (_, i) => (
-          <Line key={`v${i}`} points={[i * 40, 0, i * 40, raumhoehe]} stroke="#e4e9f2" strokeWidth={0.75} listening={false} />
+          <Line key={`v${i}`} points={[i * 40, 0, i * 40, raumhoehe]} stroke="#e5e5e7" strokeWidth={0.75} listening={false} />
         ))}
         {/* Canvas border */}
         <Rect x={0} y={0} width={raumbreite} height={raumhoehe}
-          stroke={istBuchungsmodus ? "#e2e8f0" : "#c8d3e0"} strokeWidth={1.5} fill="transparent" listening={false} />
+          stroke={istBuchungsmodus ? "rgba(255,255,255,0.10)" : "#e5e5e7"} strokeWidth={1.5} fill="transparent" listening={false} />
         {/* Stage / Bühne */}
         <BuehneKomponente
           buehne={konfiguration.buehne} ausgewaehlt={auswahl?.typ === "buehne"}
@@ -989,10 +990,10 @@ export default function SitzplanCanvas({
           return (
             <Group x={tooltip.x} y={tooltip.y - SITZ_RADIUS - 10} listening={false}>
               <Rect x={-W / 2} y={-H} width={W} height={H}
-                fill="#0f172a" cornerRadius={8} opacity={0.94}
-                shadowColor="#0f172a" shadowBlur={12} shadowOpacity={0.25} shadowOffsetY={2} />
+                fill="#17181a" cornerRadius={8} opacity={0.94}
+                shadowColor="#17181a" shadowBlur={12} shadowOpacity={0.25} shadowOffsetY={2} />
               {/* Pfeilspitze */}
-              <Line points={[-5, 0, 5, 0, 0, 5]} closed fill="#0f172a" opacity={0.94} />
+              <Line points={[-5, 0, 5, 0, 0, 5]} closed fill="#17181a" opacity={0.94} />
               <Text x={-W / 2} y={-H + 6} width={W} height={14} text={zeile1}
                 fill="#ffffff" fontSize={12} fontStyle="bold" align="center" />
               <Text x={-W / 2} y={-H + 21} width={W} height={13} text={zeile2}

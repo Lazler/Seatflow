@@ -3,9 +3,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-instrument-serif);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-inter);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -24,53 +24,68 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* SeatFlow v3 tokens — exposed as Tailwind utilities (bg-brand, text-gold, …) */
+  --color-paper: var(--paper);
+  --color-bone: var(--bone);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.50 0.20 55);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.96 0.04 75);
-  --accent-foreground: oklch(0.30 0.10 55);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.62 0.18 58);
-}
+  /* ---------- Neutral surface scale ---------- */
+  --paper: #fafafa;
+  --bone: #ffffff;
+  --ink: #17181a;
+  --ink-2: #6b6e73;
+  --rule: #e5e5e7;
+  --rule-soft: #eeeeef;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.75 0.18 65);
-  --primary-foreground: oklch(0.15 0.05 55);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.75 0.18 65);
+  /* ---------- Brand: deep coral-orange ---------- */
+  --brand: #d9481f;
+  --brand-deep: #b23a17;
+  --brand-soft: #fbe3d8;
+
+  /* ---------- Celebration ---------- */
+  --gold: #c99a3a;
+  --gold-deep: #96721f;
+
+  --danger: #c0311b;
+  --success: #1e824c;
+
+  /* ---------- Semantic aliases — the rest of the app reads these ---------- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--bone);
+  --card-foreground: var(--ink);
+  --popover: var(--bone);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--rule-soft);
+  --secondary-foreground: var(--ink);
+  --muted: var(--rule-soft);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--rule-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--brand);
 }
 
 body {

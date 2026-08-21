@@ -10,17 +10,7 @@ import { Button } from "@/components/ui/button";
 import { SquaresFour as LayoutDashboard, Calendar, MapPin, SignOut as LogOut, Receipt as ReceiptText, Tag, Ticket, ChartBar as BarChart2, CreditCard, List as Menu, X } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-
-function LogoMark() {
-  return (
-    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-      <svg viewBox="0 0 24 24" className="w-4 h-4 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 9a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v2a2 2 0 0 0 0 4v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a2 2 0 0 0 0-4V9z" />
-        <line x1="9" y1="8" x2="9" y2="16" strokeDasharray="2 2" />
-      </svg>
-    </div>
-  );
-}
+import { Logo } from "@/components/layout/logo";
 
 export function DashboardNavigation() {
   const pfad = usePathname();
@@ -79,10 +69,7 @@ export function DashboardNavigation() {
       {/* ── Desktop Sidebar (lg+) ─────────────────────────────────────────── */}
       <aside className="w-60 shrink-0 border-r border-border bg-card h-screen sticky top-0 flex-col hidden lg:flex">
         <div className="h-16 flex items-center px-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <LogoMark />
-            <span className="font-semibold">SeatFlow</span>
-          </div>
+          <Logo />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -107,10 +94,7 @@ export function DashboardNavigation() {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <LogoMark />
-          <span className="font-semibold text-sm">SeatFlow</span>
-        </div>
+        <Logo />
       </header>
 
       {/* ── Mobile Drawer ─────────────────────────────────────────────────── */}
@@ -125,10 +109,7 @@ export function DashboardNavigation() {
 
             {/* Drawer header */}
             <div className="h-14 flex items-center justify-between px-4 border-b border-border shrink-0">
-              <div className="flex items-center gap-2">
-                <LogoMark />
-                <span className="font-semibold">SeatFlow</span>
-              </div>
+              <Logo />
               <button
                 onClick={() => setDrawerOffen(false)}
                 className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

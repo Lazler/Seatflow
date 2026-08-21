@@ -149,9 +149,6 @@ export default async function BuchungsSeite({
             </Link>
           )}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center shrink-0">
-              <span className="text-primary-foreground font-bold text-[10px]">SF</span>
-            </div>
             <span className="font-semibold text-sm truncate">{localizedTitel}</span>
           </div>
 

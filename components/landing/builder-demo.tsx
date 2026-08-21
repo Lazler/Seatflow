@@ -57,9 +57,9 @@ function demoKonfiguration(): SitzplanKonfiguration {
     hoehe: 530,
     buehne: { x: 380, y: 52, breite: 360, hoehe: 42, winkel: 0, label: "BÜHNE" },
     kategorien: [
-      { id: "premium", name: "Premium", preis_cent: 3200, farbe: "#8b5cf6" },
-      { id: "parkett", name: "Parkett", preis_cent: 2400, farbe: "#3b82f6" },
-      { id: "steh", name: "Stehplatz", preis_cent: 1500, farbe: "#0ea5e9" },
+      { id: "premium", name: "Premium", preis_cent: 3200, farbe: "#d9481f" },
+      { id: "parkett", name: "Parkett", preis_cent: 2400, farbe: "#3a3c40" },
+      { id: "steh", name: "Stehplatz", preis_cent: 1500, farbe: "#c99a3a" },
     ],
     elemente,
   };
@@ -115,7 +115,7 @@ export default function BuilderDemo({ texte }: { texte: BuilderDemoTexte }) {
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="w-full bg-[#fbfcfe]">
+      <div ref={containerRef} className="w-full bg-[#1c1d20]">
         {scale > 0 && (
           <SitzplanCanvas
             konfiguration={konfig}

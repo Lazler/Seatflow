@@ -900,7 +900,7 @@ export default function BuchungsSeiteClient({
               onClick={zahlungspflichtigBestellen}
               disabled={laedt || !agbAkzeptiert}
               className="w-full h-12 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all
-                bg-primary text-primary-foreground hover:bg-primary/90
+                bg-brand text-white hover:bg-brand-deep
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {laedt
@@ -1038,8 +1038,8 @@ function Legende({ kategorien, belegtLabel, ausgewaehltLabel, barrierefreiLabel 
           {k.name} — {(k.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
         </span>
       ))}
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-slate-300" />{belegtLabel}</span>
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-green-500" />{ausgewaehltLabel}</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-[#b9bcc0]" />{belegtLabel}</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-white border-2 border-brand" />{ausgewaehltLabel}</span>
       {barrierefreiLabel && (
         <span className="flex items-center gap-1.5">
           <Wheelchair className="w-3.5 h-3.5 text-sky-700 shrink-0" />
