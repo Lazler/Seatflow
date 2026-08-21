@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import * as Dialog from "@radix-ui/react-dialog";
-import EditorToolbar from "./editor-toolbar";
+import { ElementHinzufuegenInhalt, PreiskategorienInhalt, PlaneinstellungenInhalt } from "./editor-toolbar";
+import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
 import ElementEigenschaftenPanel from "./element-eigenschaften-panel";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
@@ -18,7 +19,7 @@ import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } f
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
-import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useT, useLocale } from "@/components/i18n-provider";
 import { fmt, intlLocale } from "@/lib/i18n/buchung";
@@ -147,6 +148,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [nameEditModus, setNameEditModus] = useState(false);
   const [nameLaedt, setNameLaedt] = useState(false);
   const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
+  const [modalOffen, setModalOffen] = useState<"element" | "kategorien" | "einstellungen" | null>(null);
 
   // Responsive canvas scaling
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -458,20 +460,10 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       );
     }
     return (
-      <EditorToolbar
-        elemente={konfig.elemente}
-        buehne={konfig.buehne}
-        onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); onClose?.(); }}
-        onVorlage={(typ) => { vorlageAnwenden(typ); onClose?.(); }}
-        kategorien={konfig.kategorien}
-        raumbreite={konfig.breite}
-        raumhoehe={konfig.hoehe}
-        gesamtSitze={gesamtSitze}
-        onHinzufuegen={(typ) => { elementHinzufuegen(typ); onClose?.(); }}
-        onBuehneAktualisieren={buehneAktualisieren}
-        onKategorienAktualisieren={kategorienAktualisieren}
-        onRaumgroesseAktualisieren={raumgroesseAktualisieren}
-      />
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+        <MousePointer2 className="h-8 w-8 opacity-30" />
+        <p className="text-sm">{t.editorToolbar.elementInspektor}</p>
+      </div>
     );
   }
 
@@ -584,7 +576,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
       {/* Hauptbereich: Canvas + kontext-sensitive Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Canvas — full width on mobile, flex-1 on desktop */}
+        {/* Canvas column: canvas + bottom build-bar */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <div
           ref={canvasContainerRef}
           className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center gap-3 bg-slate-100"
@@ -645,24 +638,80 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           </div>
         </div>
 
+        {/* Build-Bar: Plan-Kennzahlen + Kategorie-Badges + Element hinzufügen / Preiskategorien / Planeinstellungen */}
+        <div className="shrink-0 border-t border-border bg-card px-4 sm:px-6 py-2.5 flex items-center gap-3 flex-wrap">
+          <span className="font-mono text-sm font-medium whitespace-nowrap">
+            {gesamtSitze}
+            <span className="text-xs text-muted-foreground font-sans ml-1.5">
+              {konfig.elemente.length} {konfig.elemente.length !== 1 ? t.editorToolbar.elementPl : t.editorToolbar.elementSg} · {t.editorToolbar.plaetze}
+            </span>
+          </span>
+          <div className="flex flex-wrap gap-1 min-w-0">
+            {konfig.kategorien.map((k) => (
+              <span key={k.id} className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border whitespace-nowrap"
+                style={{ borderColor: k.farbe, color: k.farbe }}>
+                {k.name}
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2 ml-auto">
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("element")}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.elementHinzufuegen}</span>
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("kategorien")}>
+              <Tags className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.preiskategorien}</span>
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("einstellungen")}>
+              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.planeinstellungen}</span>
+            </Button>
+          </div>
+        </div>
+        </div>
+
         {/* Desktop Sidebar (lg+) */}
         <aside className="hidden lg:flex w-64 border-l border-border bg-background flex-col overflow-hidden shrink-0">
           {sidebarInhalt()}
         </aside>
       </div>
 
-      {/* Mobile FAB — opens panel when nothing is selected */}
-      {!mobilePanelOffen && (
-        <button
-          onClick={() => setMobilePanelOffen(true)}
-          className="lg:hidden fixed bottom-5 right-5 z-20 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-          aria-label={t.editor.panelOeffnen}
-        >
-          <SlidersHorizontal className="h-5 w-5" />
-        </button>
-      )}
+      {/* Element hinzufügen / Preiskategorien / Planeinstellungen — Modals */}
+      <Modal open={modalOffen === "element"} onOpenChange={(o) => !o && setModalOffen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t.editorToolbar.elementHinzufuegen}</DialogTitle></DialogHeader>
+          <DialogBody>
+            <ElementHinzufuegenInhalt onHinzufuegen={(typ) => { elementHinzufuegen(typ); setModalOffen(null); }} />
+          </DialogBody>
+        </DialogContent>
+      </Modal>
 
-      {/* Mobile Bottom Sheet (< lg) */}
+      <Modal open={modalOffen === "kategorien"} onOpenChange={(o) => !o && setModalOffen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t.editorToolbar.preiskategorien}</DialogTitle></DialogHeader>
+          <DialogBody>
+            <PreiskategorienInhalt kategorien={konfig.kategorien} onChange={kategorienAktualisieren} />
+          </DialogBody>
+        </DialogContent>
+      </Modal>
+
+      <Modal open={modalOffen === "einstellungen"} onOpenChange={(o) => !o && setModalOffen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t.editorToolbar.planeinstellungen}</DialogTitle></DialogHeader>
+          <DialogBody>
+            <PlaneinstellungenInhalt
+              raumbreite={konfig.breite}
+              raumhoehe={konfig.hoehe}
+              onRaumgroesseAktualisieren={raumgroesseAktualisieren}
+              buehne={konfig.buehne}
+              onBuehneAktualisieren={buehneAktualisieren}
+              leer={konfig.elemente.length === 0}
+              onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); setModalOffen(null); }}
+              onVorlage={(typ) => { vorlageAnwenden(typ); setModalOffen(null); }}
+            />
+          </DialogBody>
+        </DialogContent>
+      </Modal>
+
+      {/* Mobile Bottom Sheet (< lg) — Auswahl-Panel, öffnet automatisch bei Auswahl */}
       <Dialog.Root open={mobilePanelOffen} onOpenChange={(open) => { if (!open) mobilePanelSchliessen(); }}>
         <Dialog.Portal>
           <Dialog.Overlay className="drawer-overlay fixed inset-0 bg-black/40 z-[60] lg:hidden" />

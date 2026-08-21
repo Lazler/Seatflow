@@ -6,31 +6,48 @@ import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { SquaresFour as LayoutDashboard, Calendar, MapPin, SignOut as LogOut, Receipt as ReceiptText, Tag, Ticket, ChartBar as BarChart2, CreditCard, List as Menu, X } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Logo } from "@/components/layout/logo";
 
-export function DashboardNavigation() {
+function initialen(name: string) {
+  const teile = name.trim().split(/\s+/).filter(Boolean);
+  if (teile.length === 0) return "?";
+  if (teile.length === 1) return teile[0].slice(0, 2).toUpperCase();
+  return (teile[0][0] + teile[teile.length - 1][0]).toUpperCase();
+}
+
+export function DashboardNavigation({
+  orgName,
+  userEmail,
+  planLabel,
+}: {
+  orgName?: string;
+  userEmail?: string;
+  planLabel?: string;
+}) {
   const pfad = usePathname();
   const router = useRouter();
   const t = useT();
   const [drawerOffen, setDrawerOffen] = useState(false);
 
-  const NAVIGATION = [
-    { href: "/dashboard",                  label: t.nav.uebersicht,       icon: LayoutDashboard, exakt: true  },
-    { href: "/dashboard/bookings",        label: t.nav.buchungen,        icon: ReceiptText,     exakt: false },
-    { href: "/dashboard/events",           label: t.nav.events,           icon: Calendar,        exakt: false },
-    { href: "/dashboard/analytics",        label: t.nav.analytics,        icon: BarChart2,       exakt: false },
-    { href: "/dashboard/venues",           label: t.nav.venues,           icon: MapPin,          exakt: false },
-    { href: "/dashboard/vouchers",       label: t.nav.gutscheine,       icon: Tag,             exakt: false },
-    { href: "/dashboard/ticket-templates", label: t.nav.ticketTemplates,  icon: Ticket,          exakt: false },
-    { href: "/dashboard/subscription",              label: t.nav.abo ?? "Abo",     icon: CreditCard,      exakt: true  },
+  const NAV_UEBERSICHT = [
+    { href: "/dashboard",           label: t.nav.uebersicht, icon: LayoutDashboard, exakt: true  },
+    { href: "/dashboard/bookings",  label: t.nav.buchungen,  icon: ReceiptText,     exakt: false },
+    { href: "/dashboard/events",    label: t.nav.events,     icon: Calendar,        exakt: false },
+    { href: "/dashboard/analytics", label: t.nav.analytics,  icon: BarChart2,       exakt: false },
   ];
+  const NAV_VERWALTUNG = [
+    { href: "/dashboard/venues",           label: t.nav.venues,          icon: MapPin,     exakt: false },
+    { href: "/dashboard/vouchers",         label: t.nav.gutscheine,      icon: Tag,        exakt: false },
+    { href: "/dashboard/ticket-templates", label: t.nav.ticketTemplates, icon: Ticket,     exakt: false },
+    { href: "/dashboard/subscription",     label: t.nav.abo ?? "Abo",    icon: CreditCard, exakt: true  },
+  ];
+  const NAVIGATION = [...NAV_UEBERSICHT, ...NAV_VERWALTUNG];
 
-  // Bottom tab bar shows the 5 most important items
-  const TAB_ITEMS = NAVIGATION.slice(0, 4);
+  // Bottom tab bar shows the 4 most important items
+  const TAB_ITEMS = NAV_UEBERSICHT;
 
   function istAktiv(href: string, exakt: boolean) {
     return exakt ? pfad === href : pfad.startsWith(href);
@@ -72,16 +89,34 @@ export function DashboardNavigation() {
           <Logo />
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAVIGATION.map((item) => navLink(item))}
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+          <p className="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.uebersicht}</p>
+          {NAV_UEBERSICHT.map((item) => navLink(item))}
+          <p className="px-3 pt-4 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.verwaltung}</p>
+          {NAV_VERWALTUNG.map((item) => navLink(item))}
         </nav>
 
-        <div className="px-3 pb-2 border-t border-border pt-3 space-y-1">
+        <div className="px-3 pb-1 border-t border-border pt-2">
           <LanguageSwitcher />
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={abmelden}>
-            <LogOut className="h-4 w-4 mr-3" />
-            {t.nav.abmelden}
-          </Button>
+        </div>
+        <div className="px-3 pb-3 pt-1 border-t border-border flex items-center gap-3">
+          <span className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold shrink-0">
+            {initialen(orgName || "SeatFlow")}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate">{orgName || "—"}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {planLabel ? `${planLabel} · ` : ""}{userEmail ?? ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={abmelden}
+            aria-label={t.nav.abmelden}
+            className="h-8 w-8 shrink-0 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </aside>
 
@@ -120,17 +155,37 @@ export function DashboardNavigation() {
             </div>
 
             {/* Drawer nav */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-              {NAVIGATION.map((item) => navLink(item, () => setDrawerOffen(false)))}
+            <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+              <p className="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.uebersicht}</p>
+              {NAV_UEBERSICHT.map((item) => navLink(item, () => setDrawerOffen(false)))}
+              <p className="px-3 pt-4 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.nav.verwaltung}</p>
+              {NAV_VERWALTUNG.map((item) => navLink(item, () => setDrawerOffen(false)))}
             </nav>
 
             {/* Drawer footer */}
-            <div className="px-3 pb-6 border-t border-border pt-3 space-y-1 shrink-0">
-              <LanguageSwitcher />
-              <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={abmelden}>
-                <LogOut className="h-4 w-4 mr-3" />
-                {t.nav.abmelden}
-              </Button>
+            <div className="shrink-0">
+              <div className="px-3 pb-1 border-t border-border pt-2">
+                <LanguageSwitcher />
+              </div>
+              <div className="px-3 pb-6 pt-1 border-t border-border flex items-center gap-3">
+                <span className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold shrink-0">
+                  {initialen(orgName || "SeatFlow")}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{orgName || "—"}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {planLabel ? `${planLabel} · ` : ""}{userEmail ?? ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={abmelden}
+                  aria-label={t.nav.abmelden}
+                  className="h-8 w-8 shrink-0 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

@@ -15,6 +15,26 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   beendet: "outline",
 };
 
+function StatCard({ icon: Icon, label, value, sub }: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-5 px-4 sm:px-6 pb-5">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{label}</span>
+        </div>
+        <p className="font-mono text-2xl sm:text-3xl font-medium tracking-tight mt-2 truncate">{value}</p>
+        <p className="text-xs text-muted-foreground mt-1.5 truncate">{sub}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function euro(cent: number, loc: string) {
   return (cent / 100).toLocaleString(loc, { style: "currency", currency: "EUR" });
 }
@@ -138,83 +158,32 @@ export default async function Dashboard() {
   const eventTitel = new Map((alleEvents ?? []).map((e) => [e.id, e.titel]));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold truncate">{profil?.name ?? t.dashboard.title}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mb-2">
             {new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight truncate">{profil?.name ?? t.dashboard.title}</h1>
         </div>
-        <Button asChild size="sm" className="self-start sm:self-auto shrink-0">
+        <Button asChild size="lg" className="self-start sm:self-auto shrink-0 gap-2">
           <Link href="/dashboard/events/new">
-            <Plus className="h-4 w-4 mr-1.5" /> {t.dashboard.neuesEvent}
+            <Plus className="h-4 w-4" /> {t.dashboard.neuesEvent}
           </Link>
         </Button>
       </div>
 
       {/* ── KPI Kacheln ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-5 px-4 sm:px-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.einnahmen}</p>
-                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{euro(gesamteinnahmenCent, dateLocale)}</p>
-              </div>
-              <div className="h-9 w-9 rounded-lg bg-emerald-50 hidden sm:flex items-center justify-center shrink-0">
-                <EuroIcon className="h-4 w-4 text-emerald-600" />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.bezahlteBuchungen.replace("{n}", String(bezahlt.length))}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-5 px-4 sm:px-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.analytics.tickets}</p>
-                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{gesamtTickets}</p>
-              </div>
-              <div className="h-9 w-9 rounded-lg bg-blue-50 hidden sm:flex items-center justify-center shrink-0">
-                <Ticket className="h-4 w-4 text-blue-600" />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.ticketsGesamt}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-5 px-4 sm:px-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.heute}</p>
-                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{buchungenHeute}</p>
-              </div>
-              <div className="h-9 w-9 rounded-lg bg-violet-50 hidden sm:flex items-center justify-center shrink-0">
-                <TrendingUp className="h-4 w-4 text-violet-600" />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.neueBuchungenHeute}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-5 px-4 sm:px-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{t.dashboard.liveEvents}</p>
-                <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{aktiveEvents.length}</p>
-              </div>
-              <div className="h-9 w-9 rounded-lg bg-amber-50 hidden sm:flex items-center justify-center shrink-0">
-                <CalendarCheck className="h-4 w-4 text-amber-600" />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">{t.dashboard.veroeffentlichtBevorstehend}</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={EuroIcon} label={t.dashboard.einnahmen} value={euro(gesamteinnahmenCent, dateLocale)}
+          sub={t.dashboard.bezahlteBuchungen.replace("{n}", String(bezahlt.length))} />
+        <StatCard icon={Ticket} label={t.analytics.tickets} value={String(gesamtTickets)}
+          sub={t.dashboard.ticketsGesamt} />
+        <StatCard icon={TrendingUp} label={t.dashboard.heute} value={String(buchungenHeute)}
+          sub={t.dashboard.neueBuchungenHeute} />
+        <StatCard icon={CalendarCheck} label={t.dashboard.liveEvents} value={String(aktiveEvents.length)}
+          sub={t.dashboard.veroeffentlichtBevorstehend} />
       </div>
 
       {/* ── Geführtes Onboarding (bis zur ersten Veröffentlichung) ── */}
@@ -286,74 +255,48 @@ export default async function Dashboard() {
       {/* ── Events + Auslastung ── */}
       {eventsTabelle.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">{t.dashboard.auslastungUmsatz}</h2>
+          <div className="flex items-end justify-between mb-2">
+            <h2 className="text-xl font-bold">{t.dashboard.auslastungUmsatz}</h2>
             <Button variant="ghost" size="sm" className="text-xs" asChild>
               <Link href="/dashboard/events">{t.dashboard.alleEvents} <ArrowRight className="h-3.5 w-3.5 ml-1" /></Link>
             </Button>
           </div>
-          <div className="space-y-3">
+          <div className="divide-y divide-border">
             {eventsTabelle.map((event) => {
               const sold     = ticketsProEvent.get(event.id) ?? 0;
               const kapazitaet = event.sitzplan_id ? (kapazitaetProSitzplan.get(event.sitzplan_id) ?? null) : null;
               const pct      = kapazitaet && kapazitaet > 0 ? Math.round((sold / kapazitaet) * 100) : null;
               const revenue  = einnahmenProEvent.get(event.id) ?? 0;
-              const istLive  = event.status === "veroeffentlicht" && new Date(event.datum) >= jetzt;
+              const d = new Date(event.datum);
 
               return (
-                <Link key={event.id} href={`/dashboard/events/${event.id}`}>
-                  <Card className="hover:bg-muted/40 transition-colors cursor-pointer">
-                    <CardContent className="py-4 px-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm truncate">{event.titel}</span>
-                            <Badge variant={STATUS_VARIANT[event.status]} className="text-[10px] px-1.5 py-0 shrink-0">
-                              {STATUS_LABEL[event.status]}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(event.datum).toLocaleDateString(dateLocale, {
-                              weekday: "short", day: "numeric", month: "short", year: "numeric",
-                              hour: "2-digit", minute: "2-digit",
-                            })}
-                          </p>
-                          {/* Capacity bar */}
-                          {kapazitaet !== null ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">
-                                  {t.dashboard.plaetze.replace("{sold}", String(sold)).replace("{total}", String(kapazitaet))}
-                                </span>
-                                <span className={`font-semibold ${pct! >= 90 ? "text-red-600" : pct! >= 60 ? "text-amber-600" : "text-muted-foreground"}`}>
-                                  {pct}%
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    pct! >= 90 ? "bg-red-500" : pct! >= 60 ? "bg-amber-500" : "bg-emerald-500"
-                                  }`}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">{t.dashboard.ticketsVerkauft.replace("{n}", String(sold))}</p>
-                          )}
+                <Link key={event.id} href={`/dashboard/events/${event.id}`}
+                  className="grid grid-cols-[52px_1fr_auto] sm:grid-cols-[64px_1fr_auto_auto] items-center gap-4 py-4 -mx-2 px-2 rounded-md hover:bg-muted/40 transition-colors">
+                  <div className="font-mono text-[11px] text-muted-foreground leading-tight">
+                    <span className="block font-sans text-lg font-bold text-foreground leading-none mb-1">
+                      {d.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
+                    </span>
+                    {d.toLocaleDateString(dateLocale, { weekday: "short" })} · {d.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{event.titel}</p>
+                    {kapazitaet !== null ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden shrink-0">
+                          <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
                         </div>
-                        <div className="text-right shrink-0 space-y-1">
-                          <p className="text-sm font-semibold">{euro(revenue, dateLocale)}</p>
-                          {istLive && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              {t.dashboardHome.live}
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {t.dashboard.plaetze.replace("{sold}", String(sold)).replace("{total}", String(kapazitaet))}
+                        </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">{t.dashboard.ticketsVerkauft.replace("{n}", String(sold))}</p>
+                    )}
+                  </div>
+                  <span className="hidden sm:block text-sm font-mono font-medium text-right">{euro(revenue, dateLocale)}</span>
+                  <Badge variant={STATUS_VARIANT[event.status]} className="text-[10px] px-1.5 py-0 justify-self-end shrink-0">
+                    {STATUS_LABEL[event.status]}
+                  </Badge>
                 </Link>
               );
             })}
@@ -364,7 +307,7 @@ export default async function Dashboard() {
       {/* ── Letzte Buchungen ── */}
       {recentBuchungen.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold mb-3">{t.dashboard.letzteBuchungen}</h2>
+          <h2 className="text-xl font-bold mb-2">{t.dashboard.letzteBuchungen}</h2>
           <Card>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
@@ -377,7 +320,7 @@ export default async function Dashboard() {
                       </p>
                     </div>
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className="text-sm font-semibold">{euro(b.gesamt_cent, dateLocale)}</span>
+                      <span className="text-sm font-semibold font-mono">{euro(b.gesamt_cent, dateLocale)}</span>
                       <Badge
                         variant={b.status === "bezahlt" ? "default" : "secondary"}
                         className="text-[10px] px-1.5 py-0 hidden sm:inline-flex"
