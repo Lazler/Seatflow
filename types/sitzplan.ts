@@ -7,8 +7,8 @@ export type Preiskategorie = {
 };
 
 export const DEFAULT_KATEGORIEN: Preiskategorie[] = [
-  { id: "kat-1", name: "Standard", preis_cent: 1500, farbe: "#3b82f6" },
-  { id: "kat-2", name: "Premium",  preis_cent: 2500, farbe: "#8b5cf6" },
+  { id: "kat-1", name: "Standard", preis_cent: 1500, farbe: "#3a3c40" },
+  { id: "kat-2", name: "Premium",  preis_cent: 2500, farbe: "#d9481f" },
 ];
 
 // --- Element-Typen ---
@@ -96,9 +96,10 @@ export const SITZ_RADIUS = 13;
 export const TISCH_HOEHE = 28;
 export const TISCH_SITZ_ABSTAND = 32;
 export const TISCH_SEAT_GAP = 8;
-export const FARBE_BELEGT             = "#94a3b8";
-export const FARBE_AUSGEWAEHLT        = "#10b981";
-export const FARBE_ELEMENT_SELEKTIERT = "#f59e0b";
+export const FARBE_BELEGT             = "#b9bcc0";
+export const FARBE_AUSGEWAEHLT        = "#ffffff";
+export const FARBE_AUSGEWAEHLT_RING   = "#d9481f";
+export const FARBE_ELEMENT_SELEKTIERT = "#d9481f";
 
 // --- Hilfsfunktionen ---
 

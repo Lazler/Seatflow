@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/layout/logo";
 import { MapPin, Lightning as Zap, QrCode, ChartBar as BarChart3, Check, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import Preisrechner from "@/components/pricing/preisrechner";
 import BuilderDemo, { type BuilderDemoTexte } from "@/components/landing/builder-demo";
@@ -56,34 +57,13 @@ const ICON_MAP = {
   chart: BarChart3,
 };
 
-function LogoMark({ size = 7 }: { size?: number }) {
-  return (
-    <div
-      className={`w-${size} h-${size} bg-primary rounded-lg flex items-center justify-center shrink-0`}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        className="w-4 h-4 text-primary-foreground"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M2 9a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v2a2 2 0 0 0 0 4v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a2 2 0 0 0 0-4V9z" />
-        <line x1="9" y1="8" x2="9" y2="16" strokeDasharray="2 2" />
-      </svg>
-    </div>
-  );
-}
-
 // Das Kernprodukt zeigen: ein interaktiver Sitzplan, wie ihn Gäste beim
 // Buchen sehen — nicht ein generisches Admin-Dashboard.
 function SitzplanMockup() {
-  const FARBE_PARKETT = "#3b82f6";
-  const FARBE_PREMIUM = "#8b5cf6";
-  const FARBE_BELEGT = "#cbd5e1";
-  const FARBE_GEWAEHLT = "#10b981";
+  const FARBE_PARKETT = "#53565c";
+  const FARBE_PREMIUM = "#d9481f";
+  const FARBE_BELEGT = "#6b6e73";
+  const FARBE_GEWAEHLT = "#d9481f";
 
   // Deterministisch "zufällig" belegte Plätze (kein Math.random im Render)
   const istBelegt = (reihe: number, sitz: number) => (reihe * 13 + sitz * 7 + 3) % 11 < 3;
@@ -117,34 +97,34 @@ function SitzplanMockup() {
         </div>
 
         <div className="flex">
-          {/* Sitzplan */}
-          <div className="flex-1 min-w-0 bg-[#fbfcfe] p-2 sm:p-4">
+          {/* Sitzplan — dunkler Bühnenrahmen, wie auf der echten Buchungsseite */}
+          <div className="flex-1 min-w-0 bg-[#1c1d20] p-2 sm:p-4">
             <svg viewBox={`0 0 ${breite} ${64 + REIHEN * REIHEN_ABSTAND + 12}`} className="w-full h-auto" role="img"
               aria-label="Beispiel-Sitzplan mit Bühne, freien, belegten und ausgewählten Plätzen">
               {/* Bühne */}
-              <rect x={breite / 2 - 130} y={12} width={260} height={26} rx={7} fill="#1e293b" />
-              <text x={breite / 2} y={29} textAnchor="middle" fill="rgba(248,250,252,0.9)"
+              <rect x={breite / 2 - 130} y={12} width={260} height={26} rx={7} fill="#3a3c40" />
+              <text x={breite / 2} y={29} textAnchor="middle" fill="rgba(250,250,250,0.9)"
                 fontSize="10" fontWeight="700" letterSpacing="3">BÜHNE</text>
 
               {Array.from({ length: REIHEN }, (_, r) => (
                 <g key={r}>
                   {/* Reihen-Label */}
                   <text x={startX - 26} y={sitzY(r) + 3.5} fontSize="10" fontWeight="700"
-                    fill="#94a3b8" textAnchor="middle">{String.fromCharCode(65 + r)}</text>
+                    fill="rgba(250,250,250,0.55)" textAnchor="middle">{String.fromCharCode(65 + r)}</text>
                   {Array.from({ length: SITZE }, (_, s) => {
                     const selektiert = gewaehlt.some(([gr, gs]) => gr === r && gs === s);
                     const belegt = !selektiert && istBelegt(r, s);
-                    const farbe = selektiert ? FARBE_GEWAEHLT
-                      : belegt ? FARBE_BELEGT
-                      : r < 2 ? FARBE_PREMIUM : FARBE_PARKETT;
+                    const farbe = belegt ? FARBE_BELEGT : r < 2 ? FARBE_PREMIUM : FARBE_PARKETT;
                     return (
                       <g key={s}>
                         {selektiert && (
-                          <circle cx={sitzX(s)} cy={sitzY(r)} r={R + 4} fill={FARBE_GEWAEHLT} opacity={0.25} />
+                          <circle cx={sitzX(s)} cy={sitzY(r)} r={R + 4} fill={FARBE_GEWAEHLT} opacity={0.22} />
                         )}
-                        <circle cx={sitzX(s)} cy={sitzY(r)} r={R} fill={farbe}
+                        <circle cx={sitzX(s)} cy={sitzY(r)} r={R}
+                          fill={selektiert ? "#ffffff" : farbe}
                           opacity={belegt ? 0.55 : 1}
-                          stroke={belegt ? "none" : "rgba(255,255,255,0.65)"} strokeWidth={1.2} />
+                          stroke={selektiert ? FARBE_GEWAEHLT : belegt ? "none" : "rgba(255,255,255,0.4)"}
+                          strokeWidth={selektiert ? 2 : 1.2} />
                       </g>
                     );
                   })}
@@ -153,7 +133,7 @@ function SitzplanMockup() {
             </svg>
 
             {/* Legende */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 sm:px-2 pt-1 text-[10px] sm:text-[11px] text-muted-foreground">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 sm:px-2 pt-1 text-[10px] sm:text-[11px] text-white/60">
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PREMIUM }} />Premium — 32 €</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PARKETT }} />Parkett — 24 €</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_BELEGT }} />Belegt</span>
@@ -187,8 +167,8 @@ function SitzplanMockup() {
               </div>
             </div>
             <div className="p-3">
-              <div className="h-9 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-[11px] font-semibold text-primary-foreground">Weiter zur Bestellung →</span>
+              <div className="h-9 rounded-lg bg-brand flex items-center justify-center">
+                <span className="text-[11px] font-semibold text-white">Weiter zur Bestellung →</span>
               </div>
             </div>
           </div>
@@ -209,15 +189,12 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
       {/* Nav */}
       <nav className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <LogoMark size={7} />
-            <span className="font-semibold">SeatFlow</span>
-          </div>
+          <Logo />
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href={loginPath}>{c.nav.anmelden}</Link>
             </Button>
-            <Button size="sm" asChild>
+            <Button variant="brand" size="sm" asChild>
               <Link href={registerPath}>{c.nav.kostenlosStarten}</Link>
             </Button>
           </div>
@@ -226,21 +203,21 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-3 py-1 mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+        <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-deep rounded-full px-3 py-1 mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand" />
           <p className="text-xs font-semibold uppercase tracking-widest">
             {c.hero.badge}
           </p>
         </div>
         <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-6">
           {c.hero.h1}{" "}
-          <span className="text-primary italic">{c.hero.h1Accent}</span>
+          <span className="text-brand">{c.hero.h1Accent}</span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
           {c.hero.lead}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-          <Button size="lg" asChild className="gap-2">
+          <Button variant="brand" size="lg" asChild className="gap-2">
             <Link href={registerPath}>
               {c.hero.cta} <ArrowRight className="h-4 w-4" />
             </Link>
@@ -278,7 +255,7 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
             {c.usp.heading}{" "}
-            <span className="text-primary italic">{c.usp.headingAccent}</span>
+            <span className="text-brand">{c.usp.headingAccent}</span>
           </h2>
           <p className="text-muted-foreground mt-3 leading-relaxed">{c.usp.sub}</p>
         </div>
@@ -355,11 +332,11 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
             <div
               key={plan.name}
               className={`rounded-xl border p-6 flex flex-col ${
-                plan.highlight ? "border-primary shadow-sm bg-primary/[0.03]" : "border-border bg-background"
+                plan.highlight ? "border-border border-t-[3px] border-t-brand bg-background" : "border-border bg-background"
               }`}
             >
               {plan.highlight && (
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-primary mb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-brand mb-3">
                   {c.pricing.popular}
                 </span>
               )}
@@ -379,7 +356,7 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
               </ul>
               <Button
                 className="w-full"
-                variant={plan.highlight ? "default" : "outline"}
+                variant={plan.highlight ? "brand" : "outline"}
                 size="sm"
                 asChild
               >
@@ -402,11 +379,11 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
       </section>
 
       {/* Bottom CTA */}
-      <section className="border-t border-border bg-primary/5 py-16 text-center">
+      <section className="border-t border-border bg-muted/30 py-16 text-center">
         <div className="max-w-xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-3">{c.hero.cta}</h2>
           <p className="text-sm text-muted-foreground mb-6">{c.hero.subline}</p>
-          <Button size="lg" asChild className="gap-2">
+          <Button variant="brand" size="lg" asChild className="gap-2">
             <Link href={registerPath}>
               {c.hero.cta} <ArrowRight className="h-4 w-4" />
             </Link>
@@ -418,8 +395,7 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
       <footer className="border-t border-border py-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <LogoMark size={6} />
-            <span className="font-medium text-foreground">SeatFlow</span>
+            <Logo size="sm" />
             <span className="hidden sm:inline">·</span>
             <span className="hidden sm:inline">{c.footer}</span>
           </div>

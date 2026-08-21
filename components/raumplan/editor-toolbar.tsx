@@ -110,7 +110,7 @@ function PreiskategorienEditor({ kategorien, onChange }: {
   function startBearbeiten(k: Preiskategorie) { setBearbeiteId(k.id); setEntwurf({ name: k.name, preis_cent: k.preis_cent, farbe: k.farbe }); }
   function speichern(id: string) { onChange(kategorien.map((k) => k.id === id ? { ...k, ...entwurf } : k)); setBearbeiteId(null); }
   function hinzufuegen() {
-    const farben = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#06b6d4"];
+    const farben = ["#d9481f", "#c99a3a", "#4b4f9a", "#3a3c40", "#17181a", "#c0311b"];
     const neu: Preiskategorie = { id: crypto.randomUUID(), name: fmt(t.editorToolbar.kategorieName, { n: kategorien.length + 1 }), preis_cent: 1500, farbe: farben[kategorien.length % farben.length] };
     onChange([...kategorien, neu]);
     startBearbeiten(neu);
