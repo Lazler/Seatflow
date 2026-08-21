@@ -178,10 +178,17 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     setEditorZoom(next);
   }
 
-  // Auswahl setzen + Mobile-Panel direkt öffnen (statt via Effect)
+  // Auswahl setzen + Mobile-Panel direkt öffnen (statt via Effect).
+  // Nur unterhalb des lg-Breakpoints öffnen: das Bottom-Sheet ist auf
+  // Desktop-Breiten per lg:hidden nur unsichtbar, bleibt für Radix aber
+  // ein offener Dialog — jeder Klick in die (separate) Desktop-Sidebar
+  // zählt dann als "außerhalb" und würde die Auswahl sofort wieder
+  // aufheben.
   const waehleAus = useCallback((a: Auswahl) => {
     setAuswahl(a);
-    if (a !== null) setMobilePanelOffen(true);
+    if (a !== null && typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+      setMobilePanelOffen(true);
+    }
   }, []);
 
   function mobilePanelSchliessen() {
@@ -679,7 +686,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         <DialogContent>
           <DialogHeader><DialogTitle>{t.editorToolbar.elementHinzufuegen}</DialogTitle></DialogHeader>
           <DialogBody>
-            <ElementHinzufuegenInhalt onHinzufuegen={(typ) => { elementHinzufuegen(typ); setModalOffen(null); }} />
+            <ElementHinzufuegenInhalt
+              onHinzufuegen={(typ) => { elementHinzufuegen(typ); setModalOffen(null); }}
+              buehne={konfig.buehne}
+              onBuehneAktualisieren={buehneAktualisieren}
+            />
           </DialogBody>
         </DialogContent>
       </Modal>
@@ -701,8 +712,6 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               raumbreite={konfig.breite}
               raumhoehe={konfig.hoehe}
               onRaumgroesseAktualisieren={raumgroesseAktualisieren}
-              buehne={konfig.buehne}
-              onBuehneAktualisieren={buehneAktualisieren}
               leer={konfig.elemente.length === 0}
               onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); setModalOffen(null); }}
               onVorlage={(typ) => { vorlageAnwenden(typ); setModalOffen(null); }}
