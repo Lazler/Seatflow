@@ -14,8 +14,8 @@ export function KonfigurationsWarnung({ t }: { t: Dict["konfigWarnung"] }) {
     fehlend.push({ name: "STRIPE_SECRET_KEY", folge: t.folgeStripeSecret });
   if (!process.env.STRIPE_WEBHOOK_SECRET)
     fehlend.push({ name: "STRIPE_WEBHOOK_SECRET", folge: t.folgeWebhook });
-  if (!process.env.RESEND_API_KEY)
-    fehlend.push({ name: "RESEND_API_KEY", folge: t.folgeResend });
+  if (!process.env.SMTP_HOST)
+    fehlend.push({ name: "SMTP_HOST", folge: t.folgeResend });
 
   if (fehlend.length === 0) return null;
 

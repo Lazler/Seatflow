@@ -10,7 +10,7 @@ export async function GET() {
     supabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     stripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
     stripeWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
-    resendApiKey: !!process.env.RESEND_API_KEY,
+    smtpHost: !!process.env.SMTP_HOST,
     appUrl: !!process.env.NEXT_PUBLIC_APP_URL,
     sentryDsn: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
   };
@@ -32,7 +32,7 @@ export async function GET() {
 
   const gesund =
     env.supabaseUrl && env.supabaseAnonKey && env.supabaseServiceRoleKey &&
-    env.stripeSecretKey && env.stripeWebhookSecret && env.resendApiKey &&
+    env.stripeSecretKey && env.stripeWebhookSecret && env.smtpHost &&
     adminDb === "ok";
 
   return NextResponse.json(

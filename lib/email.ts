@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import { sendeMail } from "@/lib/mailer";
 import QRCode from "qrcode";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { TicketPDF } from "@/lib/ticket-pdf";
@@ -6,7 +6,6 @@ import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import type { TicketDesign } from "@/types/ticket-design";
 import React from "react";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 type TicketMailParams = {
   to: string;
@@ -160,8 +159,7 @@ export async function sendTicketMail(params: TicketMailParams) {
     // PDF generation failed — email is sent without attachment
   }
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "tickets@seatflow.de",
+  await sendeMail({
     to,
     subject: `Dein Ticket: ${eventTitel}`,
     html,
@@ -169,7 +167,7 @@ export async function sendTicketMail(params: TicketMailParams) {
       {
         filename: "ticket-qrcode.png",
         content: Buffer.from(qrBase64, "base64"),
-        contentId: "qrcode",
+        cid: "qrcode",
       },
       ...(pdfBuffer ? [{
         filename: `tickets-${eventTitel.slice(0, 20).replace(/\s+/g, "-").toLowerCase()}.pdf`,
@@ -221,12 +219,7 @@ export async function sendeRundmail(params: {
   </div>
 </body></html>`;
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "tickets@seatflow.de",
-    to,
-    subject: betreff,
-    html,
-  });
+  await sendeMail({ to, subject: betreff, html });
 }
 
 // ── Verkaufs-Benachrichtigung an den Veranstalter ─────────────────────────────
@@ -261,8 +254,7 @@ export async function sendeVerkaufsBenachrichtigung(params: {
   </div>
 </body></html>`;
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "tickets@seatflow.de",
+  await sendeMail({
     to,
     subject: `Neue Buchung: ${anzahlTickets}× ${eventTitel} (${summe})`,
     html,

@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendeMail } from "@/lib/mailer";
 
 export async function POST(
   _req: NextRequest,
@@ -71,8 +69,7 @@ export async function POST(
 
       // Send cancellation email
       try {
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL ?? "tickets@seatflow.de",
+        await sendeMail({
           to: b.gaest_email,
           subject: `Veranstaltung abgesagt: ${event.titel}`,
           html: buildCancellationHtml(b.gaest_name, event.titel, datumFormatiert, b.gesamt_cent, !!b.stripe_payment_intent),
