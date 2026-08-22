@@ -127,8 +127,11 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
       <Circle
         radius={SITZ_RADIUS}
         fill={fill}
-        stroke={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT_RING : belegt ? "transparent" : "rgba(255,255,255,0.6)"}
-        strokeWidth={buchungAusgewaehlt ? 2.5 : 1.5}
+        // Belegte Sitze im dunklen Bühnenrahmen brauchen eine Trennlinie in der
+        // Bühnenrahmen-Farbe — sonst verschmelzen eng anliegende Plätze zu einem
+        // ununterscheidbaren grauen Klumpen (keine Nummer, kein Rand).
+        stroke={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT_RING : belegt ? (istBuchungsmodus ? "#1c1d20" : "transparent") : "rgba(255,255,255,0.6)"}
+        strokeWidth={buchungAusgewaehlt ? 2.5 : belegt && istBuchungsmodus ? 2 : 1.5}
         // Schatten NUR auf ausgewählten Sitzen — auf allen wäre es der teuerste
         // Posten beim Layer-Neuzeichnen (killt Zoom/Tap-Performance)
         shadowColor={buchungAusgewaehlt ? FARBE_AUSGEWAEHLT_RING : undefined}
@@ -136,7 +139,9 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
         shadowOpacity={buchungAusgewaehlt ? 0.35 : 0}
         shadowEnabled={buchungAusgewaehlt}
         shadowForStrokeEnabled={false}
-        opacity={belegt ? 0.5 : 1}
+        // Auf dem dunklen Bühnenrahmen hohe Deckkraft behalten, sonst dunkelt die
+        // Alpha-Überblendung das ohnehin schon dezente Grau zusätzlich ab.
+        opacity={belegt ? (istBuchungsmodus ? 0.85 : 0.5) : 1}
         perfectDrawEnabled={false}
         hitStrokeWidth={0}
       />

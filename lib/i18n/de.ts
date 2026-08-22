@@ -758,6 +758,7 @@ export const dict = {
     raumgroesse: "Raumgröße",
     breite: "Breite",
     hoehe: "Höhe",
+    inhaltZentrieren: "Inhalt zentrieren",
     preiskategorien: "Preiskategorien",
     namePlaceholder: "Name",
     preis: "Preis:",

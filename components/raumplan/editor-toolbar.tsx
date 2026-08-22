@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, PencilSimple as Pencil, Check, X, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2, ArrowsOutSimple as Maximize2, MaskHappy as Theater } from "@phosphor-icons/react";
+import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, PencilSimple as Pencil, Check, X, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2, ArrowsOutSimple as Maximize2, MaskHappy as Theater, ArrowsInSimple as AlignCenter } from "@phosphor-icons/react";
 import {
   type ElementTyp, type Preiskategorie,
 } from "@/types/sitzplan";
@@ -151,10 +151,11 @@ export function PreiskategorienInhalt({ kategorien, onChange }: {
 
 // ── Modal: "Planeinstellungen" (Raumgröße + Bestuhlungs-Generator) ─────────
 export function PlaneinstellungenInhalt({
-  raumbreite, raumhoehe, onRaumgroesseAktualisieren,
+  raumbreite, raumhoehe, onRaumgroesseAktualisieren, onInhaltZentrieren,
   leer, onBestuhlungErzeugen, onVorlage,
 }: {
   raumbreite: number; raumhoehe: number; onRaumgroesseAktualisieren: (b: number, h: number) => void;
+  onInhaltZentrieren: () => void;
   leer: boolean;
   onBestuhlungErzeugen: (reihen: number, sitzeProReihe: number, mittelgang: boolean) => void;
   onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
@@ -221,6 +222,9 @@ export function PlaneinstellungenInhalt({
           <ZahlInput label={t.editorToolbar.breite} value={raumbreite} min={400} max={2000} onChange={(v) => onRaumgroesseAktualisieren(v, raumhoehe)} einheit="px" />
           <ZahlInput label={t.editorToolbar.hoehe}  value={raumhoehe}  min={300} max={1500} onChange={(v) => onRaumgroesseAktualisieren(raumbreite, v)} einheit="px" />
         </div>
+        <Button size="sm" variant="outline" className="w-full h-8 text-xs" onClick={onInhaltZentrieren}>
+          <AlignCenter className="h-3.5 w-3.5 mr-1.5" /> {t.editorToolbar.inhaltZentrieren}
+        </Button>
       </div>
     </div>
   );

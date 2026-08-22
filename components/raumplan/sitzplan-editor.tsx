@@ -13,7 +13,7 @@ import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
   type ReiheElement, type TischreiheElement, type RundtischElement,
   type StehplatzElement, type TextElement,
-  naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, doppelteSitzIds, DEFAULT_KATEGORIEN,
+  naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, doppelteSitzIds, DEFAULT_KATEGORIEN, zentriereInhalt,
 } from "@/types/sitzplan";
 import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } from "@/lib/bestuhlung-generator";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const t = useT();
   const locale = useLocale();
   const currencyLocale = intlLocale(locale);
-  const [konfig, setKonfig] = useState<SitzplanKonfiguration>(migrierteKonfiguration(initialKonfiguration));
+  // Beim Öffnen automatisch zentrieren: Räume, die größer als die tatsächlich
+  // platzierten Elemente sind, wirken sonst an den linken Rand gedrängt. Ist
+  // der Inhalt schon zentriert, ist das ein No-Op (zentriereInhalt gibt dann
+  // dieselbe Konfiguration zurück).
+  const [konfig, setKonfig] = useState<SitzplanKonfiguration>(() => zentriereInhalt(migrierteKonfiguration(initialKonfiguration)));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
 
   const [gespeichert, setGespeichert] = useState(false);
@@ -357,6 +361,10 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
 
   function raumgroesseAktualisieren(breite: number, hoehe: number) {
     mutiere((k) => ({ ...k, breite, hoehe }), "raum");
+  }
+
+  function inhaltZentrieren() {
+    mutiere((k) => zentriereInhalt(k));
   }
 
   async function speichern() {
@@ -720,6 +728,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               raumbreite={konfig.breite}
               raumhoehe={konfig.hoehe}
               onRaumgroesseAktualisieren={raumgroesseAktualisieren}
+              onInhaltZentrieren={inhaltZentrieren}
               leer={konfig.elemente.length === 0}
               onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); setModalOffen(null); }}
               onVorlage={(typ) => { vorlageAnwenden(typ); setModalOffen(null); }}
