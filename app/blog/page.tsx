@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata: Metadata = {
-  title: "SeatFlow Blog – Tipps für Veranstalter",
+  title: "SeatFlow Blog: Tipps für Veranstalter",
   description:
     "Praxistipps rund um Ticketverkauf, Sitzplatzverwaltung und Eventorganisation für Theater, Kabarett und Comedy-Clubs.",
   alternates: { canonical: "https://seatflow.app/blog" },
@@ -14,7 +14,7 @@ const ARTIKEL = [
     slug: "tickets-verkaufen-theater",
     titel: "Tickets online verkaufen für Theater: Der vollständige Leitfaden",
     teaser:
-      "Wie kleine und mittlere Theater ihren Ticketverkauf digitalisieren können – von der Sitzplatzverwaltung bis zur automatischen E-Mail-Zustellung.",
+      "Wie kleine und mittlere Theater ihren Ticketverkauf digitalisieren können, von der Sitzplatzverwaltung bis zur automatischen E-Mail-Zustellung.",
     datum: "2026-04-10",
     lesezeit: "7 min",
   },
@@ -22,7 +22,7 @@ const ARTIKEL = [
     slug: "kabarett-ticketsystem",
     titel: "Kabarett-Ticketsystem: Was kleine Bühnen wirklich brauchen",
     teaser:
-      "Kein Budget für teure Ticketing-Plattformen? Wir erklären, welche Funktionen ein Kabarett-Ticketsystem bieten muss – und welche übertrieben sind.",
+      "Kein Budget für teure Ticketing-Plattformen? Wir erklären, welche Funktionen ein Kabarett-Ticketsystem bieten muss, und welche übertrieben sind.",
     datum: "2026-04-24",
     lesezeit: "5 min",
   },
@@ -30,7 +30,7 @@ const ARTIKEL = [
     slug: "comedy-club-ticketshop",
     titel: "Comedy-Club Ticketshop einrichten: In einer Stunde live",
     teaser:
-      "Schritt-für-Schritt: Wie Comedy-Clubs ihren eigenen Ticketshop mit nummerierten Sitzplätzen aufsetzen – ohne Entwickler und ohne Monatsgebühren.",
+      "Schritt-für-Schritt: Wie Comedy-Clubs ihren eigenen Ticketshop mit nummerierten Sitzplätzen aufsetzen, ohne Entwickler und ohne Monatsgebühren.",
     datum: "2026-05-08",
     lesezeit: "6 min",
   },
@@ -38,7 +38,7 @@ const ARTIKEL = [
     slug: "ticketing-vergleich",
     titel: "Ticketing-Systeme im Vergleich: Was passt zu kleinen Kulturveranstaltungen?",
     teaser:
-      "Eventbrite, TicketTailor, pretix oder Eigenentwicklung? Wir vergleichen die gängigsten Lösungen für Theater, Kabarett und Comedy-Clubs – und zeigen, worauf es wirklich ankommt.",
+      "Eventbrite, TicketTailor, pretix oder Eigenentwicklung? Wir vergleichen die gängigsten Lösungen für Theater, Kabarett und Comedy-Clubs, und zeigen, worauf es wirklich ankommt.",
     datum: "2026-05-15",
     lesezeit: "8 min",
   },

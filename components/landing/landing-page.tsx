@@ -14,7 +14,6 @@ export type LandingContent = {
     h1Accent: string;
     lead: string;
     cta: string;
-    ctaSecondary: string;
     subline: string;
   };
   steps: {
@@ -83,7 +82,7 @@ function SitzplanMockup() {
   return (
     <div className="relative mx-auto max-w-4xl px-4 sm:px-6 -mb-8 z-10">
       <p className="text-center text-xs text-muted-foreground mb-3 uppercase tracking-widest font-medium">
-        So buchen Ihre Gäste — direkt im Sitzplan
+        So buchen Ihre Gäste, direkt im Sitzplan
       </p>
       <div className="rounded-xl border border-border shadow-2xl overflow-hidden bg-card">
         {/* Browser-Topbar */}
@@ -134,8 +133,8 @@ function SitzplanMockup() {
 
             {/* Legende */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 sm:px-2 pt-1 text-[10px] sm:text-[11px] text-white/60">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PREMIUM }} />Premium — 32 €</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PARKETT }} />Parkett — 24 €</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PREMIUM }} />Premium, 32 €</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PARKETT }} />Parkett, 24 €</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_BELEGT }} />Belegt</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_GEWAEHLT }} />Ausgewählt</span>
             </div>
@@ -223,16 +222,12 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            {/* Voll navigierender Link — die Route setzt die Demo-Session und leitet weiter */}
+            {/* Voll navigierender Link, die Route setzt die Demo-Session und leitet weiter */}
             <a href="/api/demo/login">
               {c.lang === "en" ? "View live demo" : c.lang === "hu" ? "Élő demó" : "Live-Demo ansehen"}
             </a>
           </Button>
-          <Button size="lg" variant="ghost" asChild>
-            <Link href={loginPath}>{c.hero.ctaSecondary}</Link>
-          </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{c.hero.subline}</p>
       </section>
 
       {/* Dashboard Mockup */}

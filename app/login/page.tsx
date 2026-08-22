@@ -136,7 +136,7 @@ function AnmeldenInner() {
             <CardHeader>
               <CardTitle>Passwort zurücksetzen</CardTitle>
               <CardDescription>
-                Gib deine E-Mail-Adresse ein — du erhältst einen Link zum Zurücksetzen.
+                Gib deine E-Mail-Adresse ein. Du erhältst einen Link zum Zurücksetzen.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -174,7 +174,7 @@ function AnmeldenInner() {
             <CardHeader>
               <CardTitle>E-Mail verschickt ✓</CardTitle>
               <CardDescription>
-                Schau in dein Postfach ({email}) — der Link ist 1 Stunde gültig.
+                Schau in dein Postfach ({email}), der Link ist 1 Stunde gültig.
               </CardDescription>
             </CardHeader>
             <CardContent>
