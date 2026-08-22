@@ -4,6 +4,7 @@ import { Logo } from "@/components/layout/logo";
 import { MapPin, Lightning as Zap, QrCode, ChartBar as BarChart3, Check, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import Preisrechner from "@/components/pricing/preisrechner";
 import BuilderDemo, { type BuilderDemoTexte } from "@/components/landing/builder-demo";
+import { Reveal } from "@/components/landing/reveal";
 
 export type LandingContent = {
   lang: "de" | "en" | "hu";
@@ -238,7 +239,7 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-3 gap-4 text-center">
           {c.stats.map((s) => (
             <div key={s.label}>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground">{s.value}</p>
+              <p className="font-mono text-2xl sm:text-3xl font-bold text-foreground tabular-nums">{s.value}</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">{s.label}</p>
             </div>
           ))}
@@ -262,15 +263,17 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
           {/* Customization-Punkte */}
           <div className="space-y-1">
             {c.usp.punkte.map((p, i) => (
-              <div key={i} className="group flex gap-3 rounded-xl px-4 py-3 hover:bg-accent transition-colors">
-                <span className="mt-1 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Check className="h-3 w-3" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold leading-snug">{p.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{p.desc}</p>
+              <Reveal key={i} delay={i * 0.05}>
+                <div className="group flex gap-3 rounded-xl px-4 py-3 hover:bg-accent transition-colors">
+                  <span className="mt-1 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Check className="h-3 w-3" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold leading-snug">{p.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{p.desc}</p>
+                  </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -282,14 +285,16 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         <div className="grid sm:grid-cols-3 gap-8 relative">
           {/* Connecting line on desktop */}
           <div className="hidden sm:block absolute top-4 left-[calc(16.67%-0.5px)] right-[calc(16.67%-0.5px)] h-px bg-border z-0" />
-          {c.steps.items.map((step) => (
-            <div key={step.num} className="flex flex-col items-start relative z-10">
-              <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground font-bold text-sm mb-4 shrink-0">
-                {step.num}
-              </span>
-              <h3 className="font-semibold mb-2">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-            </div>
+          {c.steps.items.map((step, i) => (
+            <Reveal key={step.num} delay={i * 0.1} className="relative z-10">
+              <div className="flex flex-col items-start">
+                <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground font-bold text-sm mb-4 shrink-0">
+                  {step.num}
+                </span>
+                <h3 className="font-semibold mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -299,18 +304,20 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">{c.features.heading}</h2>
           <div className="grid sm:grid-cols-2 gap-6">
-            {c.features.items.map((f) => {
+            {c.features.items.map((f, i) => {
               const Icon = ICON_MAP[f.icon];
               return (
-                <div key={f.title} className="flex gap-4 p-5 rounded-xl bg-background border border-border hover:border-primary/30 transition-colors">
-                  <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon className="h-4 w-4 text-primary" />
+                <Reveal key={f.title} delay={i * 0.06}>
+                  <div className="flex gap-4 p-5 rounded-xl bg-background border border-border hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-200">
+                    <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm mb-1">{f.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm mb-1">{f.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-                  </div>
-                </div>
+                </Reveal>
               );
             })}
           </div>
@@ -323,41 +330,42 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         <p className="text-center text-sm text-muted-foreground mb-12">{c.pricing.subline}</p>
         <div className="grid lg:grid-cols-3 gap-8 max-w-4xl mx-auto items-start">
         <div className="lg:col-span-2 grid sm:grid-cols-2 gap-5">
-          {c.pricing.plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-xl border p-6 flex flex-col ${
-                plan.highlight ? "border-border border-t-[3px] border-t-brand bg-background" : "border-border bg-background"
-              }`}
-            >
-              {plan.highlight && (
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-brand mb-3">
-                  {c.pricing.popular}
-                </span>
-              )}
-              <p className="font-semibold text-sm mb-1">{plan.name}</p>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-3xl font-extrabold">{plan.price}</span>
-                <span className="text-xs text-muted-foreground">{plan.period}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-5">{plan.desc}</p>
-              <ul className="space-y-2 flex-1 mb-6">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm">
-                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full"
-                variant={plan.highlight ? "brand" : "outline"}
-                size="sm"
-                asChild
+          {c.pricing.plans.map((plan, i) => (
+            <Reveal key={plan.name} delay={i * 0.08}>
+              <div
+                className={`rounded-xl border p-6 flex flex-col h-full hover:-translate-y-0.5 transition-transform duration-200 ${
+                  plan.highlight ? "border-border border-t-[3px] border-t-brand bg-background" : "border-border bg-background"
+                }`}
               >
-                <Link href={registerPath}>{c.pricing.startBtn}</Link>
-              </Button>
-            </div>
+                {plan.highlight && (
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-brand mb-3">
+                    {c.pricing.popular}
+                  </span>
+                )}
+                <p className="font-semibold text-sm mb-1">{plan.name}</p>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="font-mono text-3xl font-extrabold tabular-nums">{plan.price}</span>
+                  <span className="text-xs text-muted-foreground">{plan.period}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-5">{plan.desc}</p>
+                <ul className="space-y-2 flex-1 mb-6">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm">
+                      <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full"
+                  variant={plan.highlight ? "brand" : "outline"}
+                  size="sm"
+                  asChild
+                >
+                  <Link href={registerPath}>{c.pricing.startBtn}</Link>
+                </Button>
+              </div>
+            </Reveal>
           ))}
         </div>
         <Preisrechner
