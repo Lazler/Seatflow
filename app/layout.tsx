@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthHashRedirect } from "@/components/auth-hash-redirect";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,9 +16,15 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "SeatFlow – Ticketshop mit Sitzplan für kleine Venues",
+    default: "SeatFlow: Ticketshop mit Sitzplan für kleine Venues",
     template: "%s | SeatFlow",
   },
   description:
@@ -32,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${inter.variable} ${ibmPlexMono.variable} antialiased`}>
+    <html lang="de" className={`${inter.variable} ${ibmPlexMono.variable} ${outfit.variable} antialiased`}>
       <head>
         <link rel="alternate" hrefLang="de" href="https://seatflow.app/" />
         <link rel="alternate" hrefLang="en" href="https://seatflow.app/en" />

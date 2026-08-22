@@ -69,7 +69,7 @@ const EN: LandingContent = {
   usp: {
     heading: "Your venue.",
     headingAccent: "Exactly as it is.",
-    sub: "Curved rows, centre aisles, tables, standing areas, blocked seats: the seat map builder recreates any room faithfully. Try it: the plan below is real and clickable.",
+    sub: "Curved rows, centre aisles, tables, standing areas, blocked seats: the seat map builder recreates any room faithfully. Try it: the plan is real and clickable.",
     demo: {
       badge: "Live demo: actually clickable",
       leer: "Click a few seats",
@@ -87,12 +87,12 @@ const EN: LandingContent = {
       zoomReset: "Reset view",
     },
     punkte: [
-      { title: "Curved rows & centre aisle", desc: "Theatre arcs with numbering that continues across the aisle, just like the real room." },
-      { title: "Tables & standing areas", desc: "Round tables for cabaret, capacity zones for concerts, combine freely." },
-      { title: "Price categories with colours", desc: "Stalls, premium, box: each category with its own price and colour." },
-      { title: "Block individual seats", desc: "Tech desk, camera aisle, broken seat: blocked with one click, never sold by accident." },
-      { title: "Templates & generator", desc: "Theatre, cabaret or mixed seating in seconds, then customise freely." },
-      { title: "Multiple levels", desc: "Stalls and balcony as separate plans in one event. Guests switch via tabs." },
+      { icon: "reihen", title: "Curved rows & centre aisle", desc: "Theatre arcs with numbering that continues across the aisle, just like the real room." },
+      { icon: "tische", title: "Tables & standing areas", desc: "Round tables for cabaret, capacity zones for concerts, combine freely." },
+      { icon: "kategorien", title: "Price categories with colours", desc: "Stalls, premium, box: each category with its own price and colour." },
+      { icon: "sperren", title: "Block individual seats", desc: "Tech desk, camera aisle, broken seat: blocked with one click, never sold by accident." },
+      { icon: "vorlagen", title: "Templates & generator", desc: "Theatre, cabaret or mixed seating in seconds, then customise freely." },
+      { icon: "ebenen", title: "Multiple levels", desc: "Stalls and balcony as separate plans in one event. Guests switch via tabs." },
     ],
   },
   steps: {

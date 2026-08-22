@@ -69,7 +69,7 @@ const DE: LandingContent = {
   usp: {
     heading: "Ihr Saal.",
     headingAccent: "Exakt wie er ist.",
-    sub: "Gebogene Reihen, Mittelgang, Tische, Stehplätze, gesperrte Sitze: Der Raumplan-Builder bildet jeden Saal originalgetreu ab. Probieren Sie es aus: Der Plan unten ist echt und klickbar.",
+    sub: "Gebogene Reihen, Mittelgang, Tische, Stehplätze, gesperrte Sitze: Der Raumplan-Builder bildet jeden Saal originalgetreu ab. Probieren Sie es aus: Der Plan ist echt und klickbar.",
     demo: {
       badge: "Live-Demo: echt klickbar",
       leer: "Klicken Sie ein paar Plätze an",
@@ -87,12 +87,12 @@ const DE: LandingContent = {
       zoomReset: "Ansicht zurücksetzen",
     },
     punkte: [
-      { title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg, wie im echten Saal." },
-      { title: "Tische & Stehplatz-Zonen", desc: "Rundtische fürs Kabarett, Zonen mit Kapazität fürs Konzert, frei kombinierbar." },
-      { title: "Preiskategorien mit Farben", desc: "Parkett, Premium, Loge: jede Kategorie mit eigenem Preis und eigener Farbe." },
-      { title: "Einzelne Plätze sperren", desc: "Technikplatz, Kameragasse, defekter Sitz: per Klick blockiert, nie versehentlich verkauft." },
-      { title: "Vorlagen & Generator", desc: "Theater, Kabarett oder Mischbestuhlung in Sekunden, danach frei anpassen." },
-      { title: "Mehrere Ebenen", desc: "Parkett und Balkon als eigene Pläne im selben Event. Gäste wechseln per Tab." },
+      { icon: "reihen", title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg, wie im echten Saal." },
+      { icon: "tische", title: "Tische & Stehplatz-Zonen", desc: "Rundtische fürs Kabarett, Zonen mit Kapazität fürs Konzert, frei kombinierbar." },
+      { icon: "kategorien", title: "Preiskategorien mit Farben", desc: "Parkett, Premium, Loge: jede Kategorie mit eigenem Preis und eigener Farbe." },
+      { icon: "sperren", title: "Einzelne Plätze sperren", desc: "Technikplatz, Kameragasse, defekter Sitz: per Klick blockiert, nie versehentlich verkauft." },
+      { icon: "vorlagen", title: "Vorlagen & Generator", desc: "Theater, Kabarett oder Mischbestuhlung in Sekunden, danach frei anpassen." },
+      { icon: "ebenen", title: "Mehrere Ebenen", desc: "Parkett und Balkon als eigene Pläne im selben Event. Gäste wechseln per Tab." },
     ],
   },
   steps: {

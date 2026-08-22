@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { MapPin, Lightning as Zap, QrCode, ChartBar as BarChart3, Check, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { MapPin, Lightning as Zap, QrCode, ChartBar as BarChart3, Rows, Table, Palette, LockSimple, MagicWand, Stack, Check, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import Preisrechner from "@/components/pricing/preisrechner";
 import BuilderDemo, { type BuilderDemoTexte } from "@/components/landing/builder-demo";
-import { Reveal } from "@/components/landing/reveal";
+import { Reveal, HeroReveal } from "@/components/landing/reveal";
 
 export type LandingContent = {
   lang: "de" | "en" | "hu";
@@ -27,7 +27,7 @@ export type LandingContent = {
     headingAccent: string;
     sub: string;
     demo: BuilderDemoTexte;
-    punkte: { title: string; desc: string }[];
+    punkte: { icon: "reihen" | "tische" | "kategorien" | "sperren" | "vorlagen" | "ebenen"; title: string; desc: string }[];
   };
   features: {
     heading: string;
@@ -57,126 +57,14 @@ const ICON_MAP = {
   chart: BarChart3,
 };
 
-// Das Kernprodukt zeigen: ein interaktiver Sitzplan, wie ihn Gäste beim
-// Buchen sehen — nicht ein generisches Admin-Dashboard.
-function SitzplanMockup() {
-  const FARBE_PARKETT = "#53565c";
-  const FARBE_PREMIUM = "#d9481f";
-  const FARBE_BELEGT = "#6b6e73";
-  const FARBE_GEWAEHLT = "#d9481f";
-
-  // Deterministisch "zufällig" belegte Plätze (kein Math.random im Render)
-  const istBelegt = (reihe: number, sitz: number) => (reihe * 13 + sitz * 7 + 3) % 11 < 3;
-  const REIHEN = 6;
-  const SITZE = 14;
-  const R = 9;               // Sitzradius
-  const ABSTAND = 26;        // horizontal
-  const REIHEN_ABSTAND = 30; // vertikal
-  const GANG = 30;           // Mittelgang-Lücke
-  const breite = (SITZE - 1) * ABSTAND + GANG + 2 * R + 56;
-  const startX = 44;
-  const gewaehlt: [number, number][] = [[3, 6], [3, 7]];
-
-  const sitzX = (s: number) => startX + s * ABSTAND + (s >= SITZE / 2 ? GANG : 0);
-  const sitzY = (r: number) => 64 + r * REIHEN_ABSTAND;
-
-  return (
-    <div className="relative mx-auto max-w-4xl px-4 sm:px-6 -mb-8 z-10">
-      <p className="text-center text-xs text-muted-foreground mb-3 uppercase tracking-widest font-medium">
-        So buchen Ihre Gäste, direkt im Sitzplan
-      </p>
-      <div className="rounded-xl border border-border shadow-2xl overflow-hidden bg-card">
-        {/* Browser-Topbar */}
-        <div className="h-9 bg-muted/60 border-b border-border flex items-center px-4 gap-2">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-border" />
-            <div className="w-2.5 h-2.5 rounded-full bg-border" />
-            <div className="w-2.5 h-2.5 rounded-full bg-border" />
-          </div>
-          <div className="flex-1 mx-4 h-4 bg-border/60 rounded-full max-w-56" />
-        </div>
-
-        <div className="flex">
-          {/* Sitzplan — dunkler Bühnenrahmen, wie auf der echten Buchungsseite */}
-          <div className="flex-1 min-w-0 bg-[#1c1d20] p-2 sm:p-4">
-            <svg viewBox={`0 0 ${breite} ${64 + REIHEN * REIHEN_ABSTAND + 12}`} className="w-full h-auto" role="img"
-              aria-label="Beispiel-Sitzplan mit Bühne, freien, belegten und ausgewählten Plätzen">
-              {/* Bühne */}
-              <rect x={breite / 2 - 130} y={12} width={260} height={26} rx={7} fill="#3a3c40" />
-              <text x={breite / 2} y={29} textAnchor="middle" fill="rgba(250,250,250,0.9)"
-                fontSize="10" fontWeight="700" letterSpacing="3">BÜHNE</text>
-
-              {Array.from({ length: REIHEN }, (_, r) => (
-                <g key={r}>
-                  {/* Reihen-Label */}
-                  <text x={startX - 26} y={sitzY(r) + 3.5} fontSize="10" fontWeight="700"
-                    fill="rgba(250,250,250,0.55)" textAnchor="middle">{String.fromCharCode(65 + r)}</text>
-                  {Array.from({ length: SITZE }, (_, s) => {
-                    const selektiert = gewaehlt.some(([gr, gs]) => gr === r && gs === s);
-                    const belegt = !selektiert && istBelegt(r, s);
-                    const farbe = belegt ? FARBE_BELEGT : r < 2 ? FARBE_PREMIUM : FARBE_PARKETT;
-                    return (
-                      <g key={s}>
-                        {selektiert && (
-                          <circle cx={sitzX(s)} cy={sitzY(r)} r={R + 4} fill={FARBE_GEWAEHLT} opacity={0.22} />
-                        )}
-                        <circle cx={sitzX(s)} cy={sitzY(r)} r={R}
-                          fill={selektiert ? "#ffffff" : farbe}
-                          opacity={belegt ? 0.55 : 1}
-                          stroke={selektiert ? FARBE_GEWAEHLT : belegt ? "none" : "rgba(255,255,255,0.4)"}
-                          strokeWidth={selektiert ? 2 : 1.2} />
-                      </g>
-                    );
-                  })}
-                </g>
-              ))}
-            </svg>
-
-            {/* Legende */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 sm:px-2 pt-1 text-[10px] sm:text-[11px] text-white/60">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PREMIUM }} />Premium, 32 €</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_PARKETT }} />Parkett, 24 €</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_BELEGT }} />Belegt</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FARBE_GEWAEHLT }} />Ausgewählt</span>
-            </div>
-          </div>
-
-          {/* Auswahl-Panel (wie die echte Buchungsseite) */}
-          <div className="hidden md:flex w-52 shrink-0 border-l border-border flex-col">
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold">Deine Auswahl</p>
-            </div>
-            <div className="px-4 py-3 space-y-2.5 flex-1">
-              {["D-7", "D-8"].map((platz) => (
-                <div key={platz} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs font-medium">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: FARBE_GEWAEHLT }} />
-                    <span className="font-mono">{platz}</span>
-                    <span className="text-muted-foreground font-normal">Parkett</span>
-                  </span>
-                  <span className="text-xs tabular-nums font-medium">24,00 €</span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>Servicegebühr (2×)</span>
-                <span className="tabular-nums">1,00 €</span>
-              </div>
-              <div className="border-t border-dashed border-border pt-2 flex items-center justify-between">
-                <span className="text-xs font-semibold">Gesamt</span>
-                <span className="text-xs font-bold tabular-nums">49,00 €</span>
-              </div>
-            </div>
-            <div className="p-3">
-              <div className="h-9 rounded-lg bg-brand flex items-center justify-center">
-                <span className="text-[11px] font-semibold text-white">Weiter zur Bestellung →</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const USP_ICON_MAP = {
+  reihen: Rows,
+  tische: Table,
+  kategorien: Palette,
+  sperren: LockSimple,
+  vorlagen: MagicWand,
+  ebenen: Stack,
+};
 
 export default function LandingPage({ c, registerPath, loginPath, blogPath = "/blog" }: {
   c: LandingContent;
@@ -201,38 +89,52 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-deep rounded-full px-3 py-1 mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-brand" />
-          <p className="text-xs font-semibold uppercase tracking-widest">
-            {c.hero.badge}
-          </p>
-        </div>
-        <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-6">
-          {c.hero.h1}{" "}
-          <span className="text-brand">{c.hero.h1Accent}</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
-          {c.hero.lead}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-          <Button variant="brand" size="lg" asChild className="gap-2">
-            <Link href={registerPath}>
-              {c.hero.cta} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            {/* Voll navigierender Link, die Route setzt die Demo-Session und leitet weiter */}
-            <a href="/api/demo/login">
-              {c.lang === "en" ? "View live demo" : c.lang === "hu" ? "Élő demó" : "Live-Demo ansehen"}
-            </a>
-          </Button>
+      {/* Hero: asymmetrischer Split — Text links, echter klickbarer Sitzplan rechts */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-20 lg:pt-20 lg:pb-24">
+        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-12 items-center">
+          <div>
+            <HeroReveal>
+              <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-deep rounded-full px-3 py-1 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand" />
+                <p className="text-xs font-semibold uppercase tracking-widest">
+                  {c.hero.badge}
+                </p>
+              </div>
+            </HeroReveal>
+            <HeroReveal delay={0.05}>
+              <h1 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl leading-[1.15] tracking-tight mb-6">
+                {c.hero.h1}{" "}
+                <span className="text-brand">{c.hero.h1Accent}</span>
+              </h1>
+            </HeroReveal>
+            <HeroReveal delay={0.1}>
+              <p className="text-lg text-muted-foreground max-w-lg mb-8 leading-relaxed">
+                {c.hero.lead}
+              </p>
+            </HeroReveal>
+            <HeroReveal delay={0.15}>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button variant="brand" size="lg" asChild className="gap-2">
+                  <Link href={registerPath}>
+                    {c.hero.cta} <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  {/* Voll navigierender Link, die Route setzt die Demo-Session und leitet weiter */}
+                  <a href="/api/demo/login">
+                    {c.lang === "en" ? "View live demo" : c.lang === "hu" ? "Élő demó" : "Live-Demo ansehen"}
+                  </a>
+                </Button>
+              </div>
+            </HeroReveal>
+          </div>
+
+          {/* Echter klickbarer Sitzplan als Hero-Visual statt Fake-Screenshot */}
+          <HeroReveal delay={0.12} className="w-full">
+            <BuilderDemo texte={c.usp.demo} />
+          </HeroReveal>
         </div>
       </section>
-
-      {/* Dashboard Mockup */}
-      <SitzplanMockup />
 
       {/* Stats row */}
       <section className="border-y border-border bg-muted/30 pt-16 pb-8">
@@ -246,9 +148,9 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
         </div>
       </section>
 
-      {/* USP: Der Raumplan-Builder — live und klickbar */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-10">
+      {/* USP: Was der Raumplan-Builder abbildet */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-display)]">
             {c.usp.heading}{" "}
             <span className="text-brand">{c.usp.headingAccent}</span>
@@ -256,26 +158,21 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
           <p className="text-muted-foreground mt-3 leading-relaxed">{c.usp.sub}</p>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
-          {/* Live-Demo: echter Buchungs-Canvas, klickbar */}
-          <BuilderDemo texte={c.usp.demo} />
-
-          {/* Customization-Punkte */}
-          <div className="space-y-1">
-            {c.usp.punkte.map((p, i) => (
-              <Reveal key={i} delay={i * 0.05}>
-                <div className="group flex gap-3 rounded-xl px-4 py-3 hover:bg-accent transition-colors">
-                  <span className="mt-1 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Check className="h-3 w-3" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {c.usp.punkte.map((p, i) => {
+            const Icon = USP_ICON_MAP[p.icon];
+            return (
+              <Reveal key={p.title} delay={i * 0.05}>
+                <div className="h-full rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-200">
+                  <span className="inline-flex w-9 h-9 rounded-lg bg-brand-soft text-brand items-center justify-center mb-4">
+                    <Icon className="h-4 w-4" />
                   </span>
-                  <div>
-                    <p className="text-sm font-semibold leading-snug">{p.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{p.desc}</p>
-                  </div>
+                  <p className="text-sm font-semibold leading-snug">{p.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{p.desc}</p>
                 </div>
               </Reveal>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </section>
 
@@ -291,8 +188,10 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
                 <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground font-bold text-sm mb-4 shrink-0">
                   {step.num}
                 </span>
-                <h3 className="font-semibold mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                <div className={i === 1 ? "sm:mt-5" : undefined}>
+                  <h3 className="font-semibold mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                </div>
               </div>
             </Reveal>
           ))}
@@ -303,17 +202,22 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
       <section className="bg-muted/30 border-y border-border py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">{c.features.heading}</h2>
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {c.features.items.map((f, i) => {
               const Icon = ICON_MAP[f.icon];
+              const gross = i === 0;
               return (
-                <Reveal key={f.title} delay={i * 0.06}>
-                  <div className="flex gap-4 p-5 rounded-xl bg-background border border-border hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-200">
-                    <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="h-4 w-4 text-primary" />
+                <Reveal key={f.title} delay={i * 0.06} className={gross ? "sm:col-span-2" : undefined}>
+                  <div
+                    className={`h-full flex gap-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-200 ${
+                      gross ? "p-6 sm:items-center" : "p-5"
+                    }`}
+                  >
+                    <div className={`shrink-0 rounded-lg bg-primary/10 flex items-center justify-center ${gross ? "w-12 h-12" : "w-9 h-9"}`}>
+                      <Icon className={gross ? "h-5 w-5 text-primary" : "h-4 w-4 text-primary"} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm mb-1">{f.title}</h3>
+                      <h3 className={`font-semibold mb-1 ${gross ? "text-base" : "text-sm"}`}>{f.title}</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                     </div>
                   </div>
@@ -334,7 +238,7 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
             <Reveal key={plan.name} delay={i * 0.08}>
               <div
                 className={`rounded-xl border p-6 flex flex-col h-full hover:-translate-y-0.5 transition-transform duration-200 ${
-                  plan.highlight ? "border-border border-t-[3px] border-t-brand bg-background" : "border-border bg-background"
+                  plan.highlight ? "border-border border-t-[3px] border-t-brand bg-brand-soft/40" : "border-border bg-background"
                 }`}
               >
                 {plan.highlight && (
