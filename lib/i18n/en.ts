@@ -756,6 +756,7 @@ export const dict = {
       text: "Text",
     },
     raumgroesse: "Room size",
+    inhaltZentrieren: "Center content",
     breite: "Width",
     hoehe: "Height",
     preiskategorien: "Price categories",

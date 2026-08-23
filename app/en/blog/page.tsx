@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata: Metadata = {
-  title: "SeatFlow Blog – Tips for Event Organisers",
+  title: "SeatFlow Blog: Tips for Event Organisers",
   description:
     "Practical advice on ticket sales, seat management and event organisation for theatres, cabarets and comedy clubs.",
   alternates: { canonical: "https://seatflow.app/en/blog" },
@@ -14,7 +14,7 @@ const ARTICLES = [
     slug: "sell-tickets-theater",
     title: "Sell Tickets Online for Theatres: The Complete Guide",
     teaser:
-      "How small and mid-sized theatres can digitalise their ticket sales — from seat management to automatic e-mail delivery. Explained step by step.",
+      "How small and mid-sized theatres can digitalise their ticket sales, from seat management to automatic e-mail delivery. Explained step by step.",
     date: "2026-04-10",
     readTime: "7 min",
   },
@@ -22,7 +22,7 @@ const ARTICLES = [
     slug: "cabaret-ticketing",
     title: "Cabaret Ticketing: What Small Venues Actually Need",
     teaser:
-      "No budget for expensive ticketing platforms? We explain which features a cabaret ticketing system must have — and which are overkill.",
+      "No budget for expensive ticketing platforms? We explain which features a cabaret ticketing system must have, and which are overkill.",
     date: "2026-04-24",
     readTime: "5 min",
   },
@@ -30,7 +30,7 @@ const ARTICLES = [
     slug: "comedy-club-ticketing",
     title: "Comedy Club Ticket Shop Setup: Live in One Hour",
     teaser:
-      "Step by step: how comedy clubs set up their own ticket shop with numbered seats — no developer needed, no monthly fees.",
+      "Step by step: how comedy clubs set up their own ticket shop with numbered seats, no developer needed, no monthly fees.",
     date: "2026-05-08",
     readTime: "6 min",
   },
@@ -38,7 +38,7 @@ const ARTICLES = [
     slug: "ticketing-comparison",
     title: "Ticketing Systems Compared: Which Fits Small Cultural Venues?",
     teaser:
-      "Eventbrite, TicketTailor, pretix or custom development? We compare the most common solutions for theatres, cabarets and comedy clubs — and show what really matters.",
+      "Eventbrite, TicketTailor, pretix or custom development? We compare the most common solutions for theatres, cabarets and comedy clubs, and show what really matters.",
     date: "2026-05-15",
     readTime: "8 min",
   },

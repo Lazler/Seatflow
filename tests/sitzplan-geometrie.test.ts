@@ -6,6 +6,7 @@ import {
   alleSitze,
   inhaltsGrenzen,
   aufInhaltZugeschnitten,
+  zentriereInhalt,
   migrierteKonfiguration,
   LEERE_KONFIGURATION,
 } from "@/types/sitzplan";
@@ -146,6 +147,31 @@ describe("aufInhaltZugeschnitten", () => {
     const k = konfig([reihe({ x: 500, y: 500, bezeichnung: "A", anzahlSitze: 4 })]);
     const vorher = alleSitze(k).map((s) => s.sitzId);
     const nachher = alleSitze(aufInhaltZugeschnitten(k, 28)).map((s) => s.sitzId);
+    expect(nachher).toEqual(vorher);
+  });
+});
+
+// ── zentriereInhalt ──────────────────────────────────────────────────────
+describe("zentriereInhalt", () => {
+  it("zentriert den Inhalt in der bestehenden Leinwand, statt sie zu verkleinern", () => {
+    const k = { ...konfig([reihe({ x: 100, y: 100 })]), breite: 900, hoehe: 620 };
+    const zentriert = zentriereInhalt(k);
+    expect(zentriert.breite).toBe(k.breite);
+    expect(zentriert.hoehe).toBe(k.hoehe);
+    const g = inhaltsGrenzen(zentriert);
+    expect(g.x + g.breite / 2).toBeCloseTo(k.breite / 2, 5);
+    expect(g.y + g.hoehe / 2).toBeCloseTo(k.hoehe / 2, 5);
+  });
+  it("ist ein No-Op, wenn der Inhalt schon zentriert ist", () => {
+    const k = { ...konfig([reihe({ x: 100, y: 100 })]), breite: 900, hoehe: 620 };
+    const einmal = zentriereInhalt(k);
+    const zweimal = zentriereInhalt(einmal);
+    expect(zweimal).toBe(einmal);
+  });
+  it("lässt die Sitz-IDs unverändert (nur Positionen verschieben sich)", () => {
+    const k = { ...konfig([reihe({ x: 100, y: 100, bezeichnung: "A", anzahlSitze: 4 })]), breite: 900, hoehe: 620 };
+    const vorher = alleSitze(k).map((s) => s.sitzId);
+    const nachher = alleSitze(zentriereInhalt(k)).map((s) => s.sitzId);
     expect(nachher).toEqual(vorher);
   });
 });

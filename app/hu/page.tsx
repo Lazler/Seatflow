@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import LandingPage, { type LandingContent } from "@/components/landing/landing-page";
 
 export const metadata: Metadata = {
-  title: "SeatFlow – Számozott ülőhelyek értékesítése kis helyszíneknek",
+  title: "SeatFlow: Számozott ülőhelyek értékesítése kis helyszíneknek",
   description:
-    "A SeatFlow professzionális jegyvásárlási felületet ad színházaknak, kabarénak és komédiakluboknak – jutalék nélkül, fejlesztő nélkül, egy órán belül élesben.",
+    "A SeatFlow professzionális jegyvásárlási felületet ad színházaknak, kabarénak és komédiakluboknak, jutalék nélkül, fejlesztő nélkül, egy órán belül élesben.",
   alternates: {
     canonical: "https://seatflow.app/hu",
     languages: {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "SeatFlow – Számozott ülőhelyek értékesítése kis helyszíneknek",
+    title: "SeatFlow: Számozott ülőhelyek értékesítése kis helyszíneknek",
     description:
       "Ülésrend alapú jegyrendszer színházaknak, kabarénak és komédiakluboknak. Egy óra alatt éles, jutalék nélkül, €0,50/jegy.",
     url: "https://seatflow.app/hu",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SeatFlow – Ülőhelyes jegyrendszer kis helyszíneknek",
+    title: "SeatFlow: Ülőhelyes jegyrendszer kis helyszíneknek",
     description:
-      "Színház, kabaré, komédiaklubok: saját jegyrendszer interaktív ülésrenddel, egy óra alatt – fejlesztő nélkül.",
+      "Színház, kabaré, komédiaklubok: saját jegyrendszer interaktív ülésrenddel, egy óra alatt, fejlesztő nélkül.",
   },
 };
 
@@ -42,7 +42,7 @@ const JSON_LD = {
     priceCurrency: "EUR",
   },
   description:
-    "A SeatFlow ülésrend alapú jegyrendszer kis helyszíneknek – színházaknak, kabarénak és komédiakluboknak. Vizuális alaprajz-szerkesztő, automatikus jegyboltt, QR-kódos jegyek és valós idejű áttekintő.",
+    "A SeatFlow ülésrend alapú jegyrendszer kis helyszíneknek: színházaknak, kabarénak és komédiakluboknak. Vizuális alaprajz-szerkesztő, automatikus jegyboltt, QR-kódos jegyek és valós idejű áttekintő.",
   url: "https://seatflow.app",
   inLanguage: ["de", "en", "hu"],
 };
@@ -54,13 +54,12 @@ const HU: LandingContent = {
     kostenlosStarten: "Ingyenes indítás",
   },
   hero: {
-    badge: "Jegyrendszer színházaknak · kabarénak · komédiakluboknak",
-    h1: "Számozott ülőhelyek értékesítése –",
+    badge: "Színházaknak, kabaréknak és komédiakluboknak",
+    h1: "Számozott ülőhelyek értékesítése,",
     h1Accent: "fejlesztő nélkül.",
-    lead: "A SeatFlow kész jegyboltt ad kis helyszíneknek interaktív ülésrenddel. Jutalék nélkül, kód nélkül, gond nélkül – egy órán belül élesben.",
+    lead: "A SeatFlow kész jegyboltt ad kis helyszíneknek interaktív ülésrenddel. Jutalék nélkül, kód nélkül, gond nélkül. Egy órán belül élesben.",
     cta: "Ingyenes indítás",
-    ctaSecondary: "Bejelentkezés",
-    subline: "Nincs beállítási díj · Nincs jutalék · €0,50 jegyenként",
+    subline: "Nincs beállítási díj, nincs jutalék, €0,50 jegyenként",
   },
   stats: [
     { value: "< 1 ó", label: "beállítási idő" },
@@ -70,9 +69,9 @@ const HU: LandingContent = {
   usp: {
     heading: "A terme.",
     headingAccent: "Pontosan úgy, ahogy van.",
-    sub: "Ívelt sorok, középső folyosó, asztalok, állóhelyek, zárolt székek — az ülésrend-szerkesztő bármilyen termet élethűen leképez. Próbálja ki: a lenti alaprajz valódi és kattintható.",
+    sub: "Ívelt sorok, középső folyosó, asztalok, állóhelyek, zárolt székek: az ülésrend-szerkesztő bármilyen termet élethűen leképez. Próbálja ki: az alaprajz valódi és kattintható.",
     demo: {
-      badge: "Élő demó — tényleg kattintható",
+      badge: "Élő demó: tényleg kattintható",
       leer: "Kattintson néhány helyre",
       gewaehlt: "{n} hely kiválasztva · {preis}",
       zuruecksetzen: "Kijelölés törlése",
@@ -88,12 +87,12 @@ const HU: LandingContent = {
       zoomReset: "Nézet visszaállítása",
     },
     punkte: [
-      { title: "Ívelt sorok és középső folyosó", desc: "Színházi félkör folytatólagos számozással a folyosón át — mint a valódi teremben." },
-      { title: "Asztalok és állóhelyek", desc: "Kerek asztalok kabaréhoz, kapacitás-zónák koncerthez — szabadon kombinálható." },
-      { title: "Árkategóriák színekkel", desc: "Földszint, prémium, páholy — minden kategória saját árral és színnel." },
-      { title: "Egyes helyek zárolása", desc: "Technikai hely, kamerasor, hibás szék — egy kattintással zárolva, sosem kel el véletlenül." },
-      { title: "Sablonok és generátor", desc: "Színházi, kabaré- vagy vegyes elrendezés másodpercek alatt — utána szabadon testreszabható." },
-      { title: "Több szint", desc: "Földszint és erkély külön alaprajzként ugyanabban az eseményben — a vendégek füllel váltanak." },
+      { icon: "reihen", title: "Ívelt sorok és középső folyosó", desc: "Színházi félkör folytatólagos számozással a folyosón át, mint a valódi teremben." },
+      { icon: "tische", title: "Asztalok és állóhelyek", desc: "Kerek asztalok kabaréhoz, kapacitás-zónák koncerthez, szabadon kombinálható." },
+      { icon: "kategorien", title: "Árkategóriák színekkel", desc: "Földszint, prémium, páholy: minden kategória saját árral és színnel." },
+      { icon: "sperren", title: "Egyes helyek zárolása", desc: "Technikai hely, kamerasor, hibás szék: egy kattintással zárolva, sosem kel el véletlenül." },
+      { icon: "vorlagen", title: "Sablonok és generátor", desc: "Színházi, kabaré- vagy vegyes elrendezés másodpercek alatt, utána szabadon testreszabható." },
+      { icon: "ebenen", title: "Több szint", desc: "Földszint és erkély külön alaprajzként ugyanabban az eseményben. A vendégek füllel váltanak." },
     ],
   },
   steps: {
@@ -111,7 +110,7 @@ const HU: LandingContent = {
       },
       {
         num: "3",
-        title: "Oszd meg a linket – kész",
+        title: "Oszd meg a linket, kész",
         desc: "A vendégek kiválasztják helyüket, fizetnek Stripe-on keresztül, és azonnal megkapják a jegyet e-mailben.",
       },
     ],
@@ -132,7 +131,7 @@ const HU: LandingContent = {
       {
         icon: "qr",
         title: "QR-kódos jegyek e-mailben",
-        desc: "Azonnal a foglalás után. Beengedés okostelefonnal a bejáratnál – nincs szükség extra hardverre.",
+        desc: "Azonnal a foglalás után. Beengedés okostelefonnal a bejáratnál, nincs szükség extra hardverre.",
       },
       {
         icon: "chart",
@@ -143,7 +142,7 @@ const HU: LandingContent = {
   },
   pricing: {
     heading: "Átlátható árak",
-    subline: "Bármikor lemondható · Nincs beállítási díj · A szolgáltatási díj áthárítható a vevőre",
+    subline: "Bármikor lemondható, nincs beállítási díj, a szolgáltatási díj áthárítható a vevőre",
     popular: "Legnépszerűbb",
     startBtn: "Ingyenes indítás",
     plans: [

@@ -45,7 +45,7 @@ export default function Registrieren() {
         m.includes("already registered") || m.includes("already been registered")
           ? "Diese E-Mail ist bereits registriert. Melde dich an oder setze dein Passwort zurück."
           : m.includes("password")
-            ? "Das Passwort ist zu schwach — bitte wähle ein längeres."
+            ? "Das Passwort ist zu schwach, bitte wähle ein längeres."
             : "Registrierung fehlgeschlagen. Bitte versuche es erneut."
       );
       setLaedt(false);
@@ -96,7 +96,7 @@ export default function Registrieren() {
         <Card>
           <CardHeader>
             <CardTitle>Konto erstellen</CardTitle>
-            <CardDescription>Starte kostenlos – kein Setup nötig</CardDescription>
+            <CardDescription>Starte kostenlos, kein Setup nötig</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

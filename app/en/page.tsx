@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import LandingPage, { type LandingContent } from "@/components/landing/landing-page";
 
 export const metadata: Metadata = {
-  title: "SeatFlow – Numbered Seat Ticketing for Small Venues",
+  title: "SeatFlow: Numbered Seat Ticketing for Small Venues",
   description:
-    "SeatFlow gives theaters, cabarets and comedy clubs a professional ticketing shop with interactive seating plan – no commission, no developer, live within an hour.",
+    "SeatFlow gives theaters, cabarets and comedy clubs a professional ticketing shop with interactive seating plan, no commission, no developer, live within an hour.",
   alternates: {
     canonical: "https://seatflow.app/en",
     languages: {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "SeatFlow – Numbered Seat Ticketing for Small Venues",
+    title: "SeatFlow: Numbered Seat Ticketing for Small Venues",
     description:
       "Seating plan ticketing for theaters, cabarets and comedy clubs. Live in one hour, no commission, €0.50 / ticket.",
     url: "https://seatflow.app/en",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SeatFlow – Seat Ticketing for Small Venues",
+    title: "SeatFlow: Seat Ticketing for Small Venues",
     description:
-      "Theater, cabaret, comedy club: your own ticketing shop with interactive seating plan, live in one hour – no developer needed.",
+      "Theater, cabaret, comedy club: your own ticketing shop with interactive seating plan, live in one hour, no developer needed.",
   },
 };
 
@@ -42,7 +42,7 @@ const JSON_LD = {
     priceCurrency: "EUR",
   },
   description:
-    "SeatFlow is a seating plan ticketing platform for small venues – theaters, cabarets and comedy clubs. Visual seat map builder, automatic ticket shop, QR-code tickets and real-time dashboard.",
+    "SeatFlow is a seating plan ticketing platform for small venues: theaters, cabarets and comedy clubs. Visual seat map builder, automatic ticket shop, QR-code tickets and real-time dashboard.",
   url: "https://seatflow.app",
   inLanguage: ["de", "en", "hu"],
 };
@@ -54,13 +54,12 @@ const EN: LandingContent = {
     kostenlosStarten: "Start for free",
   },
   hero: {
-    badge: "Ticketing for theaters · cabarets · comedy clubs",
-    h1: "Sell numbered seats –",
+    badge: "For theaters, cabarets and comedy clubs",
+    h1: "Sell numbered seats,",
     h1Accent: "without a developer.",
-    lead: "SeatFlow gives small venues a ready-made ticketing shop with interactive seating plan. No commission, no code, no hassle – live within an hour.",
+    lead: "SeatFlow gives small venues a ready-made ticketing shop with interactive seating plan. No commission, no code, no hassle. Live within an hour.",
     cta: "Start for free",
-    ctaSecondary: "Log in",
-    subline: "No setup fees · No commission · €0.50 per ticket",
+    subline: "No setup fees, no commission, €0.50 per ticket",
   },
   stats: [
     { value: "< 1 h", label: "Setup time" },
@@ -70,9 +69,9 @@ const EN: LandingContent = {
   usp: {
     heading: "Your venue.",
     headingAccent: "Exactly as it is.",
-    sub: "Curved rows, centre aisles, tables, standing areas, blocked seats — the seat map builder recreates any room faithfully. Try it: the plan below is real and clickable.",
+    sub: "Curved rows, centre aisles, tables, standing areas, blocked seats: the seat map builder recreates any room faithfully. Try it: the plan is real and clickable.",
     demo: {
-      badge: "Live demo — actually clickable",
+      badge: "Live demo: actually clickable",
       leer: "Click a few seats",
       gewaehlt: "{n} seats selected · {preis}",
       zuruecksetzen: "Reset selection",
@@ -88,12 +87,12 @@ const EN: LandingContent = {
       zoomReset: "Reset view",
     },
     punkte: [
-      { title: "Curved rows & centre aisle", desc: "Theatre arcs with numbering that continues across the aisle — just like the real room." },
-      { title: "Tables & standing areas", desc: "Round tables for cabaret, capacity zones for concerts — combine freely." },
-      { title: "Price categories with colours", desc: "Stalls, premium, box — each category with its own price and colour." },
-      { title: "Block individual seats", desc: "Tech desk, camera aisle, broken seat — blocked with one click, never sold by accident." },
-      { title: "Templates & generator", desc: "Theatre, cabaret or mixed seating in seconds — then customise freely." },
-      { title: "Multiple levels", desc: "Stalls and balcony as separate plans in one event — guests switch via tabs." },
+      { icon: "reihen", title: "Curved rows & centre aisle", desc: "Theatre arcs with numbering that continues across the aisle, just like the real room." },
+      { icon: "tische", title: "Tables & standing areas", desc: "Round tables for cabaret, capacity zones for concerts, combine freely." },
+      { icon: "kategorien", title: "Price categories with colours", desc: "Stalls, premium, box: each category with its own price and colour." },
+      { icon: "sperren", title: "Block individual seats", desc: "Tech desk, camera aisle, broken seat: blocked with one click, never sold by accident." },
+      { icon: "vorlagen", title: "Templates & generator", desc: "Theatre, cabaret or mixed seating in seconds, then customise freely." },
+      { icon: "ebenen", title: "Multiple levels", desc: "Stalls and balcony as separate plans in one event. Guests switch via tabs." },
     ],
   },
   steps: {
@@ -111,7 +110,7 @@ const EN: LandingContent = {
       },
       {
         num: "3",
-        title: "Share the link – done",
+        title: "Share the link, done",
         desc: "Guests pick their seat, pay via Stripe and receive the ticket instantly by email.",
       },
     ],
@@ -132,7 +131,7 @@ const EN: LandingContent = {
       {
         icon: "qr",
         title: "QR-code tickets by email",
-        desc: "Sent immediately after booking. Check-in at the door via smartphone – no extra hardware.",
+        desc: "Sent immediately after booking. Check-in at the door via smartphone, no extra hardware.",
       },
       {
         icon: "chart",
@@ -143,7 +142,7 @@ const EN: LandingContent = {
   },
   pricing: {
     heading: "Transparent pricing",
-    subline: "Cancel anytime · No setup fees · Service fee can be passed to the buyer",
+    subline: "Cancel anytime, no setup fees, service fee can be passed to the buyer",
     popular: "Most popular",
     startBtn: "Start for free",
     plans: [

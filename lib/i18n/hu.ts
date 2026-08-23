@@ -756,6 +756,7 @@ export const dict = {
       text: "Szöveg",
     },
     raumgroesse: "Terem mérete",
+    inhaltZentrieren: "Tartalom középre igazítása",
     breite: "Szélesség",
     hoehe: "Magasság",
     preiskategorien: "Árkategóriák",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata: Metadata = {
-  title: "SeatFlow Blog – Tippek rendezvényszervezőknek",
+  title: "SeatFlow Blog: Tippek rendezvényszervezőknek",
   description:
     "Gyakorlati tanácsok jegyértékesítésről, ülőhelyek kezeléséről és rendezvényszervezésről színházaknak, kabarénak és komédiakluboknak.",
   alternates: { canonical: "https://seatflow.app/hu/blog" },
@@ -14,7 +14,7 @@ const CIKKEK = [
     slug: "jegyek-ertekesitese-szinhaz",
     cim: "Online jegyértékesítés színházaknak: Teljes útmutató",
     bevezeto:
-      "Hogyan digitalizálhatják kis és közepes méretű színházak jegyértékesítésüket – az ülőhelyek kezelésétől az automatikus e-mail kézbesítésig. Lépésről lépésre elmagyarázva.",
+      "Hogyan digitalizálhatják kis és közepes méretű színházak jegyértékesítésüket, az ülőhelyek kezelésétől az automatikus e-mail kézbesítésig. Lépésről lépésre elmagyarázva.",
     datum: "2026-04-10",
     olvasasiIdo: "7 perc",
   },
@@ -22,7 +22,7 @@ const CIKKEK = [
     slug: "kabare-jegyrendszer",
     cim: "Kabaré jegyrendszer: Amire kis színpadoknak valóban szükségük van",
     bevezeto:
-      "Nincs büdzsé drága jegyértékesítési platformokra? Elmagyarázzuk, milyen funkciókat kell tartalmaznia egy kabaré jegyrendszernek – és melyek azok, amelyek feleslegesek.",
+      "Nincs büdzsé drága jegyértékesítési platformokra? Elmagyarázzuk, milyen funkciókat kell tartalmaznia egy kabaré jegyrendszernek, és melyek azok, amelyek feleslegesek.",
     datum: "2026-04-24",
     olvasasiIdo: "5 perc",
   },
@@ -30,7 +30,7 @@ const CIKKEK = [
     slug: "comedy-klub-jegyarulas",
     cim: "Comedy klub jegybolt beállítása: Egy óra alatt élesben",
     bevezeto:
-      "Lépésről lépésre: hogyan állítsanak fel comedy klubok saját jegyboltot számozott ülőhelyekkel – fejlesztő és havidíj nélkül.",
+      "Lépésről lépésre: hogyan állítsanak fel comedy klubok saját jegyboltot számozott ülőhelyekkel, fejlesztő és havidíj nélkül.",
     datum: "2026-05-08",
     olvasasiIdo: "6 perc",
   },

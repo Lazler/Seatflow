@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import LandingPage, { type LandingContent } from "@/components/landing/landing-page";
 
 export const metadata: Metadata = {
-  title: "SeatFlow – Ticketshop mit nummerierter Bestuhlung für kleine Venues",
+  title: "SeatFlow: Ticketshop mit nummerierter Bestuhlung für kleine Venues",
   description:
-    "SeatFlow gibt Theatern, Kabaretts und Comedy-Clubs einen professionellen Sitzplan-Ticketshop – ohne Provision, ohne Entwickler, in einer Stunde live.",
+    "SeatFlow gibt Theatern, Kabaretts und Comedy-Clubs einen professionellen Sitzplan-Ticketshop, ohne Provision, ohne Entwickler, in einer Stunde live.",
   alternates: {
     canonical: "https://seatflow.app/",
     languages: {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "SeatFlow – Ticketshop mit nummerierter Bestuhlung für kleine Venues",
+    title: "SeatFlow: Ticketshop mit nummerierter Bestuhlung für kleine Venues",
     description:
       "Sitzplan-Ticketshop für Theater, Kabarett und Comedy-Clubs. In einer Stunde live, keine Provision, €0,50 / Ticket.",
     url: "https://seatflow.app/",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SeatFlow – Ticketshop mit Sitzplan für kleine Venues",
+    title: "SeatFlow: Ticketshop mit Sitzplan für kleine Venues",
     description:
-      "Theater, Kabarett, Comedy-Club: In einer Stunde deinen eigenen Ticketshop mit interaktivem Sitzplan – kein Entwickler nötig.",
+      "Theater, Kabarett, Comedy-Club: In einer Stunde deinen eigenen Ticketshop mit interaktivem Sitzplan, kein Entwickler nötig.",
   },
 };
 
@@ -42,7 +42,7 @@ const JSON_LD = {
     priceCurrency: "EUR",
   },
   description:
-    "SeatFlow ist ein Sitzplan-Ticketshop für kleine Venues – Theater, Kabarett, Comedy-Club. Interaktiver Raumplan-Builder, automatischer Ticketshop, QR-Code-Tickets und Echtzeit-Dashboard.",
+    "SeatFlow ist ein Sitzplan-Ticketshop für kleine Venues: Theater, Kabarett, Comedy-Club. Interaktiver Raumplan-Builder, automatischer Ticketshop, QR-Code-Tickets und Echtzeit-Dashboard.",
   url: "https://seatflow.app",
   inLanguage: ["de", "en", "hu"],
 };
@@ -54,13 +54,12 @@ const DE: LandingContent = {
     kostenlosStarten: "Kostenlos starten",
   },
   hero: {
-    badge: "Ticketshop für Theater · Kabarett · Comedy-Clubs",
-    h1: "Nummerierte Sitzplätze verkaufen –",
+    badge: "Für Theater, Kabarett und Comedy-Clubs",
+    h1: "Nummerierte Sitzplätze verkaufen,",
     h1Accent: "ohne Entwickler.",
-    lead: "SeatFlow gibt kleinen Venues einen fertigen Ticketshop mit interaktivem Sitzplan. Keine Provision, kein Code, kein Aufwand – in einer Stunde live.",
+    lead: "SeatFlow gibt kleinen Venues einen fertigen Ticketshop mit interaktivem Sitzplan. Keine Provision, kein Code, kein Aufwand. In einer Stunde live.",
     cta: "Jetzt kostenlos starten",
-    ctaSecondary: "Anmelden",
-    subline: "Kein Setup-Aufwand · Keine Provision · €0,50 pro Ticket",
+    subline: "Kein Setup-Aufwand, keine Provision, €0,50 pro Ticket",
   },
   stats: [
     { value: "< 1 h", label: "Einrichtungszeit" },
@@ -70,9 +69,9 @@ const DE: LandingContent = {
   usp: {
     heading: "Ihr Saal.",
     headingAccent: "Exakt wie er ist.",
-    sub: "Gebogene Reihen, Mittelgang, Tische, Stehplätze, gesperrte Sitze — der Raumplan-Builder bildet jeden Saal originalgetreu ab. Probieren Sie es aus: Der Plan unten ist echt und klickbar.",
+    sub: "Gebogene Reihen, Mittelgang, Tische, Stehplätze, gesperrte Sitze: Der Raumplan-Builder bildet jeden Saal originalgetreu ab. Probieren Sie es aus: Der Plan ist echt und klickbar.",
     demo: {
-      badge: "Live-Demo — echt klickbar",
+      badge: "Live-Demo: echt klickbar",
       leer: "Klicken Sie ein paar Plätze an",
       gewaehlt: "{n} Plätze gewählt · {preis}",
       zuruecksetzen: "Auswahl zurücksetzen",
@@ -88,12 +87,12 @@ const DE: LandingContent = {
       zoomReset: "Ansicht zurücksetzen",
     },
     punkte: [
-      { title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg — wie im echten Saal." },
-      { title: "Tische & Stehplatz-Zonen", desc: "Rundtische fürs Kabarett, Zonen mit Kapazität fürs Konzert — frei kombinierbar." },
-      { title: "Preiskategorien mit Farben", desc: "Parkett, Premium, Loge — jede Kategorie mit eigenem Preis und eigener Farbe." },
-      { title: "Einzelne Plätze sperren", desc: "Technikplatz, Kameragasse, defekter Sitz — per Klick blockiert, nie versehentlich verkauft." },
-      { title: "Vorlagen & Generator", desc: "Theater, Kabarett oder Mischbestuhlung in Sekunden — danach frei anpassen." },
-      { title: "Mehrere Ebenen", desc: "Parkett und Balkon als eigene Pläne im selben Event — Gäste wechseln per Tab." },
+      { icon: "reihen", title: "Gebogene Reihen & Mittelgang", desc: "Theater-Halbrund mit durchlaufender Nummerierung über den Gang hinweg, wie im echten Saal." },
+      { icon: "tische", title: "Tische & Stehplatz-Zonen", desc: "Rundtische fürs Kabarett, Zonen mit Kapazität fürs Konzert, frei kombinierbar." },
+      { icon: "kategorien", title: "Preiskategorien mit Farben", desc: "Parkett, Premium, Loge: jede Kategorie mit eigenem Preis und eigener Farbe." },
+      { icon: "sperren", title: "Einzelne Plätze sperren", desc: "Technikplatz, Kameragasse, defekter Sitz: per Klick blockiert, nie versehentlich verkauft." },
+      { icon: "vorlagen", title: "Vorlagen & Generator", desc: "Theater, Kabarett oder Mischbestuhlung in Sekunden, danach frei anpassen." },
+      { icon: "ebenen", title: "Mehrere Ebenen", desc: "Parkett und Balkon als eigene Pläne im selben Event. Gäste wechseln per Tab." },
     ],
   },
   steps: {
@@ -111,7 +110,7 @@ const DE: LandingContent = {
       },
       {
         num: "3",
-        title: "Link teilen – fertig",
+        title: "Link teilen, fertig",
         desc: "Gäste klicken auf ihren Wunschplatz, zahlen per Stripe und erhalten das Ticket sofort per E-Mail.",
       },
     ],
@@ -132,7 +131,7 @@ const DE: LandingContent = {
       {
         icon: "qr",
         title: "QR-Code-Tickets per E-Mail",
-        desc: "Sofort nach der Buchung. Check-in am Einlass per Smartphone – keine extra Hardware.",
+        desc: "Sofort nach der Buchung. Check-in am Einlass per Smartphone, keine extra Hardware.",
       },
       {
         icon: "chart",
@@ -143,7 +142,7 @@ const DE: LandingContent = {
   },
   pricing: {
     heading: "Transparente Preise",
-    subline: "Monatlich kündbar · Kein Setup-Aufwand · Servicegebühr wird an Käufer weitergegeben",
+    subline: "Monatlich kündbar, kein Setup-Aufwand, Servicegebühr wird an Käufer weitergegeben",
     popular: "Beliebteste Wahl",
     startBtn: "Kostenlos starten",
     plans: [
@@ -185,12 +184,11 @@ const DE_TICKET_REF: LandingContent = {
   ...DE,
   hero: {
     badge: "Sie sind Veranstalter?",
-    h1: "Das Ticketsystem hinter dem Event –",
+    h1: "Das Ticketsystem hinter dem Event,",
     h1Accent: "jetzt für Ihr Venue.",
     lead: "SeatFlow ist der Ticketshop, den Sie gerade erlebt haben. Interaktiver Sitzplan, automatische E-Mail-Tickets, keine Provision. In einer Stunde live.",
     cta: "Kostenlos ausprobieren",
-    ctaSecondary: "Anmelden",
-    subline: "Kein Setup-Aufwand · Keine Provision · €0,50 pro Ticket",
+    subline: "Kein Setup-Aufwand, keine Provision, €0,50 pro Ticket",
   },
 };
 

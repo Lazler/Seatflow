@@ -263,6 +263,23 @@ export function aufInhaltZugeschnitten(k: SitzplanKonfiguration, rand = 28): Sit
   };
 }
 
+// Zentriert den Inhalt innerhalb der bestehenden Leinwandgröße (anders als
+// aufInhaltZugeschnitten() wird breite/hoehe NICHT verändert) — für Editor-
+// Räume, die größer als die tatsächlich platzierten Elemente sind und den
+// Plan dadurch an den linken Rand gedrängt aussehen lassen.
+export function zentriereInhalt(k: SitzplanKonfiguration): SitzplanKonfiguration {
+  const g = inhaltsGrenzen(k);
+  if (g.breite <= 0 || g.hoehe <= 0) return k;
+  const dx = (k.breite - g.breite) / 2 - g.x;
+  const dy = (k.hoehe - g.hoehe) / 2 - g.y;
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return k;
+  return {
+    ...k,
+    buehne: { ...k.buehne, x: k.buehne.x + dx, y: k.buehne.y + dy },
+    elemente: k.elemente.map((el) => ({ ...el, x: el.x + dx, y: el.y + dy })),
+  };
+}
+
 export const LEERE_KONFIGURATION: SitzplanKonfiguration = {
   breite: 900,
   hoehe: 620,
