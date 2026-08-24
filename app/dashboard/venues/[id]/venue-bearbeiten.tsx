@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Pencil } from "lucide-react";
+import { Check, PencilSimple as Pencil } from "@phosphor-icons/react";
+import { useT } from "@/components/i18n-provider";
 
 type Venue = {
   id: string;
@@ -18,6 +19,8 @@ type Venue = {
 
 export default function VenueBearbeiten({ venue }: { venue: Venue }) {
   const router = useRouter();
+  const dict = useT();
+  const t = dict.venueBearbeiten;
   const [bearbeiten, setBearbeiten] = useState(false);
   const [name, setName] = useState(venue.name);
   const [adresse, setAdresse] = useState(venue.adresse ?? "");
@@ -42,7 +45,7 @@ export default function VenueBearbeiten({ venue }: { venue: Venue }) {
     setLaedt(false);
 
     if (error) {
-      setFehler("Konnte nicht gespeichert werden.");
+      setFehler(t.fehlerSpeichern);
       return;
     }
 
@@ -53,14 +56,14 @@ export default function VenueBearbeiten({ venue }: { venue: Venue }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Stammdaten</CardTitle>
+        <CardTitle className="text-base">{t.stammdaten}</CardTitle>
         {!bearbeiten && (
           <Button
             size="sm"
             variant="ghost"
             onClick={() => setBearbeiten(true)}
           >
-            <Pencil className="h-4 w-4 mr-1" /> Bearbeiten
+            <Pencil className="h-4 w-4 mr-1" /> {dict.common.bearbeiten}
           </Button>
         )}
       </CardHeader>
@@ -68,7 +71,7 @@ export default function VenueBearbeiten({ venue }: { venue: Venue }) {
         {bearbeiten ? (
           <>
             <div className="space-y-2">
-              <Label>Name *</Label>
+              <Label>{t.nameLabel}</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -76,15 +79,15 @@ export default function VenueBearbeiten({ venue }: { venue: Venue }) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Adresse</Label>
+              <Label>{t.adresse}</Label>
               <Input
                 value={adresse}
                 onChange={(e) => setAdresse(e.target.value)}
-                placeholder="z.B. Marktplatz 1, 80331 München"
+                placeholder={t.adressePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label>Beschreibung</Label>
+              <Label>{t.beschreibung}</Label>
               <textarea
                 className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={beschreibung}
@@ -95,7 +98,7 @@ export default function VenueBearbeiten({ venue }: { venue: Venue }) {
             <div className="flex gap-2">
               <Button onClick={speichern} disabled={laedt} size="sm">
                 <Check className="h-4 w-4 mr-1" />
-                {laedt ? "Speichern..." : "Speichern"}
+                {laedt ? dict.common.speichernLaeuft : dict.common.speichern}
               </Button>
               <Button
                 variant="outline"
@@ -107,25 +110,25 @@ export default function VenueBearbeiten({ venue }: { venue: Venue }) {
                   setBeschreibung(venue.beschreibung ?? "");
                 }}
               >
-                Abbrechen
+                {dict.common.abbrechen}
               </Button>
             </div>
           </>
         ) : (
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-muted-foreground">Name</dt>
+              <dt className="text-muted-foreground">{t.name}</dt>
               <dd className="font-medium mt-0.5">{venue.name}</dd>
             </div>
             {venue.adresse && (
               <div>
-                <dt className="text-muted-foreground">Adresse</dt>
+                <dt className="text-muted-foreground">{t.adresse}</dt>
                 <dd className="mt-0.5">{venue.adresse}</dd>
               </div>
             )}
             {venue.beschreibung && (
               <div>
-                <dt className="text-muted-foreground">Beschreibung</dt>
+                <dt className="text-muted-foreground">{t.beschreibung}</dt>
                 <dd className="mt-0.5">{venue.beschreibung}</dd>
               </div>
             )}

@@ -1,57 +1,241 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import EditorToolbar from "./editor-toolbar";
-import ElementEigenschaftenPanel from "./element-eigenschaften-panel";
+import * as Dialog from "@radix-ui/react-dialog";
+import { ElementHinzufuegenInhalt, PreiskategorienInhalt, PlaneinstellungenInhalt } from "./editor-toolbar";
+import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
+import ElementEigenschaftenPanel, { BuehneEigenschaftenPanel } from "./element-eigenschaften-panel";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
   type ReiheElement, type TischreiheElement, type RundtischElement,
-  naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, DEFAULT_KATEGORIEN,
+  type StehplatzElement, type TextElement,
+  naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, doppelteSitzIds, DEFAULT_KATEGORIEN, zentriereInhalt,
 } from "@/types/sitzplan";
+import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } from "@/lib/bestuhlung-generator";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, ChevronLeft, MousePointer2, Trash2, Pencil, Check, X } from "lucide-react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { toast } from "@/components/ui/toaster";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useT, useLocale } from "@/components/i18n-provider";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
 
 const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
   ssr: false,
-  loading: () => (
-    <div className="flex-1 bg-slate-50 flex items-center justify-center text-sm text-muted-foreground">
-      Canvas wird geladen…
-    </div>
-  ),
+  loading: () => <CanvasLadeHinweis />,
 });
+
+function CanvasLadeHinweis() {
+  const t = useT();
+  return (
+    <div className="flex-1 bg-slate-50 flex items-center justify-center text-sm text-muted-foreground">
+      {t.editor.canvasLaedt}
+    </div>
+  );
+}
 
 type Props = {
   planId: string; planName: string; venueId: string; venueName: string;
   initialKonfiguration: unknown;
+  // Bereits verkaufte Sitz-IDs (plan-lokal) — Elemente damit sind geschützt
+  verkaufteSitzIds?: string[];
 };
 
-export default function SitzplanEditor({ planId, planName, venueId, venueName, initialKonfiguration }: Props) {
+export default function SitzplanEditor({ planId, planName, venueId, venueName, initialKonfiguration, verkaufteSitzIds = [] }: Props) {
   const router = useRouter();
-  const [konfig, setKonfig] = useState<SitzplanKonfiguration>(migrierteKonfiguration(initialKonfiguration));
+  const t = useT();
+  const locale = useLocale();
+  const currencyLocale = intlLocale(locale);
+  // Beim Öffnen automatisch zentrieren: Räume, die größer als die tatsächlich
+  // platzierten Elemente sind, wirken sonst an den linken Rand gedrängt. Ist
+  // der Inhalt schon zentriert, ist das ein No-Op (zentriereInhalt gibt dann
+  // dieselbe Konfiguration zurück).
+  const [konfig, setKonfig] = useState<SitzplanKonfiguration>(() => zentriereInhalt(migrierteKonfiguration(initialKonfiguration)));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
-  const [speichernLaedt, setSpeichernLaedt] = useState(false);
+
   const [gespeichert, setGespeichert] = useState(false);
+
+  // ── Undo/Redo ────────────────────────────────────────────────────────────
+  // Ref-Spiegel des aktuellen Zustands, damit mutiere() außerhalb des
+  // setState-Updaters (StrictMode-sicher) auf die History pushen kann
+  const konfigRef = useRef(konfig);
+  useEffect(() => { konfigRef.current = konfig; }, [konfig]);
+  const historieRef = useRef<{ past: SitzplanKonfiguration[]; future: SitzplanKonfiguration[] }>({ past: [], future: [] });
+  const letzteMutationRef = useRef<{ key: string; zeit: number }>({ key: "", zeit: 0 });
+  const [historieStand, setHistorieStand] = useState({ kannUndo: false, kannRedo: false });
+
+  // Zentrale Mutations-Funktion: pusht den alten Zustand auf den Undo-Stack.
+  // coalesceKey fasst schnelle Folge-Änderungen (Slider, Stepper) zu einem
+  // History-Eintrag zusammen.
+  const mutiere = useCallback((update: (k: SitzplanKonfiguration) => SitzplanKonfiguration, coalesceKey?: string) => {
+    const jetzt = Date.now();
+    const l = letzteMutationRef.current;
+    const zusammenfassen = coalesceKey && l.key === coalesceKey && jetzt - l.zeit < 800;
+    if (!zusammenfassen) {
+      historieRef.current.past.push(konfigRef.current);
+      if (historieRef.current.past.length > 50) historieRef.current.past.shift();
+      historieRef.current.future = [];
+    }
+    letzteMutationRef.current = { key: coalesceKey ?? "", zeit: jetzt };
+    const neu = update(konfigRef.current);
+    konfigRef.current = neu;
+    setKonfig(neu);
+    setGespeichert(false);
+    setHistorieStand({
+      kannUndo: historieRef.current.past.length > 0,
+      kannRedo: historieRef.current.future.length > 0,
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    const h = historieRef.current;
+    const prev = h.past.pop();
+    if (!prev) return;
+    h.future.push(konfigRef.current);
+    letzteMutationRef.current = { key: "", zeit: 0 };
+    konfigRef.current = prev;
+    setKonfig(prev);
+    setAuswahl(null);
+    setGespeichert(false);
+    setHistorieStand({
+      kannUndo: historieRef.current.past.length > 0,
+      kannRedo: historieRef.current.future.length > 0,
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    const h = historieRef.current;
+    const next = h.future.pop();
+    if (!next) return;
+    h.past.push(konfigRef.current);
+    letzteMutationRef.current = { key: "", zeit: 0 };
+    konfigRef.current = next;
+    setKonfig(next);
+    setAuswahl(null);
+    setGespeichert(false);
+    setHistorieStand({
+      kannUndo: historieRef.current.past.length > 0,
+      kannRedo: historieRef.current.future.length > 0,
+    });
+  }, []);
+
+  // ── Snapping ─────────────────────────────────────────────────────────────
+  const [snapAktiv, setSnapAktiv] = useState(true);
+
+  // ── Sperrmodus: einzelne Plätze blockieren (Technik, Kamera, defekt) ─────
+  const [sperrModus, setSperrModus] = useState(false);
+  const sitzSperrungToggeln = useCallback((sitzId: string) => {
+    mutiere((k) => {
+      const gesperrt = new Set(k.gesperrteSitze ?? []);
+      if (gesperrt.has(sitzId)) gesperrt.delete(sitzId);
+      else gesperrt.add(sitzId);
+      return { ...k, gesperrteSitze: [...gesperrt] };
+    }, "sperrung");
+  }, [mutiere]);
+  // ── Barrierefrei-Modus: Rollstuhlplätze markieren ────────────────────────
+  const [barrierefreiModus, setBarrierefreiModus] = useState(false);
+  const sitzBarrierefreiToggeln = useCallback((sitzId: string) => {
+    mutiere((k) => {
+      const menge = new Set(k.barrierefreieSitze ?? []);
+      if (menge.has(sitzId)) menge.delete(sitzId);
+      else menge.add(sitzId);
+      return { ...k, barrierefreieSitze: [...menge] };
+    }, "barrierefrei");
+  }, [mutiere]);
+
+  const [speichernLaedt, setSpeichernLaedt] = useState(false);
   const [nameWert, setNameWert] = useState(planName);
   const [nameEditModus, setNameEditModus] = useState(false);
   const [nameLaedt, setNameLaedt] = useState(false);
+  const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
+  const [modalOffen, setModalOffen] = useState<"element" | "kategorien" | "einstellungen" | null>(null);
+
+  // Responsive canvas scaling
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [containerBreite, setContainerBreite] = useState(0);
+
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    setContainerBreite(el.clientWidth);
+    const ro = new ResizeObserver(() => setContainerBreite(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Scale canvas to fit container on mobile; cap at 1 on desktop
+  const fitScale = containerBreite > 0
+    ? Math.min(1, (containerBreite - 32) / konfig.breite)
+    : 1;
+
+  // Editor-Zoom (0.5×–2×) multipliziert die Fit-Skalierung; Container scrollt
+  const ZOOM_STUFEN = [0.5, 0.67, 0.8, 1, 1.25, 1.5, 2];
+  const [editorZoom, setEditorZoom] = useState(1);
+  const renderScale = fitScale * editorZoom;
+  function zoomSchritt(richtung: 1 | -1) {
+    const idx = ZOOM_STUFEN.findIndex((z) => z >= editorZoom - 0.001);
+    const next = ZOOM_STUFEN[Math.min(ZOOM_STUFEN.length - 1, Math.max(0, idx + richtung))];
+    setEditorZoom(next);
+  }
+
+  // Auswahl setzen + Mobile-Panel direkt öffnen (statt via Effect).
+  // Nur unterhalb des lg-Breakpoints öffnen: das Bottom-Sheet ist auf
+  // Desktop-Breiten per lg:hidden nur unsichtbar, bleibt für Radix aber
+  // ein offener Dialog — jeder Klick in die (separate) Desktop-Sidebar
+  // zählt dann als "außerhalb" und würde die Auswahl sofort wieder
+  // aufheben.
+  const waehleAus = useCallback((a: Auswahl) => {
+    setAuswahl(a);
+    if (a !== null && typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+      setMobilePanelOffen(true);
+    }
+  }, []);
+
+  function mobilePanelSchliessen() {
+    setMobilePanelOffen(false);
+    setAuswahl(null);
+  }
 
   async function nameSpeichern() {
     const bereinigt = nameWert.trim();
     if (!bereinigt || bereinigt === planName) { setNameWert(planName); setNameEditModus(false); return; }
     setNameLaedt(true);
     const supabase = createClient();
-    await supabase.from("sitzplaene").update({ name: bereinigt }).eq("id", planId);
+    const { error } = await supabase.from("sitzplaene").update({ name: bereinigt }).eq("id", planId);
     setNameLaedt(false);
     setNameEditModus(false);
+    if (error) { setNameWert(planName); toast.error(t.editor.umbenennenFehler, error.message); return; }
+    toast.success(t.editor.planUmbenannt, fmt(t.editor.heisstJetzt, { name: bereinigt }));
     router.refresh();
   }
 
   const gesamtSitze = konfig.elemente.reduce((s, e) => s + elementSitzIds(e).length, 0);
+
+  // ── Plan-Schutz: Elemente mit verkauften Plätzen dürfen nicht gelöscht
+  // oder strukturell verändert werden (Sitz-IDs müssen stabil bleiben) ──
+  // Lazy-Init statt useRef.current im Render (React-Compiler-Regel)
+  const [verkauft] = useState(() => new Set(verkaufteSitzIds));
+  const [schutzHinweis, setSchutzHinweis] = useState<string | null>(null);
+
+  function istGeschuetzt(el: SitzplanElement): boolean {
+    return elementSitzIds(el).some((id) => verkauft.has(id));
+  }
+
+  function schutzMelden(el: SitzplanElement) {
+    const n = elementSitzIds(el).filter((id) => verkauft.has(id)).length;
+    setSchutzHinweis(fmt(n === 1 ? t.editor.schutzSg : t.editor.schutzPl, { bez: el.bezeichnung, n }));
+    setTimeout(() => setSchutzHinweis(null), 5000);
+  }
+
+  // Felder, deren Änderung Sitz-IDs verschieben/entfernen würde
+  const STRUKTUR_FELDER = new Set([
+    "bezeichnung", "anzahlSitze", "nummerStart", "nummerRichtung",
+    "sitzeProSeite", "sitzeOben", "sitzeUnten", "kapazitaet",
+  ]);
 
   function naechstesY(): number {
     if (konfig.elemente.length === 0) return Math.round(konfig.hoehe * 0.4);
@@ -60,24 +244,62 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   }
 
   function elementHinzufuegen(typ: ElementTyp) {
-    const bezeichnung = naechsteBezeichnung(konfig.elemente, typ === "reihe" ? "" : typ === "tischreihe" ? "T" : "R");
+    const PREFIXE: Record<ElementTyp, string> = { reihe: "", tischreihe: "T", rundtisch: "R", stehplatz: "S", text: "X" };
+    const bezeichnung = naechsteBezeichnung(konfig.elemente, PREFIXE[typ]);
     const defaultKatId = konfig.kategorien[0]?.id ?? DEFAULT_KATEGORIEN[0].id;
     const basis = { id: crypto.randomUUID(), bezeichnung, x: Math.round(konfig.breite / 2), y: naechstesY(), winkel: 0, kategorie_id: defaultKatId };
 
     let neuesElement: SitzplanElement;
     if      (typ === "reihe")      neuesElement = { ...basis, typ: "reihe",      anzahlSitze: 10, sitzAbstand: 34 } satisfies ReiheElement;
     else if (typ === "tischreihe") neuesElement = { ...basis, typ: "tischreihe", sitzeProSeite: 4, sitzeOben: true, sitzeUnten: true } satisfies TischreiheElement;
+    else if (typ === "stehplatz")  neuesElement = { ...basis, typ: "stehplatz",  breite: 220, hoehe: 130, kapazitaet: 30 } satisfies StehplatzElement;
+    else if (typ === "text")       neuesElement = { ...basis, typ: "text",       text: t.editor.textDefault, fontSize: 16 } satisfies TextElement;
     else                           neuesElement = { ...basis, typ: "rundtisch",  anzahlSitze: 8,  tischRadius: 35 } satisfies RundtischElement;
 
-    setKonfig((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
-    setAuswahl({ typ: "element", ids: [neuesElement.id] });
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, elemente: [...k.elemente, neuesElement] }));
+    waehleAus({ typ: "element", ids: [neuesElement.id] });
+  }
+
+
+  // ── Bestuhlungs-Generator ─────────────────────────────────────────────────
+  // Reine Generier-Logik liegt in lib/bestuhlung-generator.ts (getestet); hier
+  // nur das Anwenden aufs Editor-State.
+  function bestuhlungErzeugen(reihen: number, sitzeProReihe: number, mittelgang: boolean) {
+    const { neu, hoeheNoetig, breiteNoetig } = erzeugeReihenbestuhlung(konfig, reihen, sitzeProReihe, mittelgang);
+    mutiere((k) => ({
+      ...k,
+      hoehe: Math.max(k.hoehe, hoeheNoetig),
+      breite: Math.max(k.breite, breiteNoetig),
+      elemente: [...k.elemente, ...neu],
+    }));
+    setAuswahl(null);
+  }
+
+  function rundtischGruppeErzeugen(anzahl: number, sitzeProTisch: number, startYOffset = 90) {
+    const { neu, hoeheNoetig } = erzeugeRundtischGruppe(konfig, anzahl, sitzeProTisch, startYOffset);
+    mutiere((k) => ({
+      ...k,
+      hoehe: Math.max(k.hoehe, hoeheNoetig),
+      elemente: [...k.elemente, ...neu],
+    }));
+    setAuswahl(null);
+  }
+
+  function vorlageAnwenden(typ: "theater" | "kabarett" | "misch") {
+    if (typ === "theater") { bestuhlungErzeugen(10, 12, true); return; }
+    if (typ === "kabarett") { rundtischGruppeErzeugen(6, 6); return; }
+    // Mischbestuhlung: 4 Reihen vorn, danach Rundtische
+    bestuhlungErzeugen(4, 12, true);
+    // Tische unterhalb der erzeugten Reihen platzieren
+    const reihenEnde = konfig.buehne.y + konfig.buehne.hoehe / 2 + 90 + 4 * REIHEN_ABSTAND_GEN;
+    rundtischGruppeErzeugen(3, 8, reihenEnde - (konfig.buehne.y + konfig.buehne.hoehe / 2) + 40);
   }
 
   function elementLoeschen(id: string) {
-    setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
+    const el = konfig.elemente.find((e) => e.id === id);
+    if (el && istGeschuetzt(el)) { schutzMelden(el); return; }
+    mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => e.id !== id) }));
     setAuswahl(null);
-    setGespeichert(false);
   }
 
   function elementDuplizieren(id: string) {
@@ -87,62 +309,62 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       ...original,
       id: crypto.randomUUID(),
       bezeichnung: naechsteBezeichnung(konfig.elemente,
-        original.typ === "reihe" ? "" : original.typ === "tischreihe" ? "T" : "R"),
+        ({ reihe: "", tischreihe: "T", rundtisch: "R", stehplatz: "S", text: "X" } as Record<ElementTyp, string>)[original.typ]),
       x: Math.min(original.x + 40, konfig.breite - 60),
       y: Math.min(original.y + 40, konfig.hoehe - 60),
     };
-    setKonfig((k) => ({ ...k, elemente: [...k.elemente, kopie] }));
-    setAuswahl({ typ: "element", ids: [kopie.id] });
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, elemente: [...k.elemente, kopie] }));
+    waehleAus({ typ: "element", ids: [kopie.id] });
   }
 
   function elementAktualisieren(id: string, delta: Partial<SitzplanElement>) {
-    setKonfig((k) => ({
+    const el = konfig.elemente.find((e) => e.id === id);
+    if (el && istGeschuetzt(el) && Object.keys(delta).some((k) => STRUKTUR_FELDER.has(k))) {
+      schutzMelden(el);
+      return;
+    }
+    mutiere((k) => ({
       ...k,
       elemente: k.elemente.map((e) => (e.id === id ? ({ ...e, ...delta } as SitzplanElement) : e)),
-    }));
-    setGespeichert(false);
+    }), `el-${id}`);
   }
 
   const elementVerschieben = useCallback((id: string, x: number, y: number) => {
-    setKonfig((k) => ({ ...k, elemente: k.elemente.map((e) => e.id === id ? { ...e, x, y } : e) }));
-    setGespeichert(false);
-  }, []);
+    mutiere((k) => ({ ...k, elemente: k.elemente.map((e) => e.id === id ? { ...e, x, y } : e) }));
+  }, [mutiere]);
 
   const elementeMehrfachVerschieben = useCallback((list: { id: string; x: number; y: number }[]) => {
-    setKonfig((k) => ({
+    mutiere((k) => ({
       ...k,
       elemente: k.elemente.map((e) => {
         const upd = list.find((u) => u.id === e.id);
         return upd ? { ...e, x: upd.x, y: upd.y } : e;
       }),
     }));
-    setGespeichert(false);
-  }, []);
+  }, [mutiere]);
 
   function buehneAktualisieren(delta: Partial<Buehne>) {
-    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, ...delta } }));
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, buehne: { ...k.buehne, ...delta } }), "buehne");
   }
 
   const buehneVerschieben = useCallback((x: number, y: number) => {
-    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, x, y } }));
-    setGespeichert(false);
-  }, []);
+    mutiere((k) => ({ ...k, buehne: { ...k.buehne, x, y } }));
+  }, [mutiere]);
 
   const buehneTransformiert = useCallback((breite: number, hoehe: number, x: number, y: number, winkel: number) => {
-    setKonfig((k) => ({ ...k, buehne: { ...k.buehne, breite, hoehe, x, y, winkel } }));
-    setGespeichert(false);
-  }, []);
+    mutiere((k) => ({ ...k, buehne: { ...k.buehne, breite, hoehe, x, y, winkel } }));
+  }, [mutiere]);
 
   function kategorienAktualisieren(kategorien: Preiskategorie[]) {
-    setKonfig((k) => ({ ...k, kategorien }));
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, kategorien }), "kategorien");
   }
 
   function raumgroesseAktualisieren(breite: number, hoehe: number) {
-    setKonfig((k) => ({ ...k, breite, hoehe }));
-    setGespeichert(false);
+    mutiere((k) => ({ ...k, breite, hoehe }), "raum");
+  }
+
+  function inhaltZentrieren() {
+    mutiere((k) => zentriereInhalt(k));
   }
 
   async function speichern() {
@@ -150,7 +372,13 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     const supabase = createClient();
     const { error } = await supabase.from("sitzplaene").update({ konfiguration: konfig }).eq("id", planId);
     setSpeichernLaedt(false);
-    if (!error) { setGespeichert(true); router.refresh(); }
+    if (error) {
+      toast.error(t.editor.speichernFehler, error.message);
+      return;
+    }
+    setGespeichert(true);
+    toast.success(t.editor.planGespeichert, fmt(gesamtSitze === 1 ? t.editor.planGespeichertSg : t.editor.planGespeichertPl, { n: gesamtSitze, name: nameWert }));
+    router.refresh();
   }
 
   const ausgewaehltesElement =
@@ -158,31 +386,115 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       ? konfig.elemente.find((e) => e.id === auswahl.ids[0]) ?? null
       : null;
   const auswahlIds = auswahl?.typ === "element" ? auswahl.ids : [];
-  const alleBezeichnungen = ausgewaehltesElement
-    ? konfig.elemente.filter((e) => e.id !== ausgewaehltesElement.id).map((e) => e.bezeichnung)
-    : [];
-  const bezeichnungen = konfig.elemente.map((e) => e.bezeichnung);
-  const hatDuplikate = bezeichnungen.length !== new Set(bezeichnungen).size;
+  // Sitz-IDs aller ANDEREN Elemente — geteilte Reihen (gleiche Bezeichnung,
+  // disjunkte Nummernbereiche) sind legitim, echte ID-Kollisionen nicht
+  const fremdeSitzIds = new Set(
+    ausgewaehltesElement
+      ? konfig.elemente
+          .filter((e) => e.id !== ausgewaehltesElement.id)
+          .flatMap((e) => elementSitzIds(e))
+      : []
+  );
+  const hatDuplikate = doppelteSitzIds(konfig.elemente).length > 0;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const inInput = document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA";
+      // Undo/Redo: Cmd/Ctrl+Z bzw. Cmd/Ctrl+Shift+Z / Ctrl+Y
+      if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z" || e.key === "y")) {
+        if (inInput) return;
+        e.preventDefault();
+        if (e.key === "y" || e.shiftKey) redo();
+        else undo();
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+        if (inInput) return;
         const ids = auswahl?.typ === "element" ? auswahl.ids : [];
         if (ids.length === 0) return;
-        setKonfig((k) => ({ ...k, elemente: k.elemente.filter((el) => !ids.includes(el.id)) }));
+        const geschuetzt = konfigRef.current.elemente.find((el) => ids.includes(el.id) && istGeschuetzt(el));
+        if (geschuetzt) { schutzMelden(geschuetzt); return; }
+        mutiere((k) => ({ ...k, elemente: k.elemente.filter((el) => !ids.includes(el.id)) }));
         setAuswahl(null);
-        setGespeichert(false);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [auswahl]);
+  }, [auswahl, mutiere, undo, redo]);
+
+  // Max. möglicher Umsatz bei Vollauslastung (Kapazitäts-/Umsatz-Widget)
+  const maxUmsatzCent = konfig.elemente.reduce((summe, el) => {
+    const kat = konfig.kategorien.find((k) => k.id === el.kategorie_id);
+    return summe + elementSitzIds(el).length * (kat?.preis_cent ?? 0);
+  }, 0);
+
+  // Shared sidebar panel content (used in both desktop aside and mobile bottom sheet)
+  function sidebarInhalt(onClose?: () => void) {
+    if (auswahlIds.length > 1) {
+      return (
+        <div className="flex flex-col h-full">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+            <button type="button" onClick={() => { setAuswahl(null); onClose?.(); }}
+              className="h-9 w-9 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-semibold">{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+            <MousePointer2 className="h-8 w-8 opacity-30" />
+            <p className="text-sm">{t.editor.mehrereZiehenPre} <strong>{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</strong> {t.editor.mehrereZiehenPost}</p>
+            <p className="text-xs">{t.editor.shiftAbwaehlen}</p>
+          </div>
+          <div className="px-4 py-3 border-t border-border">
+            <button type="button"
+              onClick={() => {
+                const geschuetzt = konfig.elemente.find((e) => auswahlIds.includes(e.id) && istGeschuetzt(e));
+                if (geschuetzt) { schutzMelden(geschuetzt); return; }
+                mutiere((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
+                setAuswahl(null);
+                onClose?.();
+              }}
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
+              <Trash2 className="h-3.5 w-3.5" /> {fmt(t.editor.elementeLoeschen, { n: auswahlIds.length })}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (auswahl?.typ === "buehne") {
+      return (
+        <BuehneEigenschaftenPanel
+          buehne={konfig.buehne}
+          onChange={buehneAktualisieren}
+          onSchliessen={() => { setAuswahl(null); onClose?.(); }}
+        />
+      );
+    }
+    if (ausgewaehltesElement) {
+      return (
+        <ElementEigenschaftenPanel
+          el={ausgewaehltesElement}
+          kategorien={konfig.kategorien}
+          fremdeSitzIds={fremdeSitzIds}
+          onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
+          onLoeschen={() => { elementLoeschen(ausgewaehltesElement.id); onClose?.(); }}
+          onSchliessen={() => { setAuswahl(null); onClose?.(); }}
+          onDuplizieren={() => elementDuplizieren(ausgewaehltesElement.id)}
+        />
+      );
+    }
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+        <MousePointer2 className="h-8 w-8 opacity-30" />
+        <p className="text-sm">{t.editorToolbar.elementInspektor}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-border flex items-center px-4 gap-3 shrink-0">
+      <div className="border-b border-border flex items-center px-4 gap-3 shrink-0 h-14" style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}>
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/dashboard/venues/${venueId}`}><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
@@ -198,12 +510,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
                 className="h-6 flex-1 min-w-0 text-sm font-semibold bg-transparent border-b border-primary focus:outline-none px-0"
               />
               <button type="button" onClick={nameSpeichern} disabled={nameLaedt}
-                className="h-5 w-5 flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 shrink-0">
-                <Check className="h-3 w-3" />
+                className="h-7 w-7 flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 shrink-0">
+                <Check className="h-3.5 w-3.5" />
               </button>
               <button type="button" onClick={() => { setNameWert(planName); setNameEditModus(false); }}
-                className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
-                <X className="h-3 w-3" />
+                className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ) : (
@@ -214,90 +526,238 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{konfig.breite} × {konfig.hoehe} px · {gesamtSitze} Plätze</span>
-          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>}
-          {hatDuplikate && <span className="text-xs text-destructive font-medium">Doppelte Bezeichnungen</span>}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Undo / Redo / Snap */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
+            <button type="button" onClick={undo} disabled={!historieStand.kannUndo}
+              aria-label={t.editor.rueckgaengig} title={t.editor.rueckgaengig}
+              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
+              <Undo2 className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={redo} disabled={!historieStand.kannRedo}
+              aria-label={t.editor.wiederholen} title={t.editor.wiederholen}
+              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
+              <Redo2 className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => setSnapAktiv((v) => !v)}
+              aria-label={t.editor.amRasterAusrichten} aria-pressed={snapAktiv}
+              title={snapAktiv ? t.editor.rasterAktiv : t.editor.rasterAus}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                snapAktiv ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"
+              }`}>
+              <Magnet className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => { setSperrModus((v) => !v); setBarrierefreiModus(false); setAuswahl(null); }}
+              aria-label={t.editor.sitzeSperren} aria-pressed={sperrModus}
+              title={t.editor.sperrmodusTitle}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                sperrModus ? "bg-destructive/15 text-destructive" : "hover:bg-muted text-muted-foreground"
+              }`}>
+              <Ban className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => { setBarrierefreiModus((v) => !v); setSperrModus(false); setAuswahl(null); }}
+              aria-label={t.editor.barrierefreieMarkieren} aria-pressed={barrierefreiModus}
+              title={t.editor.barrierefreiModusTitle}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                barrierefreiModus ? "bg-sky-100 text-sky-700" : "hover:bg-muted text-muted-foreground"
+              }`}>
+              <Wheelchair className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {/* Zoom-Steuerung */}
+          <div className="hidden sm:flex items-center gap-0.5 rounded-lg border border-input p-0.5">
+            <button type="button" onClick={() => zoomSchritt(-1)} disabled={editorZoom <= ZOOM_STUFEN[0]}
+              aria-label={t.editor.verkleinern}
+              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => setEditorZoom(1)}
+              className="h-7 min-w-[44px] px-1 rounded-md hover:bg-muted text-xs font-medium text-muted-foreground tabular-nums">
+              {Math.round(editorZoom * 100)}%
+            </button>
+            <button type="button" onClick={() => zoomSchritt(1)} disabled={editorZoom >= ZOOM_STUFEN[ZOOM_STUFEN.length - 1]}
+              aria-label={t.editor.vergroessern}
+              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <span className="text-xs text-muted-foreground hidden xl:inline">
+            {gesamtSitze} {t.editor.plaetze}
+            {maxUmsatzCent > 0 && (
+              <> · {t.editor.maxLabel} <strong className="text-foreground font-semibold">
+                {(maxUmsatzCent / 100).toLocaleString(currencyLocale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
+              </strong></>
+            )}
+          </span>
+          {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ {t.editor.gespeichert}</span>}
+          {hatDuplikate && <span className="text-xs text-destructive font-medium">{t.editor.doppelteSitzIds}</span>}
           <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {speichernLaedt ? "Speichern…" : "Speichern"}
+            <Save className="h-3.5 w-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">{speichernLaedt ? t.editor.speichernLaedt : t.editor.speichern}</span>
           </Button>
         </div>
       </div>
 
       {/* Hauptbereich: Canvas + kontext-sensitive Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-slate-100">
-          <div className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
-            style={{ width: konfig.breite, minHeight: konfig.hoehe }}>
+        {/* Canvas column: canvas + bottom build-bar */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div
+          ref={canvasContainerRef}
+          className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center gap-3 bg-slate-100"
+        >
+          {verkauft.size > 0 && (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800 font-medium shrink-0">
+              <Lock className="h-4 w-4 shrink-0" />
+              {fmt(t.editor.verkaufteWarnung, { n: verkauft.size })}
+            </div>
+          )}
+          {schutzHinweis && (
+            <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
+              {schutzHinweis}
+            </div>
+          )}
+          {sperrModus && (
+            <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
+              <Ban className="h-4 w-4 shrink-0" />
+              {t.editor.sperrmodusBanner}
+              · {konfig.gesperrteSitze?.length ?? 0} {t.editor.gesperrt}
+            </div>
+          )}
+          {barrierefreiModus && (
+            <div className="flex items-center gap-2 rounded-xl bg-sky-50 border border-sky-200 px-4 py-2 text-sm text-sky-800 font-medium shrink-0">
+              <Wheelchair className="h-4 w-4 shrink-0" />
+              {t.editor.barrierefreiBanner}
+              · {konfig.barrierefreieSitze?.length ?? 0} {t.editor.markiert}
+            </div>
+          )}
+          <div
+            className="rounded-xl border-2 border-slate-300 shadow-lg overflow-hidden"
+            style={{ width: konfig.breite * renderScale, minHeight: konfig.hoehe * renderScale }}
+          >
+            <ErrorBoundary>
             <SitzplanCanvas
               konfiguration={konfig}
               modus="editor"
+              renderScale={renderScale}
+              snapRaster={snapAktiv ? 10 : 0}
+              sperrModus={sperrModus || barrierefreiModus}
+              belegteSitze={sperrModus || (konfig.gesperrteSitze?.length ?? 0) > 0 ? new Set(konfig.gesperrteSitze ?? []) : undefined}
+              barrierefreieSitze={new Set(konfig.barrierefreieSitze ?? [])}
+              onSitzKlicken={sperrModus ? sitzSperrungToggeln : barrierefreiModus ? sitzBarrierefreiToggeln : undefined}
               auswahl={auswahl}
-              onAuswaehlen={setAuswahl}
+              onAuswaehlen={waehleAus}
               onElementVerschieben={elementVerschieben}
               onMehrereElementeVerschieben={elementeMehrfachVerschieben}
               onBuehneVerschieben={buehneVerschieben}
               onBuehneTransformiert={buehneTransformiert}
+              texte={{
+                editorAria: t.editor.canvasAria,
+                textFallback: t.editor.canvasTextFallback,
+                stehplatzInfo: t.editor.stehplatzInfo,
+                currencyLocale,
+              }}
             />
+            </ErrorBoundary>
           </div>
         </div>
 
-        {/* Sidebar: wechselt zwischen globalen Einstellungen und Element-Eigenschaften */}
-        <aside className="w-64 border-l border-border bg-background flex flex-col overflow-hidden shrink-0">
-          {auswahlIds.length > 1 ? (
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-                <button type="button" onClick={() => setAuswahl(null)}
-                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-sm font-semibold">{auswahlIds.length} Elemente</span>
-              </div>
-              <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-                <MousePointer2 className="h-8 w-8 opacity-30" />
-                <p className="text-sm">Ziehe ein Element um alle <strong>{auswahlIds.length} Elemente</strong> gemeinsam zu verschieben.</p>
-                <p className="text-xs">Shift+Klick zum Abwählen.</p>
-              </div>
-              <div className="px-4 py-3 border-t border-border">
-                <button type="button"
-                  onClick={() => {
-                    setKonfig((k) => ({ ...k, elemente: k.elemente.filter((e) => !auswahlIds.includes(e.id)) }));
-                    setAuswahl(null);
-                    setGespeichert(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-input text-sm text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" /> {auswahlIds.length} Elemente löschen
-                </button>
-              </div>
-            </div>
-          ) : ausgewaehltesElement ? (
-            <ElementEigenschaftenPanel
-              el={ausgewaehltesElement}
-              kategorien={konfig.kategorien}
-              alleBezeichnungen={alleBezeichnungen}
-              onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
-              onLoeschen={() => elementLoeschen(ausgewaehltesElement.id)}
-              onSchliessen={() => setAuswahl(null)}
-              onDuplizieren={() => elementDuplizieren(ausgewaehltesElement.id)}
-            />
-          ) : (
-            <EditorToolbar
-              elemente={konfig.elemente}
-              buehne={konfig.buehne}
-              kategorien={konfig.kategorien}
-              raumbreite={konfig.breite}
-              raumhoehe={konfig.hoehe}
-              gesamtSitze={gesamtSitze}
-              onHinzufuegen={elementHinzufuegen}
-              onBuehneAktualisieren={buehneAktualisieren}
-              onKategorienAktualisieren={kategorienAktualisieren}
-              onRaumgroesseAktualisieren={raumgroesseAktualisieren}
-            />
-          )}
+        {/* Build-Bar: Plan-Kennzahlen + Kategorie-Badges + Element hinzufügen / Preiskategorien / Planeinstellungen */}
+        <div className="shrink-0 border-t border-border bg-card px-4 sm:px-6 py-2.5 flex items-center gap-3 flex-wrap">
+          <span className="font-mono text-sm font-medium whitespace-nowrap">
+            {gesamtSitze}
+            <span className="text-xs text-muted-foreground font-sans ml-1.5">
+              {konfig.elemente.length} {konfig.elemente.length !== 1 ? t.editorToolbar.elementPl : t.editorToolbar.elementSg} · {t.editorToolbar.plaetze}
+            </span>
+          </span>
+          <div className="flex flex-wrap gap-1 min-w-0">
+            {konfig.kategorien.map((k) => (
+              <span key={k.id} className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border whitespace-nowrap"
+                style={{ borderColor: k.farbe, color: k.farbe }}>
+                {k.name}
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2 ml-auto">
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("element")}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.elementHinzufuegen}</span>
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("kategorien")}>
+              <Tags className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.preiskategorien}</span>
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("einstellungen")}>
+              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.planeinstellungen}</span>
+            </Button>
+          </div>
+        </div>
+        </div>
+
+        {/* Desktop Sidebar (lg+) */}
+        <aside className="hidden lg:flex w-64 border-l border-border bg-background flex-col overflow-hidden shrink-0">
+          {sidebarInhalt()}
         </aside>
       </div>
+
+      {/* Element hinzufügen / Preiskategorien / Planeinstellungen — Modals */}
+      <Modal open={modalOffen === "element"} onOpenChange={(o) => !o && setModalOffen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t.editorToolbar.elementHinzufuegen}</DialogTitle></DialogHeader>
+          <DialogBody>
+            <ElementHinzufuegenInhalt
+              onHinzufuegen={(typ) => { elementHinzufuegen(typ); setModalOffen(null); }}
+              onBuehneAuswaehlen={() => { waehleAus({ typ: "buehne" }); setModalOffen(null); }}
+            />
+          </DialogBody>
+        </DialogContent>
+      </Modal>
+
+      <Modal open={modalOffen === "kategorien"} onOpenChange={(o) => !o && setModalOffen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t.editorToolbar.preiskategorien}</DialogTitle></DialogHeader>
+          <DialogBody>
+            <PreiskategorienInhalt kategorien={konfig.kategorien} onChange={kategorienAktualisieren} />
+          </DialogBody>
+        </DialogContent>
+      </Modal>
+
+      <Modal open={modalOffen === "einstellungen"} onOpenChange={(o) => !o && setModalOffen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t.editorToolbar.planeinstellungen}</DialogTitle></DialogHeader>
+          <DialogBody>
+            <PlaneinstellungenInhalt
+              raumbreite={konfig.breite}
+              raumhoehe={konfig.hoehe}
+              onRaumgroesseAktualisieren={raumgroesseAktualisieren}
+              onInhaltZentrieren={inhaltZentrieren}
+              leer={konfig.elemente.length === 0}
+              onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); setModalOffen(null); }}
+              onVorlage={(typ) => { vorlageAnwenden(typ); setModalOffen(null); }}
+            />
+          </DialogBody>
+        </DialogContent>
+      </Modal>
+
+      {/* Mobile Bottom Sheet (< lg) — Auswahl-Panel, öffnet automatisch bei Auswahl */}
+      <Dialog.Root open={mobilePanelOffen} onOpenChange={(open) => { if (!open) mobilePanelSchliessen(); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="drawer-overlay fixed inset-0 bg-black/40 z-[60] lg:hidden" />
+          <Dialog.Content
+            className="bottom-sheet fixed bottom-0 left-0 right-0 z-[70] lg:hidden bg-card rounded-t-2xl shadow-2xl flex flex-col focus:outline-none"
+            style={{ maxHeight: "78vh" }}
+            aria-describedby={undefined}
+          >
+            <Dialog.Title className="sr-only">{t.editor.editorPanel}</Dialog.Title>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
+            {/* Panel content */}
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              {sidebarInhalt(mobilePanelSchliessen)}
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

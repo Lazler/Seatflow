@@ -1,102 +1,68 @@
 import { createClient } from "@/lib/supabase/server";
+import { getServerDict } from "@/lib/i18n/server";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Calendar, Plus } from "lucide-react";
-
-const STATUS_LABEL: Record<string, string> = {
-  entwurf: "Entwurf",
-  veroeffentlicht: "Veröffentlicht",
-  abgesagt: "Abgesagt",
-  beendet: "Beendet",
-};
+import { Plus } from "@phosphor-icons/react/dist/ssr";
+import { migrierteKonfiguration, elementSitzIds } from "@/types/sitzplan";
+import EventsListe from "./events-liste";
 
 export default async function EventsSeite() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [t, supabase] = await Promise.all([getServerDict(), createClient()]);
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { data: events } = await supabase
     .from("events")
-    .select("id, titel, datum, status, ticket_preis_cent")
+    .select("id, titel, datum, status, ticket_preis_cent, sitzplan_id")
     .eq("veranstalter_id", user!.id)
     .order("datum", { ascending: false });
 
+  const eventIds = (events ?? []).map((e) => e.id);
+  const sitzplanIds = [...new Set((events ?? []).map((e) => e.sitzplan_id).filter(Boolean) as string[])];
+
+  const [ticketsRes, sitzplaeneRes] = await Promise.all([
+    eventIds.length > 0
+      ? supabase.from("tickets").select("event_id").in("event_id", eventIds)
+      : { data: [] },
+    sitzplanIds.length > 0
+      ? supabase.from("sitzplaene").select("id, konfiguration").in("id", sitzplanIds)
+      : { data: [] },
+  ]);
+
+  const ticketsProEvent = new Map<string, number>();
+  for (const tk of ticketsRes.data ?? []) {
+    ticketsProEvent.set(tk.event_id, (ticketsProEvent.get(tk.event_id) ?? 0) + 1);
+  }
+
+  const kapazitaetProSitzplan = new Map<string, number>();
+  for (const plan of sitzplaeneRes.data ?? []) {
+    const konfig = migrierteKonfiguration(plan.konfiguration);
+    kapazitaetProSitzplan.set(
+      plan.id,
+      konfig.elemente.reduce((s, e) => s + elementSitzIds(e).length, 0)
+    );
+  }
+
+  const eventsMitBelegung = (events ?? []).map((e) => ({
+    ...e,
+    verkauft: ticketsProEvent.get(e.id) ?? 0,
+    kapazitaet: e.sitzplan_id ? kapazitaetProSitzplan.get(e.sitzplan_id) ?? null : null,
+  }));
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Events</h1>
-          <p className="text-muted-foreground">Alle deine Veranstaltungen</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight truncate">{t.events.title}</h1>
+          <p className="text-muted-foreground mt-2">{t.events.subtitle}</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/events/neu">
-            <Plus className="h-4 w-4 mr-1" /> Neues Event
+        <Button asChild size="lg" className="self-start sm:self-auto shrink-0 gap-2">
+          <Link href="/dashboard/events/new">
+            <Plus className="h-4 w-4" /> {t.events.neuesEvent}
           </Link>
         </Button>
       </div>
 
-      {(events ?? []).length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-16 text-center">
-            <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="font-medium mb-1">Noch keine Events</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Erstelle dein erstes Event und verkaufe Tickets mit Sitzplatzwahl.
-            </p>
-            <Button asChild>
-              <Link href="/dashboard/events/neu">
-                <Plus className="h-4 w-4 mr-1" /> Event erstellen
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {events?.map((event) => (
-            <Card key={event.id}>
-              <CardContent className="py-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="font-medium">{event.titel}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(event.datum).toLocaleDateString("de-DE", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {" · "}
-                    {(event.ticket_preis_cent / 100).toLocaleString("de-DE", {
-                      style: "currency",
-                      currency: "EUR",
-                    })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 ml-4">
-                  <Badge
-                    variant={
-                      event.status === "veroeffentlicht"
-                        ? "default"
-                        : event.status === "abgesagt"
-                        ? "destructive"
-                        : "secondary"
-                    }
-                  >
-                    {STATUS_LABEL[event.status] ?? event.status}
-                  </Badge>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/dashboard/events/${event.id}`}>Details</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <EventsListe events={eventsMitBelegung} />
     </div>
   );
 }
