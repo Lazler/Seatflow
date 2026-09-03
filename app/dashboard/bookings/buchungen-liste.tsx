@@ -183,7 +183,8 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">{t.buchungen.colId}</th>
@@ -227,6 +228,7 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
               ))}
             </tbody>
           </table>
+          </div>
           <div className="px-4 py-2.5 border-t border-border bg-muted/20 text-xs text-muted-foreground">
             {gefiltert.length} {t.buchungen.title}
             {gefiltert.length !== buchungen.length && ` ${fmt(t.buchungen.vonGesamt, { n: buchungen.length })}`}
