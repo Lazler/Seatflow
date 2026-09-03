@@ -3,8 +3,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-outfit);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -23,57 +24,171 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* SeatFlow v3 tokens — exposed as Tailwind utilities (bg-brand, text-gold, …) */
+  --color-paper: var(--paper);
+  --color-bone: var(--bone);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
+  /* ---------- Neutral surface scale ---------- */
+  --paper: #fafafa;
+  --bone: #ffffff;
+  --ink: #17181a;
+  --ink-2: #6b6e73;
+  --rule: #e5e5e7;
+  --rule-soft: #eeeeef;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* ---------- Brand: deep coral-orange ---------- */
+  --brand: #d9481f;
+  --brand-deep: #b23a17;
+  --brand-soft: #fbe3d8;
+
+  /* ---------- Celebration ---------- */
+  --gold: #c99a3a;
+  --gold-deep: #96721f;
+
+  --danger: #c0311b;
+  --success: #1e824c;
+
+  /* ---------- Semantic aliases — the rest of the app reads these ---------- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--bone);
+  --card-foreground: var(--ink);
+  --popover: var(--bone);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--rule-soft);
+  --secondary-foreground: var(--ink);
+  --muted: var(--rule-soft);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--rule-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--brand);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.15s ease-out both;
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes slide-out-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.drawer-overlay[data-state="open"]  { animation: fade-in 0.2s ease-out; }
+.drawer-overlay[data-state="closed"] { animation: fade-out 0.2s ease-in; }
+.drawer-content[data-state="open"]  { animation: slide-in-left 0.25s ease-out; }
+.drawer-content[data-state="closed"] { animation: slide-out-left 0.25s ease-in; }
+
+@keyframes slide-up-sheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes slide-down-sheet {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+.bottom-sheet[data-state="open"]   { animation: slide-up-sheet 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+.bottom-sheet[data-state="closed"] { animation: slide-down-sheet 0.22s ease-in; }
+
+/* Ticket scanner */
+@keyframes scan-sweep {
+  0%   { top: 2px;              opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: calc(100% - 2px); opacity: 0; }
+}
+.scan-sweep-line {
+  position: absolute;
+  animation: scan-sweep 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes scanner-result-in {
+  from { transform: translateY(32px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.scanner-result-in {
+  animation: scanner-result-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Toasts (Radix) */
+@keyframes toast-in {
+  from { transform: translateY(12px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+@keyframes toast-out {
+  from { transform: translateY(0);   opacity: 1; }
+  to   { transform: translateY(8px); opacity: 0; }
+}
+@keyframes toast-swipe-out {
+  from { transform: translateX(var(--radix-toast-swipe-end-x)); opacity: 1; }
+  to   { transform: translateX(calc(100% + 1rem)); opacity: 0; }
+}
+.toast-root[data-state="open"]   { animation: toast-in 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+.toast-root[data-state="closed"] { animation: toast-out 0.15s ease-in; }
+.toast-root[data-swipe="move"]   { transform: translateX(var(--radix-toast-swipe-move-x)); }
+.toast-root[data-swipe="cancel"] { transform: translateX(0); transition: transform 0.2s ease-out; }
+.toast-root[data-swipe="end"]    { animation: toast-swipe-out 0.15s ease-out forwards; }
+
+/* Kleines Aufploppen für Erfolgs-Häkchen, Badges, Zähler */
+@keyframes pop-in {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop-in {
+  animation: pop-in 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* Barrierefreiheit: Bewegung reduzieren, wenn das System es wünscht */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

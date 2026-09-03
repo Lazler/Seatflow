@@ -1,0 +1,193 @@
+import type { Metadata } from "next";
+import LandingPage, { type LandingContent } from "@/components/landing/landing-page";
+
+export const metadata: Metadata = {
+  title: "SeatFlow: Számozott ülőhelyek értékesítése kis helyszíneknek",
+  description:
+    "A SeatFlow professzionális jegyvásárlási felületet ad színházaknak, kabarénak és komédiakluboknak, jutalék nélkül, fejlesztő nélkül, egy órán belül élesben.",
+  alternates: {
+    canonical: "https://seatflow.app/hu",
+    languages: {
+      "de": "https://seatflow.app/",
+      "en": "https://seatflow.app/en",
+      "hu": "https://seatflow.app/hu",
+    },
+  },
+  openGraph: {
+    title: "SeatFlow: Számozott ülőhelyek értékesítése kis helyszíneknek",
+    description:
+      "Ülésrend alapú jegyrendszer színházaknak, kabarénak és komédiakluboknak. Egy óra alatt éles, jutalék nélkül, €0,50/jegy.",
+    url: "https://seatflow.app/hu",
+    siteName: "SeatFlow",
+    locale: "hu_HU",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SeatFlow: Ülőhelyes jegyrendszer kis helyszíneknek",
+    description:
+      "Színház, kabaré, komédiaklubok: saját jegyrendszer interaktív ülésrenddel, egy óra alatt, fejlesztő nélkül.",
+  },
+};
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "SeatFlow",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "49",
+    priceCurrency: "EUR",
+  },
+  description:
+    "A SeatFlow ülésrend alapú jegyrendszer kis helyszíneknek: színházaknak, kabarénak és komédiakluboknak. Vizuális alaprajz-szerkesztő, automatikus jegyboltt, QR-kódos jegyek és valós idejű áttekintő.",
+  url: "https://seatflow.app",
+  inLanguage: ["de", "en", "hu"],
+};
+
+const HU: LandingContent = {
+  lang: "hu",
+  nav: {
+    anmelden: "Bejelentkezés",
+    kostenlosStarten: "Ingyenes indítás",
+  },
+  hero: {
+    badge: "Színházaknak, kabaréknak és komédiakluboknak",
+    h1: "Számozott ülőhelyek értékesítése,",
+    h1Accent: "fejlesztő nélkül.",
+    lead: "A SeatFlow kész jegyboltt ad kis helyszíneknek interaktív ülésrenddel. Jutalék nélkül, kód nélkül, gond nélkül. Egy órán belül élesben.",
+    cta: "Ingyenes indítás",
+    subline: "Nincs beállítási díj, nincs jutalék, €0,50 jegyenként",
+  },
+  stats: [
+    { value: "< 1 ó", label: "beállítási idő" },
+    { value: "€0,50", label: "jegyenként, jutalék nélkül" },
+    { value: "100 %", label: "webalapú, nem kell alkalmazás" },
+  ],
+  usp: {
+    heading: "A terme.",
+    headingAccent: "Pontosan úgy, ahogy van.",
+    sub: "Ívelt sorok, középső folyosó, asztalok, állóhelyek, zárolt székek: az ülésrend-szerkesztő bármilyen termet élethűen leképez. Próbálja ki: az alaprajz valódi és kattintható.",
+    demo: {
+      badge: "Élő demó: tényleg kattintható",
+      leer: "Kattintson néhány helyre",
+      gewaehlt: "{n} hely kiválasztva · {preis}",
+      zuruecksetzen: "Kijelölés törlése",
+      zoneFrei: "szabad",
+      zoneGewaehlt: "kiválasztva",
+      zoneHinzufuegen: "+ Koppintson a hozzáadáshoz",
+      zoneAusverkauft: "elkelt",
+      canvasAria: "Interaktív ülésrend-demó",
+      barrierefrei: "akadálymentes",
+      stehplatz: "ÁLLÓHELY",
+      zoomVergroessern: "Nagyítás",
+      zoomVerkleinern: "Kicsinyítés",
+      zoomReset: "Nézet visszaállítása",
+    },
+    punkte: [
+      { icon: "reihen", title: "Ívelt sorok és középső folyosó", desc: "Színházi félkör folytatólagos számozással a folyosón át, mint a valódi teremben." },
+      { icon: "tische", title: "Asztalok és állóhelyek", desc: "Kerek asztalok kabaréhoz, kapacitás-zónák koncerthez, szabadon kombinálható." },
+      { icon: "kategorien", title: "Árkategóriák színekkel", desc: "Földszint, prémium, páholy: minden kategória saját árral és színnel." },
+      { icon: "sperren", title: "Egyes helyek zárolása", desc: "Technikai hely, kamerasor, hibás szék: egy kattintással zárolva, sosem kel el véletlenül." },
+      { icon: "vorlagen", title: "Sablonok és generátor", desc: "Színházi, kabaré- vagy vegyes elrendezés másodpercek alatt, utána szabadon testreszabható." },
+      { icon: "ebenen", title: "Több szint", desc: "Földszint és erkély külön alaprajzként ugyanabban az eseményben. A vendégek füllel váltanak." },
+    ],
+  },
+  steps: {
+    heading: "Három lépésben élesben",
+    items: [
+      {
+        num: "1",
+        title: "Rajzold meg az alaprajzot",
+        desc: "Sorokat, asztalokat és pódiumelemeket drag & drop segítségével helyezz el. Nincs szükség tervezőprogramra.",
+      },
+      {
+        num: "2",
+        title: "Hozd létre az eseményt",
+        desc: "Dátum, jegyár, leírás és a foglalási oldal beállítása néhány perc alatt.",
+      },
+      {
+        num: "3",
+        title: "Oszd meg a linket, kész",
+        desc: "A vendégek kiválasztják helyüket, fizetnek Stripe-on keresztül, és azonnal megkapják a jegyet e-mailben.",
+      },
+    ],
+  },
+  features: {
+    heading: "Minden, amire egy helyszínnek szüksége van",
+    items: [
+      {
+        icon: "map",
+        title: "Vizuális alaprajz-szerkesztő",
+        desc: "Sorokat, asztalokat és szabad területeket szabadon pozicionálhatsz. Az alaprajz közvetlenül foglalható oldallá válik.",
+      },
+      {
+        icon: "zap",
+        title: "Automatikus jegybolt",
+        desc: "Nincs szükség extra eszközre: a vendégek közvetlenül az oldaladon foglalnak, és biztonságosan fizetnek Stripe-on.",
+      },
+      {
+        icon: "qr",
+        title: "QR-kódos jegyek e-mailben",
+        desc: "Azonnal a foglalás után. Beengedés okostelefonnal a bejáratnál, nincs szükség extra hardverre.",
+      },
+      {
+        icon: "chart",
+        title: "Valós idejű helyfoglaltság-áttekintő",
+        desc: "Melyik hely szabad, ki foglalt, mennyi a bevétel? Minden egy pillantásra.",
+      },
+    ],
+  },
+  pricing: {
+    heading: "Átlátható árak",
+    subline: "Bármikor lemondható, nincs beállítási díj, a szolgáltatási díj áthárítható a vevőre",
+    popular: "Legnépszerűbb",
+    startBtn: "Ingyenes indítás",
+    plans: [
+      {
+        name: "Free",
+        price: "€0",
+        period: "/hó",
+        desc: "Örökre ingyenes, nem kell bankkártya",
+        features: ["3 esemény/hó", "Max. 80 férőhely", "Alaprajz-szerkesztő", "E-mail jegyek & QR-kód", "€1,50 szolgáltatási díj/jegy"],
+        highlight: false,
+      },
+      {
+        name: "Pro",
+        price: "€29",
+        period: "/hó",
+        desc: "Megtérül 40 jegy/hótól",
+        features: [
+          "Korlátlan esemény",
+          "Korlátlan férőhely",
+          "€0,75 szolgáltatási díj/jegy",
+          "Saját arculat",
+          "Analitika",
+        ],
+        highlight: true,
+      },
+    ],
+    rechner: {
+      heading: "Mennyit fizetek valójában?",
+      ticketsLabel: "Jegy havonta",
+      breakevenHint: "A Pro {n} jegy/hótól éri meg",
+      upgradeBtn: "Pro kipróbálása",
+      currency: "€",
+    },
+  },
+  footer: "© 2026 SeatFlow · Minden jog fenntartva",
+};
+
+export default function HuPage() {
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
+      <LandingPage c={HU} registerPath="/register" loginPath="/login" blogPath="/hu/blog" />
+    </>
+  );
+}

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const GESCHUETZTE_ROUTEN = ["/dashboard"];
-const AUTH_ROUTEN = ["/anmelden", "/registrieren"];
+const AUTH_ROUTEN = ["/login", "/register"];
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -37,7 +37,10 @@ export async function proxy(request: NextRequest) {
   const istAuthRoute = AUTH_ROUTEN.some((r) => pfad.startsWith(r));
 
   if (istGeschuetzt && !user) {
-    return NextResponse.redirect(new URL("/anmelden", request.url));
+    // Rücksprungziel merken, damit man nach dem Login wieder dort landet
+    const url = new URL("/login", request.url);
+    url.searchParams.set("weiter", pfad);
+    return NextResponse.redirect(url);
   }
 
   if (istAuthRoute && user) {
