@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, CircleNotch as Loader2, CaretUp as ChevronUp, CaretDown as ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkle as Sparkles, Wheelchair } from "@phosphor-icons/react";
+import { X, Check, CircleNotch as Loader2, CaretUp as ChevronUp, CaretDown as ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkle as Sparkles, Wheelchair } from "@phosphor-icons/react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor, aufInhaltZugeschnitten } from "@/types/sitzplan";
 import type { TicketTyp, PflichtFeld } from "@/types/ticket-typ";
@@ -1038,8 +1038,15 @@ function Legende({ kategorien, belegtLabel, ausgewaehltLabel, barrierefreiLabel 
           {k.name} — {(k.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
         </span>
       ))}
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-[#b9bcc0]" />{belegtLabel}</span>
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-white border-2 border-brand" />{ausgewaehltLabel}</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-[#d3d7dd]" />{belegtLabel}</span>
+      {/* Auswahl wird im Plan über Ring + Häkchen gezeigt, nicht über eine
+          eigene Füllfarbe — die Legende bildet genau das ab. */}
+      <span className="flex items-center gap-1.5">
+        <span className="w-3.5 h-3.5 shrink-0 rounded-full border-2 border-[#16181d] bg-muted-foreground/25 grid place-items-center">
+          <Check weight="bold" className="w-2 h-2 text-[#16181d]" />
+        </span>
+        {ausgewaehltLabel}
+      </span>
       {barrierefreiLabel && (
         <span className="flex items-center gap-1.5">
           <Wheelchair className="w-3.5 h-3.5 text-sky-700 shrink-0" />

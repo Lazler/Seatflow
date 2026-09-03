@@ -115,7 +115,7 @@ export default function BuilderDemo({ texte }: { texte: BuilderDemoTexte }) {
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="w-full bg-[#1c1d20]">
+      <div ref={containerRef} className="w-full bg-[#f2f4f7]">
         {scale > 0 && (
           <SitzplanCanvas
             konfiguration={konfig}

@@ -19,7 +19,11 @@ export function Logo({ size = "md", className }: { size?: keyof typeof GROESSEN;
       )}
     >
       SeatFlow
-      <span className="ml-[0.08em] mb-[0.15em] inline-block h-[0.22em] w-[0.22em] shrink-0 self-end rounded-full bg-brand" aria-hidden="true" />
+      {/* Der Punkt sitzt wie ein Satzpunkt AUF der Grundlinie: Bei
+          items-baseline liegt die Unterkante eines leeren inline-block genau
+          dort. (self-end hätte ihn auf die Zeilen-Unterkante gedrückt, also in
+          den Unterlängen-Bereich — der Punkt hing sichtbar zu tief.) */}
+      <span className="ml-[0.08em] inline-block h-[0.2em] w-[0.2em] shrink-0 rounded-full bg-brand" aria-hidden="true" />
     </span>
   );
 }

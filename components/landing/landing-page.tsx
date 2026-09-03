@@ -202,22 +202,20 @@ export default function LandingPage({ c, registerPath, loginPath, blogPath = "/b
       <section className="bg-muted/30 border-y border-border py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">{c.features.heading}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* Vier gleichwertige Features → sauberes 2×2. Ein 3-Spalten-Raster
+              mit col-span-2 auf der ersten Karte ließ rechts unten ein Loch
+              und gab einer Karte ohne Grund ein anderes Format. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {c.features.items.map((f, i) => {
               const Icon = ICON_MAP[f.icon];
-              const gross = i === 0;
               return (
-                <Reveal key={f.title} delay={i * 0.06} className={gross ? "sm:col-span-2" : undefined}>
-                  <div
-                    className={`h-full flex gap-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-200 ${
-                      gross ? "p-6 sm:items-center" : "p-5"
-                    }`}
-                  >
-                    <div className={`shrink-0 rounded-lg bg-primary/10 flex items-center justify-center ${gross ? "w-12 h-12" : "w-9 h-9"}`}>
-                      <Icon className={gross ? "h-5 w-5 text-primary" : "h-4 w-4 text-primary"} />
+                <Reveal key={f.title} delay={i * 0.06}>
+                  <div className="h-full flex gap-4 p-6 rounded-xl bg-background border border-border hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-200">
+                    <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Icon className="h-[18px] w-[18px] text-primary" />
                     </div>
                     <div>
-                      <h3 className={`font-semibold mb-1 ${gross ? "text-base" : "text-sm"}`}>{f.title}</h3>
+                      <h3 className="font-semibold text-base mb-1">{f.title}</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                     </div>
                   </div>
