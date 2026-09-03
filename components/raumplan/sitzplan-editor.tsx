@@ -8,6 +8,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { ElementHinzufuegenInhalt, PreiskategorienInhalt, PlaneinstellungenInhalt } from "./editor-toolbar";
 import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
 import ElementEigenschaftenPanel, { BuehneEigenschaftenPanel } from "./element-eigenschaften-panel";
+import { EditorGuideModal } from "./editor-guide";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
@@ -19,7 +20,7 @@ import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } f
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
-import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair } from "@phosphor-icons/react";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair, Question as HelpCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useT, useLocale } from "@/components/i18n-provider";
 import { fmt, intlLocale } from "@/lib/i18n/buchung";
@@ -28,6 +29,8 @@ const SitzplanCanvas = dynamic(() => import("./sitzplan-canvas"), {
   ssr: false,
   loading: () => <CanvasLadeHinweis />,
 });
+
+const GUIDE_GESEHEN_KEY = "seatflow-editor-guide-gesehen";
 
 function CanvasLadeHinweis() {
   const t = useT();
@@ -153,6 +156,23 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [nameLaedt, setNameLaedt] = useState(false);
   const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
   const [modalOffen, setModalOffen] = useState<"element" | "kategorien" | "einstellungen" | null>(null);
+
+  // ── Einführungs-Guide: zeigt sich beim ersten Öffnen eines leeren Plans von
+  // selbst, ist über den „?"-Button im Header jederzeit erneut aufrufbar.
+  // Lazy-Init statt Effect: soll nur den Zustand beim Mount ermitteln, kein
+  // externes System synchronisieren (React-Compiler-Regel).
+  const [guideOffen, setGuideOffen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !localStorage.getItem(GUIDE_GESEHEN_KEY) && konfig.elemente.length === 0;
+    } catch {
+      return false;
+    }
+  });
+  function guideSchliessen() {
+    setGuideOffen(false);
+    try { localStorage.setItem(GUIDE_GESEHEN_KEY, "1"); } catch { /* siehe oben */ }
+  }
 
   // Responsive canvas scaling
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -527,6 +547,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           )}
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button type="button" onClick={() => setGuideOffen(true)}
+            aria-label={t.editor.guide.hilfeTitle} title={t.editor.guide.hilfeTitle}
+            className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+            <HelpCircle className="h-4 w-4" />
+          </button>
           {/* Undo / Redo / Snap */}
           <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
             <button type="button" onClick={undo} disabled={!historieStand.kannUndo}
@@ -662,31 +687,32 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           </div>
         </div>
 
-        {/* Build-Bar: Plan-Kennzahlen + Kategorie-Badges + Element hinzufügen / Preiskategorien / Planeinstellungen */}
-        <div className="shrink-0 border-t border-border bg-card px-4 sm:px-6 py-2.5 flex items-center gap-3 flex-wrap">
-          <span className="font-mono text-sm font-medium whitespace-nowrap">
+        {/* Build-Bar: Plan-Kennzahlen + Kategorie-Badges + Element hinzufügen / Preiskategorien / Planeinstellungen.
+            Bewusst großzügig dimensioniert — das ist die primäre Aktionsleiste des Editors. */}
+        <div className="shrink-0 border-t border-border bg-card px-4 sm:px-6 py-3.5 sm:py-4 flex items-center gap-3 sm:gap-4 flex-wrap">
+          <span className="font-mono text-base font-semibold whitespace-nowrap">
             {gesamtSitze}
-            <span className="text-xs text-muted-foreground font-sans ml-1.5">
+            <span className="text-xs text-muted-foreground font-sans font-medium ml-1.5">
               {konfig.elemente.length} {konfig.elemente.length !== 1 ? t.editorToolbar.elementPl : t.editorToolbar.elementSg} · {t.editorToolbar.plaetze}
             </span>
           </span>
           <div className="flex flex-wrap gap-1 min-w-0">
             {konfig.kategorien.map((k) => (
-              <span key={k.id} className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm border whitespace-nowrap"
+              <span key={k.id} className="text-xs font-medium px-1.5 py-0.5 rounded-sm border whitespace-nowrap"
                 style={{ borderColor: k.farbe, color: k.farbe }}>
                 {k.name}
               </span>
             ))}
           </div>
-          <div className="flex gap-2 ml-auto">
-            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("element")}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.elementHinzufuegen}</span>
+          <div className="flex gap-2 sm:gap-3 ml-auto">
+            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("element")}>
+              <Plus className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.elementHinzufuegen}</span>
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("kategorien")}>
-              <Tags className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.preiskategorien}</span>
+            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("kategorien")}>
+              <Tags className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.preiskategorien}</span>
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full" onClick={() => setModalOffen("einstellungen")}>
-              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.planeinstellungen}</span>
+            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("einstellungen")}>
+              <SlidersHorizontal className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.planeinstellungen}</span>
             </Button>
           </div>
         </div>
@@ -697,6 +723,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           {sidebarInhalt()}
         </aside>
       </div>
+
+      <EditorGuideModal open={guideOffen} onClose={guideSchliessen} />
 
       {/* Element hinzufügen / Preiskategorien / Planeinstellungen — Modals */}
       <Modal open={modalOffen === "element"} onOpenChange={(o) => !o && setModalOffen(null)}>

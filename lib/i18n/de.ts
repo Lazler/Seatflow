@@ -746,6 +746,20 @@ export const dict = {
     canvasTextFallback: "Text",
     textDefault: "Beschriftung",
     stehplatzInfo: "{kapazitaet} Personen · {kategorieName} {preis}",
+    guide: {
+      hilfeTitle: "Hilfe zum Editor",
+      titel: "Willkommen im Sitzplan-Editor",
+      intro: "So baust du in wenigen Minuten deinen Saalplan auf:",
+      schritt1Titel: "Vorlage wählen oder Bestuhlung erzeugen",
+      schritt1Text: "Starte mit einer fertigen Vorlage (Theater, Kabarett, Mischbestuhlung) oder erzeuge eigene Reihen — unten unter „Planeinstellungen“.",
+      schritt2Titel: "Elemente anklicken zum Bearbeiten",
+      schritt2Text: "Reihe, Tisch, Stehplatz oder Bühne anklicken — im Panel daneben (am Handy: unten) passt du Name, Größe und mehr an.",
+      schritt3Titel: "Preiskategorien zuweisen",
+      schritt3Text: "Gib jedem Bereich eine Preiskategorie — die Farbe zeigt sie im Plan und beim Ticketverkauf wieder.",
+      schritt4Titel: "Speichern nicht vergessen",
+      schritt4Text: "Änderungen werden erst mit Klick auf „Speichern“ übernommen. Ein Fehler passiert? Cmd/Strg+Z macht ihn rückgängig.",
+      cta: "Los geht's",
+    },
   },
   editorToolbar: {
     elementTypen: {

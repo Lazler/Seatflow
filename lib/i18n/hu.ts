@@ -746,6 +746,20 @@ export const dict = {
     canvasTextFallback: "Szöveg",
     textDefault: "Felirat",
     stehplatzInfo: "{kapazitaet} fő · {kategorieName} {preis}",
+    guide: {
+      hilfeTitle: "Szerkesztő súgó",
+      titel: "Üdvözlünk az ülésrend-szerkesztőben",
+      intro: "Így építed fel néhány perc alatt a termed ülésrendjét:",
+      schritt1Titel: "Válassz sablont vagy generálj ülésrendet",
+      schritt1Text: "Kezdd egy kész sablonnal (színház, kabaré, vegyes) vagy hozz létre saját sorokat — lentebb a „Terv beállításai” alatt.",
+      schritt2Titel: "Kattints az elemekre a szerkesztéshez",
+      schritt2Text: "Kattints egy sorra, asztalra, állóhelyre vagy a színpadra — a mellette lévő panelen (mobilon: lent) módosíthatod a nevet, méretet és egyebeket.",
+      schritt3Titel: "Rendelj árkategóriát",
+      schritt3Text: "Adj minden területnek egy árkategóriát — a színe megjelenik a tervben és a jegyvásárláskor is.",
+      schritt4Titel: "Ne felejts el menteni",
+      schritt4Text: "A módosítások csak a „Mentés” gombra kattintva lépnek életbe. Hibáztál? A Cmd/Ctrl+Z visszavonja.",
+      cta: "Kezdjük",
+    },
   },
   editorToolbar: {
     elementTypen: {

@@ -746,6 +746,20 @@ export const dict = {
     canvasTextFallback: "Text",
     textDefault: "Label",
     stehplatzInfo: "{kapazitaet} people · {kategorieName} {preis}",
+    guide: {
+      hilfeTitle: "Editor help",
+      titel: "Welcome to the seating-plan editor",
+      intro: "Here's how to build your seating plan in a few minutes:",
+      schritt1Titel: "Pick a template or generate seating",
+      schritt1Text: "Start from a ready-made template (theater, cabaret, mixed) or generate your own rows — under “Plan settings” below.",
+      schritt2Titel: "Click elements to edit them",
+      schritt2Text: "Click a row, table, standing area, or the stage — the panel beside it (on mobile: below) lets you adjust name, size, and more.",
+      schritt3Titel: "Assign price categories",
+      schritt3Text: "Give each area a price category — its color shows up on the plan and at checkout.",
+      schritt4Titel: "Don't forget to save",
+      schritt4Text: "Changes only take effect once you click “Save”. Made a mistake? Cmd/Ctrl+Z undoes it.",
+      cta: "Get started",
+    },
   },
   editorToolbar: {
     elementTypen: {
