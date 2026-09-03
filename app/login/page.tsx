@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/layout/logo";
 
-type Ansicht = "login" | "reset-anfrage" | "reset-gesendet";
+type Ansicht = "login" | "reset-anfrage" | "reset-gesendet" | "magic-link" | "magic-link-gesendet";
 
 function AnmeldenInner() {
   const router = useRouter();
@@ -59,6 +59,25 @@ function AnmeldenInner() {
       return;
     }
     setAnsicht("reset-gesendet");
+  }
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    setFehler(null);
+    setLaedt(true);
+
+    const supabase = createClient();
+    // Magic-Link landet ebenfalls auf der Callback-Route, die den Code/
+    // token_hash gegen eine Session tauscht und dann weiterleitet.
+    const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(zielPfad)}`;
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+
+    setLaedt(false);
+    if (error) {
+      setFehler("Fehler beim Senden der E-Mail. Bitte versuche es erneut.");
+      return;
+    }
+    setAnsicht("magic-link-gesendet");
   }
 
   return (
@@ -121,12 +140,78 @@ function AnmeldenInner() {
                 </Button>
               </form>
 
+              <button
+                type="button"
+                onClick={() => { setFehler(null); setAnsicht("magic-link"); }}
+                className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Ohne Passwort anmelden (Magic Link)
+              </button>
+
               <p className="text-center text-sm text-muted-foreground mt-4">
                 Noch kein Konto?{" "}
                 <Link href="/register" className="text-primary hover:underline">
                   Kostenlos registrieren
                 </Link>
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {ansicht === "magic-link" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ohne Passwort anmelden</CardTitle>
+              <CardDescription>
+                Gib deine E-Mail-Adresse ein. Du erhältst einen Anmelde-Link.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleMagicLink} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="magic-email">E-Mail</Label>
+                  <Input
+                    id="magic-email"
+                    type="email"
+                    placeholder="name@theater.de"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                {fehler && <p className="text-sm text-destructive">{fehler}</p>}
+                <Button type="submit" className="w-full" disabled={laedt}>
+                  {laedt ? "Wird gesendet…" : "Magic Link senden"}
+                </Button>
+              </form>
+              <button
+                type="button"
+                onClick={() => { setFehler(null); setAnsicht("login"); }}
+                className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Zurück zur Anmeldung
+              </button>
+            </CardContent>
+          </Card>
+        )}
+
+        {ansicht === "magic-link-gesendet" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>E-Mail verschickt ✓</CardTitle>
+              <CardDescription>
+                Schau in dein Postfach ({email}), der Link ist 1 Stunde gültig.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setAnsicht("login")}
+              >
+                Zurück zur Anmeldung
+              </Button>
             </CardContent>
           </Card>
         )}

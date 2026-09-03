@@ -37,5 +37,11 @@ export async function GET(req: NextRequest) {
   }
 
   // Fehlgeschlagen / abgelaufen → zurück zur Anmeldung mit Hinweis
+  console.error("[auth/callback] kein gültiger code/token_hash im Link:", {
+    hatCode: Boolean(code),
+    hatTokenHash: Boolean(tokenHash),
+    type,
+    next,
+  });
   return ziel("/login?fehler=link");
 }
