@@ -96,9 +96,17 @@ export const SITZ_RADIUS = 13;
 export const TISCH_HOEHE = 28;
 export const TISCH_SITZ_ABSTAND = 32;
 export const TISCH_SEAT_GAP = 8;
-export const FARBE_BELEGT             = "#b9bcc0";
-export const FARBE_AUSGEWAEHLT        = "#ffffff";
-export const FARBE_AUSGEWAEHLT_RING   = "#d9481f";
+// Buchungs-Canvas: helle Saalfläche. Auf dunklem Grund hatten belegte Plätze
+// mehr Kontrast als freie (8,8:1 vs 1,5:1) — der Gast sah zuerst, was er NICHT
+// kaufen kann. Hell gedreht tragen die Kategoriefarben die Aufmerksamkeit und
+// Belegtes tritt zurück.
+export const FARBE_SAALFLAECHE        = "#f2f4f7";
+// Belegt: heller als die Fläche minimal abgesetzt → sichtbar, aber leise.
+export const FARBE_BELEGT             = "#d3d7dd";
+// Auswahl wird NICHT über eine Füllfarbe codiert (jede Kategoriefarbe wäre
+// kollisionsanfällig — Premium war exakt dasselbe Koralle), sondern über Form:
+// kräftiger dunkler Ring + Häkchen. Funktioniert mit jeder Kategoriefarbe.
+export const FARBE_AUSGEWAEHLT_RING   = "#16181d";
 export const FARBE_ELEMENT_SELEKTIERT = "#d9481f";
 
 // --- Hilfsfunktionen ---
