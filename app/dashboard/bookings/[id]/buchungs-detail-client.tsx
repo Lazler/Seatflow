@@ -164,23 +164,25 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/bookings"><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold">{buchung.gaest_name}</h1>
-            <Badge variant={STATUS_VARIANT[buchung.status] ?? "secondary"}>
-              {STATUS_LABEL[buchung.status] ?? buchung.status}
-            </Badge>
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/dashboard/bookings"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-bold">{buchung.gaest_name}</h1>
+              <Badge variant={STATUS_VARIANT[buchung.status] ?? "secondary"}>
+                {STATUS_LABEL[buchung.status] ?? buchung.status}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              #{kurzId(buchung.id)} · {datumsAnzeige(buchung.erstellt_am, dateLocale)}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            #{kurzId(buchung.id)} · {datumsAnzeige(buchung.erstellt_am, dateLocale)}
-          </p>
         </div>
         {!editModus ? (
-          <div className="flex gap-2 flex-wrap justify-end">
+          <div className="flex gap-2 flex-wrap sm:justify-end">
             <Button size="sm" variant="outline" asChild>
               <a href={`/api/tickets/pdf?buchungId=${buchung.id}`} target="_blank" rel="noopener noreferrer">
                 <Download className="h-3.5 w-3.5 mr-1.5" /> {t.common.pdf}
@@ -214,7 +216,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
             </Button>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 sm:justify-end">
             <Button size="sm" variant="outline" onClick={editAbbrechen} disabled={speichertEdit}>
               <X className="h-3.5 w-3.5 mr-1" /> {t.common.abbrechen}
             </Button>
