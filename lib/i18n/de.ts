@@ -395,6 +395,7 @@ export const dict = {
     planZugewiesen: "Dieser Sitzplan ist {n} Event zugewiesen.",
     planZugewiesen_pl: "Dieser Sitzplan ist {n} Events zugewiesen.",
     loeschenFehlgeschlagen: "Löschen fehlgeschlagen",
+    loeschenGesperrt: "Keine Berechtigung zum Löschen — im Beispielkonto sind Änderungen deaktiviert.",
     planGeloescht: "Sitzplan gelöscht",
     keinSaalplan: "Noch kein Sitzplan angelegt.",
     erstenSaalplanErstellen: "Ersten Sitzplan erstellen",

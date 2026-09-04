@@ -188,6 +188,16 @@ export default function SitzplanZuweisung({
           <div className="space-y-3">
             {etagen.map((etage, idx) => (
               <div key={etage.id} className="space-y-1.5">
+                {/* Kontext beim Übersetzen: ohne diesen Hinweis sind bei
+                    mehreren Abschnitten in fremdsprachigen Tabs nur leere,
+                    nicht unterscheidbare Textfelder zu sehen. */}
+                {aktiveSprache !== "de" && (
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {etage.name || fmt(t.sitzplanZuweisung.ebeneN, { n: idx + 1 })}
+                    {sitzplaene.find((p) => p.id === etage.sitzplan_id) &&
+                      ` · ${sitzplaene.find((p) => p.id === etage.sitzplan_id)!.name}`}
+                  </p>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     value={getEtageName(etage, aktiveSprache)}

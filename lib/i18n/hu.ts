@@ -395,6 +395,7 @@ export const dict = {
     planZugewiesen: "Ez az ülésrend {n} eseményhez van rendelve.",
     planZugewiesen_pl: "Ez az ülésrend {n} eseményhez van rendelve.",
     loeschenFehlgeschlagen: "A törlés nem sikerült",
+    loeschenGesperrt: "Nincs jogosultság a törléshez — a demó fiókban a módosítások le vannak tiltva.",
     planGeloescht: "Ülésrend törölve",
     keinSaalplan: "Még nincs ülésrend létrehozva.",
     erstenSaalplanErstellen: "Első ülésrend létrehozása",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,20 @@ function ZahlInput({ label, value, min, max, schritt = 10, onChange, einheit }: 
   label: string; value: number; min?: number; max?: number; schritt?: number;
   onChange: (v: number) => void; einheit?: string;
 }) {
+  // Getippter Text lebt lokal und wird erst beim Verlassen des Felds
+  // geklemmt+committet — sonst reißt Min/Max jeden Tastenanschlag zurück,
+  // sobald der Zwischenwert (z.B. "9" auf dem Weg zu "900") außerhalb liegt.
+  const [entwurf, setEntwurf] = useState(String(value));
+  const fokussiertRef = useRef(false);
+  useEffect(() => { if (!fokussiertRef.current) setEntwurf(String(value)); }, [value]);
+
+  function commit() {
+    const v = parseInt(entwurf, 10);
+    const geklemmt = isNaN(v) ? value : Math.min(max ?? 9999, Math.max(min ?? 0, v));
+    setEntwurf(String(geklemmt));
+    if (geklemmt !== value) onChange(geklemmt);
+  }
+
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
@@ -42,8 +56,11 @@ function ZahlInput({ label, value, min, max, schritt = 10, onChange, einheit }: 
           onClick={() => onChange(Math.max(min ?? 0, value - schritt))} disabled={min !== undefined && value <= min}>
           <Minus className="h-3.5 w-3.5" />
         </Button>
-        <Input type="number" value={value} min={min} max={max}
-          onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) onChange(Math.min(max ?? 9999, Math.max(min ?? 0, v))); }}
+        <Input type="number" value={entwurf} min={min} max={max}
+          onFocus={() => { fokussiertRef.current = true; }}
+          onChange={(e) => setEntwurf(e.target.value)}
+          onBlur={() => { fokussiertRef.current = false; commit(); }}
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
           className={`h-9 text-sm text-center px-0 flex-1 min-w-0 ${NO_SPIN}`} />
         <Button size="icon" variant="outline" className="h-9 w-9 shrink-0"
           onClick={() => onChange(Math.min(max ?? 9999, value + schritt))} disabled={max !== undefined && value >= max}>

@@ -395,6 +395,7 @@ export const dict = {
     planZugewiesen: "This seating plan is assigned to {n} event.",
     planZugewiesen_pl: "This seating plan is assigned to {n} events.",
     loeschenFehlgeschlagen: "Deletion failed",
+    loeschenGesperrt: "No permission to delete — changes are disabled in the demo account.",
     planGeloescht: "Seating plan deleted",
     keinSaalplan: "No seating plan created yet.",
     erstenSaalplanErstellen: "Create first seating plan",
