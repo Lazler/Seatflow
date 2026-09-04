@@ -50,24 +50,30 @@ export function EditorTour({ onClose }: { onClose: () => void }) {
 
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const vw = typeof window !== "undefined" ? window.innerWidth : 400;
+  // Grob benötigter vertikaler Platz für die Tooltip-Karte — reicht weder
+  // unterhalb noch oberhalb des Ziels (z.B. beim fast bildschirmfüllenden
+  // Canvas-Schritt), wird die Karte fix am unteren Rand angedockt statt
+  // relativ zum Ziel positioniert, damit sie garantiert sichtbar bleibt.
+  const TOOLTIP_MIN_RAUM = 220;
   const platzUnten = rect ? vh - rect.bottom : 0;
-  const unterhalbAnzeigen = !rect || platzUnten > 220 || rect.top < 220;
-  const tooltipStyle: React.CSSProperties = rect
-    ? {
-        position: "fixed",
-        width: Math.min(TOOLTIP_BREITE, vw - 32),
-        left: Math.min(Math.max(rect.left, 16), vw - Math.min(TOOLTIP_BREITE, vw - 32) - 16),
-        ...(unterhalbAnzeigen
-          ? { top: rect.bottom + RAND + 8 }
-          : { bottom: vh - rect.top + RAND + 8 }),
-      }
-    : {
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: Math.min(TOOLTIP_BREITE, vw - 32),
-      };
+  let vertikalStyle: React.CSSProperties;
+  if (!rect) {
+    vertikalStyle = { top: "50%", transform: "translate(-50%, -50%)" };
+  } else if (platzUnten >= TOOLTIP_MIN_RAUM) {
+    vertikalStyle = { top: rect.bottom + RAND + 8, transform: "translateX(-50%)" };
+  } else if (rect.top >= TOOLTIP_MIN_RAUM) {
+    vertikalStyle = { bottom: vh - rect.top + RAND + 8, transform: "translateX(-50%)" };
+  } else {
+    vertikalStyle = { bottom: 16, transform: "translateX(-50%)" };
+  }
+  const tooltipBreite = Math.min(TOOLTIP_BREITE, vw - 32);
+  const linksMitte = rect ? rect.left + rect.width / 2 : vw / 2;
+  const tooltipStyle: React.CSSProperties = {
+    position: "fixed",
+    width: tooltipBreite,
+    left: Math.min(Math.max(linksMitte, tooltipBreite / 2 + 16), vw - tooltipBreite / 2 - 16),
+    ...vertikalStyle,
+  };
 
   return (
     <>
