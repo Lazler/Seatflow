@@ -14,6 +14,7 @@ export const dict = {
     menueOeffnen: "Menü öffnen",
     menueSchliessen: "Menü schließen",
     navigation: "Navigation",
+    version: "Version {sha} · {datum}",
   },
   demo: {
     titel: "Demo-Modus — nur Ansicht",

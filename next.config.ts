@@ -1,7 +1,29 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import { execSync } from "node:child_process";
+
+// Commit-SHA fürs Versions-Badge im Dashboard: bevorzugt vom Hosting injizierte
+// Env-Vars (Coolify: SOURCE_COMMIT, Vercel: VERCEL_GIT_COMMIT_SHA) — schneller
+// und funktioniert auch ohne .git im Build-Kontext. Fallback: git selbst fragen
+// (lokale Entwicklung).
+function ermittleCommitSha(): string {
+  const vonEnv = process.env.SOURCE_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA;
+  if (vonEnv) return vonEnv.slice(0, 7);
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "dev";
+  }
+}
+
+const APP_VERSION = ermittleCommitSha();
+const BUILD_TIME = new Date().toISOString();
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: APP_VERSION,
+    NEXT_PUBLIC_BUILD_TIME: BUILD_TIME,
+  },
   serverExternalPackages: ["@react-pdf/renderer", "canvas"],
   // Der eigenständige tsc-Lauf in `next build` spitzt direkt nach dem
   // Turbopack-Compile nochmal ~1–2 GB Speicher an und ließ den (uncached)

@@ -14,6 +14,7 @@ export const dict = {
     menueOeffnen: "Menü megnyitása",
     menueSchliessen: "Menü bezárása",
     navigation: "Navigáció",
+    version: "Verzió: {sha} · {datum}",
   },
   demo: {
     titel: "Demó mód — csak megtekintés",
