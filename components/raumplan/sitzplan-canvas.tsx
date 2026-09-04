@@ -304,6 +304,12 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
   const gruppenKlick = !istBuchungsmodus
     ? (!sperrModus ? onKlick : undefined)
     : (tischKlickbar ? () => onSitzKlick?.(freieTischSitze[0]) : undefined);
+  // Wie viele der eigenen Buchungs-Auswahl sitzen an diesem Tisch — die
+  // Auswahl wird bei tischweiser Buchung am TISCH sichtbar gemacht, nicht
+  // am einzelnen (für den Käufer unsichtbaren) Sitzkreis.
+  const gewaehlteAmTisch = tischweiseModus
+    ? elementSitzIds(el).filter((id) => buchungAusgewaehlt.has(id)).length
+    : 0;
 
   return (
     <Group ref={registerNode} x={el.x} y={el.y} rotation={el.winkel} offsetX={tischBreite / 2}
@@ -323,19 +329,22 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
       <Rect
         x={0} y={-TISCH_HOEHE / 2}
         width={tischBreite} height={TISCH_HOEHE}
-        fill={kategoriefarbe + "28"}
-        stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
-        strokeWidth={1.5} cornerRadius={6}
+        fill={gewaehlteAmTisch > 0 ? kategoriefarbe + "40" : kategoriefarbe + "28"}
+        stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : gewaehlteAmTisch > 0 ? FARBE_AUSGEWAEHLT_RING : kategoriefarbe}
+        strokeWidth={gewaehlteAmTisch > 0 ? 2.5 : 1.5} cornerRadius={6}
         shadowColor={kategoriefarbe} shadowBlur={8} shadowOpacity={0.18} shadowOffsetY={2}
         perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
-      {/* Table label — on the surface, always upright (like Rundtisch) */}
+      {/* Table label — on the surface, always upright (like Rundtisch).
+          Bei tischweiser Buchung + aktiver Auswahl steht die Anzahl dabei,
+          nie eine konkrete Sitznummer. */}
       <Text
         x={tischBreite / 2} y={0}
         offsetX={tischBreite / 2} offsetY={TISCH_HOEHE / 2}
         rotation={-el.winkel}
         width={tischBreite} height={TISCH_HOEHE}
-        text={el.bezeichnung} fill="#17181a" fontSize={11} fontStyle="bold"
+        text={gewaehlteAmTisch > 0 ? `${el.bezeichnung} · ${gewaehlteAmTisch}` : el.bezeichnung}
+        fill="#17181a" fontSize={11} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
       {/* Top seats */}
@@ -346,7 +355,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
             x={i * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzTopY}
             sitzId={sitzId} nummer={i + 1}
             kategoriefarbe={kategoriefarbe}
-            belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+            belegt={belegte.has(sitzId)} buchungAusgewaehlt={tischweiseModus ? false : buchungAusgewaehlt.has(sitzId)}
             editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
             elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
@@ -365,7 +374,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
             x={i * TISCH_SITZ_ABSTAND + TISCH_SITZ_ABSTAND / 2} y={sitzBotY}
             sitzId={sitzId} nummer={el.sitzeProSeite + i + 1}
             kategoriefarbe={kategoriefarbe}
-            belegt={belegte.has(sitzId)} buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+            belegt={belegte.has(sitzId)} buchungAusgewaehlt={tischweiseModus ? false : buchungAusgewaehlt.has(sitzId)}
             editorAusgewaehlt={editorAusgewaehlt} istBuchungsmodus={istBuchungsmodus}
             elementWinkel={el.winkel} nummerAusblenden={nummerAusblenden} onSitzKlick={onSitzKlick}
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
@@ -407,6 +416,12 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
   const gruppenKlick = !istBuchungsmodus
     ? (!sperrModus ? onKlick : undefined)
     : (tischKlickbar ? () => onSitzKlick?.(freieTischSitze[0]) : undefined);
+  // Wie viele der eigenen Buchungs-Auswahl sitzen an diesem Tisch — die
+  // Auswahl wird bei tischweiser Buchung am TISCH sichtbar gemacht, nicht
+  // am einzelnen (für den Käufer unsichtbaren) Sitzkreis.
+  const gewaehlteAmTisch = tischweiseModus
+    ? elementSitzIds(el).filter((id) => buchungAusgewaehlt.has(id)).length
+    : 0;
 
   return (
     <Group ref={registerNode} x={el.x} y={el.y} rotation={el.winkel}
@@ -425,22 +440,23 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
       {/* Premium round table */}
       <Circle
         radius={el.tischRadius}
-        fill={kategoriefarbe + "22"}
-        stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : kategoriefarbe}
-        strokeWidth={2}
+        fill={gewaehlteAmTisch > 0 ? kategoriefarbe + "38" : kategoriefarbe + "22"}
+        stroke={editorAusgewaehlt ? FARBE_ELEMENT_SELEKTIERT : gewaehlteAmTisch > 0 ? FARBE_AUSGEWAEHLT_RING : kategoriefarbe}
+        strokeWidth={gewaehlteAmTisch > 0 ? 3 : 2}
         shadowColor="#17181a"
         shadowBlur={10}
         shadowOpacity={0.12}
         shadowOffsetY={2}
         perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
-      {/* Table label — always upright */}
+      {/* Table label — always upright. Bei tischweiser Buchung + aktiver
+          Auswahl steht die Anzahl dabei, nie eine konkrete Sitznummer. */}
       <Text
         x={0} y={0}
         offsetX={el.tischRadius} offsetY={el.tischRadius}
         rotation={-el.winkel}
         width={labelD} height={labelD}
-        text={el.bezeichnung}
+        text={gewaehlteAmTisch > 0 ? `${el.bezeichnung} · ${gewaehlteAmTisch}` : el.bezeichnung}
         fill="#17181a" fontSize={12} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
@@ -450,7 +466,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
           sitzId={sitzId} nummer={nummer}
           kategoriefarbe={kategoriefarbe}
           belegt={belegte.has(sitzId)}
-          buchungAusgewaehlt={buchungAusgewaehlt.has(sitzId)}
+          buchungAusgewaehlt={tischweiseModus ? false : buchungAusgewaehlt.has(sitzId)}
           editorAusgewaehlt={editorAusgewaehlt}
           istBuchungsmodus={istBuchungsmodus}
           elementWinkel={el.winkel}
@@ -1098,25 +1114,28 @@ export default function SitzplanCanvas({
       </Layer>
     </Stage>
 
-    {/* Zoom-Controls (nur Buchungsmodus) */}
+    {/* Zoom-Controls (nur Buchungsmodus) — bewusst UNTER dem Canvas statt
+        schwebend darüber: die Sitzfläche wird per aufInhaltZugeschnitten()
+        eng zugeschnitten, ein überlagerndes Bedienelement würde also
+        praktisch immer irgendwo Plätze verdecken. */}
     {istBuchungsmodus && (
-      <div className="absolute right-2.5 top-2.5 flex flex-col gap-1.5">
+      <div className="flex items-center justify-end gap-1.5 pt-2">
         <button type="button" aria-label={txt.zoomVergroessern}
           onClick={() => applyZoom(viewportMitte, zoom * 1.5)}
           disabled={zoom >= MAX_ZOOM}
-          className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
+          className="h-9 w-9 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
           <ZoomIn className="h-4 w-4" />
         </button>
         <button type="button" aria-label={txt.zoomVerkleinern}
           onClick={() => applyZoom(viewportMitte, zoom / 1.5)}
           disabled={zoom <= MIN_ZOOM}
-          className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
+          className="h-9 w-9 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition disabled:opacity-40">
           <ZoomOut className="h-4 w-4" />
         </button>
         {zoom > 1 && (
           <button type="button" aria-label={txt.zoomReset}
             onClick={() => applyZoom(viewportMitte, 1)}
-            className="h-9 w-9 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition">
+            className="h-9 w-9 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition">
             <Maximize className="h-4 w-4" />
           </button>
         )}
