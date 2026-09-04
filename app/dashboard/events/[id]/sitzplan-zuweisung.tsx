@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapTrifold as Map, Plus, Trash as Trash2 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useT } from "@/components/i18n-provider";
@@ -13,6 +14,10 @@ import { LOCALE_LABELS } from "@/lib/i18n";
 
 type Sitzplan = { id: string; name: string };
 type Lang = "de" | "en" | "hu";
+
+// Radix Select erlaubt keinen leeren String als Item-Value — Sentinel für
+// die "kein Saalplan"-Option, wird beim Lesen/Schreiben auf "" gemappt.
+const KEIN_SAALPLAN = "__kein_saalplan__";
 
 export type Etage = {
   id: string;
@@ -220,16 +225,20 @@ export default function SitzplanZuweisung({
                   )}
                 </div>
                 {aktiveSprache === "de" && (
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={etage.sitzplan_id}
-                    onChange={(e) => etageAktualisieren(etage.id, { sitzplan_id: e.target.value })}
+                  <Select
+                    value={etage.sitzplan_id || KEIN_SAALPLAN}
+                    onValueChange={(v) => etageAktualisieren(etage.id, { sitzplan_id: v === KEIN_SAALPLAN ? "" : v })}
                   >
-                    <option value="">{t.sitzplanZuweisung.keinSaalplanOption}</option>
-                    {sitzplaene.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={KEIN_SAALPLAN}>{t.sitzplanZuweisung.keinSaalplanOption}</SelectItem>
+                      {sitzplaene.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
                 {mehrereEbenen && idx < etagen.length - 1 && <div className="h-px bg-border mt-1" />}
               </div>

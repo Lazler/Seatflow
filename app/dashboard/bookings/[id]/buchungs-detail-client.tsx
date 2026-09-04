@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sitzAnzeige } from "@/types/sitzplan";
 import { ArrowLeft, PencilSimple as Pencil, Check, X, PaperPlaneTilt as Send, CircleNotch as Loader2, Ticket, DownloadSimple as Download, ArrowCounterClockwise as RotateCcw, ArrowsClockwise as RefreshCw } from "@phosphor-icons/react";
 
@@ -353,15 +354,16 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                 <>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{t.buchungen.colStatus}</Label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {STATUS_OPTIONEN.map((s) => (
-                        <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                      ))}
-                    </select>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONEN.map((s) => (
+                          <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{t.buchungen.interneNotiz}</Label>
