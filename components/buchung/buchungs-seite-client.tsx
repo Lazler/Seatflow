@@ -18,7 +18,7 @@ import { BUCHUNG_STRINGS, fmt } from "@/lib/i18n/buchung";
 const SitzplanCanvas = dynamic(() => import("@/components/raumplan/sitzplan-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center text-sm text-muted-foreground rounded-xl border border-border"
+    <div className="flex items-center justify-center text-sm text-muted-foreground"
       style={{ width: "100%", height: 200 }}>
       Sitzplan wird geladen…
     </div>
@@ -521,14 +521,30 @@ export default function BuchungsSeiteClient({
     zoomReset: uiStrings.zoomReset,
   }), [uiStrings]);
 
-  const canvasWrapper = (ref: React.RefObject<HTMLDivElement | null>, scale: number) => (
-    <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-x-auto overflow-y-hidden flex justify-center bg-[#fbfcfe]"
-      style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
-      <SitzplanCanvas konfiguration={anzeigeKonfig} modus="buchung"
-        renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
-        onSitzKlicken={onSitzKlicken}
-        barrierefreieSitze={barrierefreieSitze}
-        texte={canvasTexte} />
+  // Legende, Plan und Bedienhinweis wirkten zuvor wie drei lose Elemente
+  // (freistehender Text, eigene Box, freistehender Text) — jetzt eine
+  // zusammenhängende Karte im selben Stil wie "Deine Auswahl"/"Kasse"
+  // (rounded-2xl + Kopf-/Fußzeile per border-t/-b). Dezentes Punktraster im
+  // Canvas-Hintergrund gibt dem Plan die Anmutung einer echten Bauzeichnung.
+  const planKarte = (ref: React.RefObject<HTMLDivElement | null>, scale: number, hinweis: string) => (
+    <div className="rounded-2xl border border-border bg-background overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
+        <Legende kategorien={alleKategorien}
+          belegtLabel={uiStrings.belegt} ausgewaehltLabel={uiStrings.ausgewaehlt}
+          barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
+      </div>
+      <div ref={ref}
+        className="w-full overflow-x-auto overflow-y-hidden flex justify-center bg-[#fbfcfe] [background-image:radial-gradient(circle,#e1e5eb_1.4px,transparent_1.4px)] [background-size:20px_20px]"
+        style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
+        <SitzplanCanvas konfiguration={anzeigeKonfig} modus="buchung"
+          renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}
+          onSitzKlicken={onSitzKlicken}
+          barrierefreieSitze={barrierefreieSitze}
+          texte={canvasTexte} />
+      </div>
+      <div className="border-t border-border bg-muted/20 px-4 py-2.5">
+        <p className="text-[11px] text-muted-foreground text-center">{hinweis}</p>
+      </div>
     </div>
   );
 
@@ -964,11 +980,7 @@ export default function BuchungsSeiteClient({
               {mehrereEbenen && (
                 <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
               )}
-              <Legende kategorien={alleKategorien}
-                belegtLabel={uiStrings.belegt} ausgewaehltLabel={uiStrings.ausgewaehlt}
-                barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
-              {canvasWrapper(desktopContainerRef, desktopRenderScale)}
-              <p className="text-xs text-muted-foreground">{uiStrings.liveHinweis}</p>
+              {planKarte(desktopContainerRef, desktopRenderScale, uiStrings.liveHinweis)}
             </div>
             <div>
               <div className="sticky top-20 rounded-2xl border border-border bg-background overflow-hidden">
@@ -989,13 +1001,7 @@ export default function BuchungsSeiteClient({
             {mehrereEbenen && (
               <FloorPicker floors={floors} aktiv={aktiverFloorIdx} onWechseln={switchFloor} floorLabel={floorLabel} />
             )}
-            <Legende kategorien={alleKategorien}
-              belegtLabel={uiStrings.belegt} ausgewaehltLabel={uiStrings.ausgewaehlt}
-              barrierefreiLabel={(aktiverFloor.konfiguration.barrierefreieSitze?.length ?? 0) > 0 ? uiStrings.barrierefrei : undefined} />
-            {canvasWrapper(mobileContainerRef, mobileRenderScale)}
-            <p className="text-[11px] text-muted-foreground text-center">
-              {uiStrings.zoomHinweis}
-            </p>
+            {planKarte(mobileContainerRef, mobileRenderScale, uiStrings.zoomHinweis)}
 
             {/* Sticky bottom bar */}
             <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t border-border shadow-2xl">
@@ -1048,24 +1054,27 @@ function Legende({ kategorien, belegtLabel, ausgewaehltLabel, barrierefreiLabel 
   barrierefreiLabel?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+    <div className="flex flex-wrap gap-1.5 text-xs">
       {kategorien.map((k) => (
-        <span key={k.id} className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full shrink-0" style={{ background: k.farbe }} />
-          {k.name} — {(k.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
+        <span key={k.id} className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: k.farbe }} />
+          <span className="font-medium">{k.name}</span>
+          <span className="text-muted-foreground">{(k.preis_cent / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
         </span>
       ))}
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full shrink-0 bg-[#d3d7dd]" />{belegtLabel}</span>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1">
+        <span className="w-2.5 h-2.5 rounded-full shrink-0 bg-[#d3d7dd]" />{belegtLabel}
+      </span>
       {/* Auswahl wird im Plan über Ring + Häkchen gezeigt, nicht über eine
           eigene Füllfarbe — die Legende bildet genau das ab. */}
-      <span className="flex items-center gap-1.5">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1">
         <span className="w-3.5 h-3.5 shrink-0 rounded-full border-2 border-[#16181d] bg-muted-foreground/25 grid place-items-center">
           <Check weight="bold" className="w-2 h-2 text-[#16181d]" />
         </span>
         {ausgewaehltLabel}
       </span>
       {barrierefreiLabel && (
-        <span className="flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1">
           <Wheelchair className="w-3.5 h-3.5 text-sky-700 shrink-0" />
           {barrierefreiLabel}
         </span>
