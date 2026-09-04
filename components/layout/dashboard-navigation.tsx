@@ -7,9 +7,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SquaresFour as LayoutDashboard, Calendar, MapPin, SignOut as LogOut, Receipt as ReceiptText, Tag, Ticket, ChartBar as BarChart2, CreditCard, List as Menu, X } from "@phosphor-icons/react";
-import { useT } from "@/components/i18n-provider";
+import { useT, useLocale } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Logo } from "@/components/layout/logo";
+import { fmt, intlLocale } from "@/lib/i18n/buchung";
+
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME;
 
 function initialen(name: string) {
   const teile = name.trim().split(/\s+/).filter(Boolean);
@@ -30,7 +34,13 @@ export function DashboardNavigation({
   const pfad = usePathname();
   const router = useRouter();
   const t = useT();
+  const locale = useLocale();
   const [drawerOffen, setDrawerOffen] = useState(false);
+
+  const versionsDatum = BUILD_TIME
+    ? new Date(BUILD_TIME).toLocaleDateString(intlLocale(locale), { day: "2-digit", month: "2-digit" })
+    : "";
+  const versionsText = fmt(t.nav.version, { sha: APP_VERSION, datum: versionsDatum });
 
   const NAV_UEBERSICHT = [
     { href: "/dashboard",           label: t.nav.uebersicht, icon: LayoutDashboard, exakt: true  },
@@ -118,6 +128,9 @@ export function DashboardNavigation({
             <LogOut className="h-4 w-4" />
           </button>
         </div>
+        <p title={BUILD_TIME} className="px-3 pb-2 text-[10px] text-muted-foreground/50 text-center">
+          {versionsText}
+        </p>
       </aside>
 
       {/* ── Mobile Top Header (< lg) ─────────────────────────────────────── */}
@@ -186,6 +199,9 @@ export function DashboardNavigation({
                   <LogOut className="h-4 w-4" />
                 </button>
               </div>
+              <p title={BUILD_TIME} className="px-3 pb-2 text-[10px] text-muted-foreground/50 text-center">
+                {versionsText}
+              </p>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

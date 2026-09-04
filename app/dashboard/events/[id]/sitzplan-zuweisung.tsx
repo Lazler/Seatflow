@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapTrifold as Map, Plus, Trash as Trash2 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useT } from "@/components/i18n-provider";
@@ -158,6 +158,7 @@ export default function SitzplanZuweisung({
           <Map className="h-4 w-4" />
           {mehrereEbenen ? t.sitzplanZuweisung.titelSaalplaeneEbenen : t.sitzplanZuweisung.titelSaalplan}
         </CardTitle>
+        <CardDescription className="text-xs">{t.sitzplanZuweisung.beschreibung}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Language tabs for floor names */}

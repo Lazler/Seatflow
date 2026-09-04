@@ -2,10 +2,10 @@
 
 import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MagicWand as Wand2, CursorClick as MousePointer2, Tag as Tags, FloppyDisk as Save } from "@phosphor-icons/react";
+import { MagicWand as Wand2, CursorClick as MousePointer2, Tag as Tags, FloppyDisk as Save, Compass } from "@phosphor-icons/react";
 import { useT } from "@/components/i18n-provider";
 
-export function EditorGuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function EditorGuideModal({ open, onClose, onStartTour }: { open: boolean; onClose: () => void; onStartTour: () => void }) {
   const t = useT();
 
   const schritte = [
@@ -36,7 +36,12 @@ export function EditorGuideModal({ open, onClose }: { open: boolean; onClose: ()
               </div>
             ))}
           </div>
-          <Button className="w-full h-10" onClick={onClose}>{t.editor.guide.cta}</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 h-10" onClick={onStartTour}>
+              <Compass className="h-4 w-4 mr-1.5" /> {t.editor.guide.tourStarten}
+            </Button>
+            <Button className="flex-1 h-10" onClick={onClose}>{t.editor.guide.cta}</Button>
+          </div>
         </DialogBody>
       </DialogContent>
     </Modal>

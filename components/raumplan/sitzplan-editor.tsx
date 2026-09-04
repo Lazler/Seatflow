@@ -9,6 +9,7 @@ import { ElementHinzufuegenInhalt, PreiskategorienInhalt, PlaneinstellungenInhal
 import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
 import ElementEigenschaftenPanel, { BuehneEigenschaftenPanel } from "./element-eigenschaften-panel";
 import { EditorGuideModal } from "./editor-guide";
+import { EditorTour } from "./editor-tour";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
@@ -172,6 +173,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   function guideSchliessen() {
     setGuideOffen(false);
     try { localStorage.setItem(GUIDE_GESEHEN_KEY, "1"); } catch { /* siehe oben */ }
+  }
+  const [tourOffen, setTourOffen] = useState(false);
+  function tourStarten() {
+    guideSchliessen();
+    setTourOffen(true);
   }
 
   // Responsive canvas scaling
@@ -616,7 +622,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           </span>
           {gespeichert && !hatDuplikate && <span className="text-xs text-green-600 font-medium hidden sm:inline">✓ {t.editor.gespeichert}</span>}
           {hatDuplikate && <span className="text-xs text-destructive font-medium">{t.editor.doppelteSitzIds}</span>}
-          <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate}>
+          <Button size="sm" onClick={speichern} disabled={speichernLaedt || hatDuplikate} data-tour="speichern">
             <Save className="h-3.5 w-3.5 sm:mr-1.5" />
             <span className="hidden sm:inline">{speichernLaedt ? t.editor.speichernLaedt : t.editor.speichern}</span>
           </Button>
@@ -629,6 +635,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <div
           ref={canvasContainerRef}
+          data-tour="canvas"
           className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center gap-3 bg-slate-100"
         >
           {verkauft.size > 0 && (
@@ -705,13 +712,13 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             ))}
           </div>
           <div className="flex gap-2 sm:gap-3 ml-auto">
-            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("element")}>
+            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("element")} data-tour="element-hinzufuegen">
               <Plus className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.elementHinzufuegen}</span>
             </Button>
-            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("kategorien")}>
+            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("kategorien")} data-tour="preiskategorien">
               <Tags className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.preiskategorien}</span>
             </Button>
-            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("einstellungen")}>
+            <Button variant="outline" className="rounded-full" onClick={() => setModalOffen("einstellungen")} data-tour="planeinstellungen">
               <SlidersHorizontal className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">{t.editorToolbar.planeinstellungen}</span>
             </Button>
           </div>
@@ -719,12 +726,13 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </div>
 
         {/* Desktop Sidebar (lg+) */}
-        <aside className="hidden lg:flex w-64 border-l border-border bg-background flex-col overflow-hidden shrink-0">
+        <aside data-tour="sidebar" className="hidden lg:flex w-64 border-l border-border bg-background flex-col overflow-hidden shrink-0">
           {sidebarInhalt()}
         </aside>
       </div>
 
-      <EditorGuideModal open={guideOffen} onClose={guideSchliessen} />
+      <EditorGuideModal open={guideOffen} onClose={guideSchliessen} onStartTour={tourStarten} />
+      {tourOffen && <EditorTour onClose={() => setTourOffen(false)} />}
 
       {/* Element hinzufügen / Preiskategorien / Planeinstellungen — Modals */}
       <Modal open={modalOffen === "element"} onOpenChange={(o) => !o && setModalOffen(null)}>
