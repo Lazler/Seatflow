@@ -21,7 +21,7 @@ import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } f
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
-import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair, Question as HelpCircle } from "@phosphor-icons/react";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair, Question as HelpCircle, AlignLeft, AlignCenterHorizontal, AlignRight, AlignTop, AlignCenterVertical, AlignBottom } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useT, useLocale } from "@/components/i18n-provider";
 import { fmt, intlLocale } from "@/lib/i18n/buchung";
@@ -158,11 +158,19 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
   const [modalOffen, setModalOffen] = useState<"element" | "kategorien" | "einstellungen" | null>(null);
 
-  // ── Einführungs-Guide: zeigt sich beim ersten Öffnen eines leeren Plans von
-  // selbst, ist über den „?"-Button im Header jederzeit erneut aufrufbar.
-  // Lazy-Init statt Effect: soll nur den Zustand beim Mount ermitteln, kein
-  // externes System synchronisieren (React-Compiler-Regel).
-  const [guideOffen, setGuideOffen] = useState(() => {
+  // ── Einführungs-Guide + interaktive Tour ────────────────────────────────
+  // Beim allerersten Öffnen eines leeren Plans startet direkt die Tour (zeigt
+  // an den echten Bedienelementen, effektiver als reiner Text). Der
+  // Willkommens-Guide bleibt als Nachschlagewerk erhalten, ist aber nur noch
+  // über den „?"-Button im Header manuell erreichbar. Lazy-Init statt Effect:
+  // soll nur den Zustand beim Mount ermitteln, kein externes System
+  // synchronisieren (React-Compiler-Regel).
+  const [guideOffen, setGuideOffen] = useState(false);
+  function guideSchliessen() {
+    setGuideOffen(false);
+    try { localStorage.setItem(GUIDE_GESEHEN_KEY, "1"); } catch { /* siehe oben */ }
+  }
+  const [tourOffen, setTourOffen] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
       return !localStorage.getItem(GUIDE_GESEHEN_KEY) && konfig.elemente.length === 0;
@@ -170,11 +178,10 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       return false;
     }
   });
-  function guideSchliessen() {
-    setGuideOffen(false);
+  function tourSchliessen() {
+    setTourOffen(false);
     try { localStorage.setItem(GUIDE_GESEHEN_KEY, "1"); } catch { /* siehe oben */ }
   }
-  const [tourOffen, setTourOffen] = useState(false);
   function tourStarten() {
     guideSchliessen();
     setTourOffen(true);
@@ -369,6 +376,45 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     }));
   }, [mutiere]);
 
+  // ── Ausrichten & Verteilen (Mehrfachauswahl) ────────────────────────────
+  // Relativ zur Auswahl selbst (nicht zum Raum) — das ist der Fall, den man
+  // beim Aufräumen eines Plans praktisch immer will.
+  function auswahlAusrichten(achse: "x" | "y", modus: "min" | "mitte" | "max") {
+    const ids = auswahl?.typ === "element" ? auswahl.ids : [];
+    if (ids.length < 2) return;
+    const werte = konfig.elemente.filter((e) => ids.includes(e.id)).map((e) => (achse === "x" ? e.x : e.y));
+    const ziel = modus === "min" ? Math.min(...werte) : modus === "max" ? Math.max(...werte) : (Math.min(...werte) + Math.max(...werte)) / 2;
+    mutiere((k) => ({
+      ...k,
+      elemente: k.elemente.map((e) => {
+        if (!ids.includes(e.id)) return e;
+        return achse === "x" ? { ...e, x: ziel } : { ...e, y: ziel };
+      }),
+    }));
+  }
+
+  // Verteilt gleichmäßig zwischen den beiden äußersten Elementen — die
+  // bleiben an ihrer Position, nur die dazwischen liegenden rücken auf.
+  function auswahlVerteilen(achse: "x" | "y") {
+    const ids = auswahl?.typ === "element" ? auswahl.ids : [];
+    if (ids.length < 3) return;
+    const sortiert = konfig.elemente
+      .filter((e) => ids.includes(e.id))
+      .sort((a, b) => (achse === "x" ? a.x - b.x : a.y - b.y));
+    const min = achse === "x" ? sortiert[0].x : sortiert[0].y;
+    const max = achse === "x" ? sortiert[sortiert.length - 1].x : sortiert[sortiert.length - 1].y;
+    const schritt = (max - min) / (sortiert.length - 1);
+    const ziel = new Map(sortiert.map((e, i) => [e.id, min + schritt * i]));
+    mutiere((k) => ({
+      ...k,
+      elemente: k.elemente.map((e) => {
+        const wert = ziel.get(e.id);
+        if (wert === undefined) return e;
+        return achse === "x" ? { ...e, x: wert } : { ...e, y: wert };
+      }),
+    }));
+  }
+
   function buehneAktualisieren(delta: Partial<Buehne>) {
     mutiere((k) => ({ ...k, buehne: { ...k.buehne, ...delta } }), "buehne");
   }
@@ -466,10 +512,64 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             </button>
             <span className="text-sm font-semibold">{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</span>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-            <MousePointer2 className="h-8 w-8 opacity-30" />
-            <p className="text-sm">{t.editor.mehrereZiehenPre} <strong>{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</strong> {t.editor.mehrereZiehenPost}</p>
-            <p className="text-xs">{t.editor.shiftAbwaehlen}</p>
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.editor.ausrichten}</p>
+              <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5 w-fit">
+                <button type="button" title={t.editor.linksAusrichten} aria-label={t.editor.linksAusrichten}
+                  onClick={() => auswahlAusrichten("x", "min")}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+                  <AlignLeft className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" title={t.editor.horizontalZentrieren} aria-label={t.editor.horizontalZentrieren}
+                  onClick={() => auswahlAusrichten("x", "mitte")}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+                  <AlignCenterHorizontal className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" title={t.editor.rechtsAusrichten} aria-label={t.editor.rechtsAusrichten}
+                  onClick={() => auswahlAusrichten("x", "max")}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+                  <AlignRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5 w-fit">
+                <button type="button" title={t.editor.obenAusrichten} aria-label={t.editor.obenAusrichten}
+                  onClick={() => auswahlAusrichten("y", "min")}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+                  <AlignTop className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" title={t.editor.vertikalZentrieren} aria-label={t.editor.vertikalZentrieren}
+                  onClick={() => auswahlAusrichten("y", "mitte")}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+                  <AlignCenterVertical className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" title={t.editor.untenAusrichten} aria-label={t.editor.untenAusrichten}
+                  onClick={() => auswahlAusrichten("y", "max")}
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+                  <AlignBottom className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+            {auswahlIds.length >= 3 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.editor.verteilen}</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => auswahlVerteilen("x")}
+                    className="flex-1 h-8 rounded-md border border-input text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    {t.editor.horizontalVerteilen}
+                  </button>
+                  <button type="button" onClick={() => auswahlVerteilen("y")}
+                    className="flex-1 h-8 rounded-md border border-input text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    {t.editor.vertikalVerteilen}
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col items-center gap-1.5 text-center text-muted-foreground pt-3 border-t border-border">
+              <MousePointer2 className="h-6 w-6 opacity-30" />
+              <p className="text-xs">{t.editor.mehrereZiehenPre} <strong>{fmt(t.editor.mehrereElemente, { n: auswahlIds.length })}</strong> {t.editor.mehrereZiehenPost}</p>
+              <p className="text-[11px]">{t.editor.shiftAbwaehlen}</p>
+            </div>
           </div>
           <div className="px-4 py-3 border-t border-border">
             <button type="button"
@@ -732,7 +832,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       </div>
 
       <EditorGuideModal open={guideOffen} onClose={guideSchliessen} onStartTour={tourStarten} />
-      {tourOffen && <EditorTour onClose={() => setTourOffen(false)} />}
+      {tourOffen && <EditorTour onClose={tourSchliessen} />}
 
       {/* Element hinzufügen / Preiskategorien / Planeinstellungen — Modals */}
       <Modal open={modalOffen === "element"} onOpenChange={(o) => !o && setModalOffen(null)}>
