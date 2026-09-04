@@ -186,7 +186,11 @@ export default async function EventDetail({
               ) : (
                 <div className="divide-y divide-border">
                   {buchungen?.map((buchung) => (
-                    <div key={buchung.id} className="py-3 flex items-center justify-between">
+                    <Link
+                      key={buchung.id}
+                      href={`/dashboard/bookings/${buchung.id}`}
+                      className="-mx-2 px-2 py-3 flex items-center justify-between rounded-md hover:bg-muted/50 transition-colors"
+                    >
                       <div>
                         <p className="text-sm font-medium">{buchung.gaest_name}</p>
                         <p className="text-xs text-muted-foreground">{buchung.gaest_email}</p>
@@ -205,7 +209,7 @@ export default async function EventDetail({
                           {dict.status[buchung.status as keyof typeof dict.status] ?? buchung.status}
                         </Badge>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

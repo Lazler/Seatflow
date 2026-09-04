@@ -261,7 +261,8 @@ export const dict = {
     beschreibung: "Leírás ({lang})",
     beschreibungPlaceholder: "Leírás {lang} nyelven",
     hauptsprache: "A német a fő nyelv, és közvetlenül az eseménynél kerül mentésre.",
-    sprachenSpeichern: "Nyelvek mentése",
+    titelPflichtDe: "A német cím nem lehet üres.",
+    sprachenSpeichern: "Mentés",
   },
   ticketTypen: {
     titel: "Jegytípusok",
@@ -619,7 +620,7 @@ export const dict = {
     ticketTemplate: "Jegysablon",
     weiterleitungen: "Átirányítások",
     weiterleitungenHinweis: "Hova kerül a vevő a foglalás után, illetve lemondáskor?",
-    sprachen: "Nyelvek",
+    sprachen: "Cím és nyelvek",
     speichern: "Mentés",
     gespeichert: "Mentve",
     keineSitzplaene: "Nincs ülésrend ehhez a helyszínhez.",

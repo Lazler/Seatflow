@@ -10,11 +10,18 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { sprachen, translations } = await req.json();
+  const { sprachen, translations, titel, beschreibung } = await req.json();
+
+  const update: Record<string, unknown> = { sprachen, translations };
+  if (typeof titel === "string") {
+    if (!titel.trim()) return NextResponse.json({ error: "Titel darf nicht leer sein." }, { status: 400 });
+    update.titel = titel.trim();
+    update.beschreibung = typeof beschreibung === "string" && beschreibung.trim() ? beschreibung.trim() : null;
+  }
 
   const { error } = await supabase
     .from("events")
-    .update({ sprachen, translations })
+    .update(update)
     .eq("id", id)
     .eq("veranstalter_id", user.id);
 

@@ -261,7 +261,8 @@ export const dict = {
     beschreibung: "Description ({lang})",
     beschreibungPlaceholder: "Description in {lang}",
     hauptsprache: "German is the main language and is saved directly on the event.",
-    sprachenSpeichern: "Save languages",
+    titelPflichtDe: "The German title can't be empty.",
+    sprachenSpeichern: "Save",
   },
   ticketTypen: {
     titel: "Ticket types",
@@ -619,7 +620,7 @@ export const dict = {
     ticketTemplate: "Ticket template",
     weiterleitungen: "Redirects",
     weiterleitungenHinweis: "Where does the buyer go after booking or when cancelling?",
-    sprachen: "Languages",
+    sprachen: "Title & languages",
     speichern: "Save",
     gespeichert: "Saved",
     keineSitzplaene: "No seating plans for this venue.",
