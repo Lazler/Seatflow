@@ -29,7 +29,7 @@ export default async function BuchungDetailSeite({
 
   if (!event || event.veranstalter_id !== user.id) notFound();
 
-  const [ticketsRes, kommentareRes] = await Promise.all([
+  const [ticketsRes, kommentareRes, ereignisseRes] = await Promise.all([
     supabase
       .from("tickets")
       .select("id, sitzplatz_id, sitzplatz_bezeichnung, preis_cent")
@@ -37,6 +37,11 @@ export default async function BuchungDetailSeite({
     supabase
       .from("buchungs_kommentare")
       .select("id, text, erstellt_am")
+      .eq("buchung_id", id)
+      .order("erstellt_am", { ascending: true }),
+    supabase
+      .from("buchungs_ereignisse")
+      .select("id, typ, details, erstellt_am")
       .eq("buchung_id", id)
       .order("erstellt_am", { ascending: true }),
   ]);
@@ -47,6 +52,7 @@ export default async function BuchungDetailSeite({
       event={{ id: event.id, titel: event.titel, datum: event.datum, serviceGebuehrCent: event.service_gebuehr_cent ?? 50 }}
       tickets={ticketsRes.data ?? []}
       kommentare={kommentareRes.data ?? []}
+      ereignisse={ereignisseRes.data ?? []}
     />
   );
 }

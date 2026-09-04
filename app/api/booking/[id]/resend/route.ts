@@ -7,6 +7,7 @@ import { effectivePlan } from "@/lib/plan";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import type { TicketDesign } from "@/types/ticket-design";
 import { sitzAnzeige } from "@/types/sitzplan";
+import { protokolliereEreignis, grobeVersandFehlerbeschreibung } from "@/lib/buchungs-historie";
 
 // Gast-Self-Service: Tickets erneut an die HINTERLEGTE Adresse senden.
 // Keine E-Mail-Eingabe möglich — die Buchungs-UUID ist der Zugriffsschlüssel,
@@ -71,25 +72,34 @@ export async function POST(
     : undefined;
   const ticketTyp = buchung.ticket_typ as { name: string } | null;
 
-  await sendTicketMail({
-    to: buchung.gaest_email,
-    guestName: buchung.gaest_name,
-    eventTitel: event.titel,
-    eventDatum: new Date(event.datum),
-    venue,
-    buchungId: id,
-    sitze: tickets.map((t) => ({
-      sitzId: sitzAnzeige(t.sitzplatz_id),
-      kategorieName: t.sitzplatz_bezeichnung,
-      preisCent: t.preis_cent,
-      qrCode: t.qr_code,
-    })),
-    gesamtCent: buchung.gesamt_cent,
-    ticketTypName: ticketTyp?.name,
-    design,
-    sprache: "de",
-    poweredBySeatflow: plan === "free",
-  });
+  try {
+    await sendTicketMail({
+      to: buchung.gaest_email,
+      guestName: buchung.gaest_name,
+      eventTitel: event.titel,
+      eventDatum: new Date(event.datum),
+      venue,
+      buchungId: id,
+      sitze: tickets.map((t) => ({
+        sitzId: sitzAnzeige(t.sitzplatz_id),
+        kategorieName: t.sitzplatz_bezeichnung,
+        preisCent: t.preis_cent,
+        qrCode: t.qr_code,
+      })),
+      gesamtCent: buchung.gesamt_cent,
+      ticketTypName: ticketTyp?.name,
+      design,
+      sprache: "de",
+      poweredBySeatflow: plan === "free",
+    });
+  } catch (err) {
+    console.error("[booking/resend] Versand fehlgeschlagen:", err);
+    const grund = grobeVersandFehlerbeschreibung(err);
+    await protokolliereEreignis(id, "ticket_sende_fehler", grund);
+    return NextResponse.json({ error: grund }, { status: 502 });
+  }
+
+  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Gast angefordert");
 
   // Adresse nur maskiert zurückgeben
   const [local, domain] = buchung.gaest_email.split("@");

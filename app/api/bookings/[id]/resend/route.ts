@@ -5,6 +5,7 @@ import { sendTicketMail } from "@/lib/email";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import { sitzAnzeige } from "@/types/sitzplan";
+import { protokolliereEreignis, grobeVersandFehlerbeschreibung } from "@/lib/buchungs-historie";
 
 export async function POST(
   _req: NextRequest,
@@ -65,24 +66,32 @@ export async function POST(
   const ticketTyp = buchung.ticket_typ as { name: string } | null;
   const sprache = ((event.sprachen as string[] | null)?.[0] ?? "de") as "de" | "en" | "hu";
 
-  await sendTicketMail({
-    to: buchung.gaest_email,
-    guestName: buchung.gaest_name,
-    eventTitel: event.titel,
-    eventDatum: new Date(event.datum),
-    venue,
-    buchungId: id,
-    sitze: tickets.map((t) => ({
-      sitzId: sitzAnzeige(t.sitzplatz_id),
-      kategorieName: t.sitzplatz_bezeichnung,
-      preisCent: t.preis_cent,
-      qrCode: t.qr_code,
-    })),
-    gesamtCent: buchung.gesamt_cent,
-    ticketTypName: ticketTyp?.name,
-    design,
-    sprache,
-  });
+  try {
+    await sendTicketMail({
+      to: buchung.gaest_email,
+      guestName: buchung.gaest_name,
+      eventTitel: event.titel,
+      eventDatum: new Date(event.datum),
+      venue,
+      buchungId: id,
+      sitze: tickets.map((t) => ({
+        sitzId: sitzAnzeige(t.sitzplatz_id),
+        kategorieName: t.sitzplatz_bezeichnung,
+        preisCent: t.preis_cent,
+        qrCode: t.qr_code,
+      })),
+      gesamtCent: buchung.gesamt_cent,
+      ticketTypName: ticketTyp?.name,
+      design,
+      sprache,
+    });
+  } catch (err) {
+    console.error("[bookings/resend] Versand fehlgeschlagen:", err);
+    const grund = grobeVersandFehlerbeschreibung(err);
+    await protokolliereEreignis(id, "ticket_sende_fehler", grund);
+    return NextResponse.json({ error: grund }, { status: 502 });
+  }
 
+  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Veranstalter gesendet");
   return NextResponse.json({ ok: true });
 }

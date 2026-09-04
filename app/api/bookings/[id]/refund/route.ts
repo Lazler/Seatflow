@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import { demoBlockiert } from "@/lib/demo";
 import { z } from "zod";
+import { protokolliereEreignis } from "@/lib/buchungs-historie";
 
 const ErstattenSchema = z.object({
   betrag_cent: z.number().int().positive().optional(), // partial refund; omit = full
@@ -84,6 +85,8 @@ export async function POST(
         { status: 500 },
       );
     }
+
+    await protokolliereEreignis(id, "erstattet", `${(refund.amount / 100).toFixed(2)} €${parsed.data.grund ? ` — ${parsed.data.grund}` : ""}`);
 
     return NextResponse.json({ refund_id: refund.id, status: refund.status });
   } catch (err: unknown) {

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dbFehlerMeldung } from "@/lib/db-fehler";
 import { demoBlockiert } from "@/lib/demo";
+import { protokolliereEreignis } from "@/lib/buchungs-historie";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -111,6 +112,9 @@ export async function POST(req: NextRequest) {
       { status: konflikt ? 409 : 500 },
     );
   }
+
+  await protokolliereEreignis(buchung.id, "erstellt", "Manuell durch Veranstalter angelegt");
+  if (status === "bezahlt") await protokolliereEreignis(buchung.id, "bezahlt", "Manuell als bezahlt markiert");
 
   return NextResponse.json({ id: buchung.id });
 }
