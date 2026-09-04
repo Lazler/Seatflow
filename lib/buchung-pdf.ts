@@ -19,7 +19,7 @@ export async function generiereBuchungsPdf(
 
   const { data: buchung } = await admin
     .from("buchungen")
-    .select("id, gaest_name, event_id, ticket_typ, status")
+    .select("id, gaest_name, event_id, ticket_typ, status, freikarte, freikarte_label")
     .eq("id", buchungId)
     .single();
   if (!buchung) return null;
@@ -64,6 +64,7 @@ export async function generiereBuchungsPdf(
       ticketTypName: ticketTyp?.name,
       qrCodeDataUrl: await QRCode.toDataURL(t.qr_code, { width: 200, margin: 1, errorCorrectionLevel: "M" }),
       design,
+      freikarteLabel: buchung.freikarte ? (buchung.freikarte_label ?? "") : undefined,
     }))
   );
 

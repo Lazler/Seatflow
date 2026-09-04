@@ -17,13 +17,15 @@ export async function POST(req: NextRequest) {
     gaestName?: string;
     gaestEmail?: string;
     status?: "bezahlt" | "ausstehend";
+    freikarte?: boolean;
+    freikarteLabel?: string;
   };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
-  const { eventId, sitzplaetze, gaestName, gaestEmail, status } = body;
+  const { eventId, sitzplaetze, gaestName, gaestEmail, status, freikarte, freikarteLabel } = body;
 
   // ── Eingaben prüfen (präzise Meldungen statt „Fehlende Felder") ──────────────
   if (!eventId) return NextResponse.json({ error: "Bitte ein Event wählen." }, { status: 400 });
@@ -63,9 +65,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const serviceGebuehrCent: number = event.service_gebuehr_cent ?? 0;
-  const gesamtCent =
-    sitzplaetze.reduce((s, p) => s + (p.preisCent ?? 0), 0) + sitzplaetze.length * serviceGebuehrCent;
+  const istFreikarte = freikarte === true;
+  // Server-autoritativ: Preis + Servicegebühr entfallen bei einer Freikarte
+  // komplett, unabhängig davon, was der Client an Sitzpreisen mitschickt.
+  const serviceGebuehrCent: number = istFreikarte ? 0 : (event.service_gebuehr_cent ?? 0);
+  const gesamtCent = istFreikarte
+    ? 0
+    : sitzplaetze.reduce((s, p) => s + (p.preisCent ?? 0), 0) + sitzplaetze.length * serviceGebuehrCent;
 
   const { data: buchung, error: buchungsFehler } = await admin
     .from("buchungen")
@@ -76,6 +82,8 @@ export async function POST(req: NextRequest) {
       gesamt_cent: gesamtCent,
       status,
       notiz: "Manuell angelegt",
+      freikarte: istFreikarte,
+      freikarte_label: istFreikarte ? (freikarteLabel?.trim() || null) : null,
     })
     .select("id")
     .single();
@@ -94,7 +102,7 @@ export async function POST(req: NextRequest) {
       event_id: eventId,
       sitzplatz_id: p.sitzId,
       sitzplatz_bezeichnung: p.bezeichnung ?? p.sitzId,
-      preis_cent: p.preisCent,
+      preis_cent: istFreikarte ? 0 : p.preisCent,
     })),
   );
 
@@ -113,7 +121,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await protokolliereEreignis(buchung.id, "erstellt", "Manuell durch Veranstalter angelegt");
+  await protokolliereEreignis(buchung.id, "erstellt", istFreikarte
+    ? `Freikarte — ${freikarteLabel?.trim() || "manuell durch Veranstalter angelegt"}`
+    : "Manuell durch Veranstalter angelegt");
   if (status === "bezahlt") await protokolliereEreignis(buchung.id, "bezahlt", "Manuell als bezahlt markiert");
 
   return NextResponse.json({ id: buchung.id });

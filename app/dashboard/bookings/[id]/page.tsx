@@ -14,7 +14,7 @@ export default async function BuchungDetailSeite({
 
   const { data: buchung } = await supabase
     .from("buchungen")
-    .select("id, gaest_name, gaest_email, gesamt_cent, status, erstellt_am, event_id, notiz, ticket_typ, stripe_payment_intent")
+    .select("id, gaest_name, gaest_email, gesamt_cent, status, erstellt_am, event_id, notiz, ticket_typ, stripe_payment_intent, freikarte, freikarte_label")
     .eq("id", id)
     .single();
 

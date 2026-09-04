@@ -453,6 +453,10 @@ export const dict = {
     angelegtText_pl: "{n} seats for {name}.",
     wirdAngelegt: "Creating…",
     buchungAnlegen: "Create booking",
+    freikarte: "Complimentary ticket",
+    freikarteHinweis: "Free — price and service fee are waived. The reason appears as a stamp on the ticket and confirmation email.",
+    freikarteLabelPlaceholder: "Reason (optional) — e.g. Press, Sponsor, Team",
+    kostenlos: "Free",
   },
   common: {
     speichern: "Save",
@@ -564,6 +568,7 @@ export const dict = {
     ereignisTicketFehler: "Ticket delivery failed",
     ereignisErstattet: "Refunded",
     ereignisBearbeitet: "Edited",
+    freikarteBadge: "Complimentary",
   },
   events: {
     title: "Events",

@@ -43,6 +43,8 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"bezahlt" | "ausstehend">("bezahlt");
+  const [freikarte, setFreikarte] = useState(false);
+  const [freikarteLabel, setFreikarteLabel] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
   const [sitzplanLaedt, setSitzplanLaedt] = useState(false);
 
@@ -111,8 +113,8 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
   }
 
   const ausgewaehlteSitze = alleeSitze.filter((s) => ausgewaehlt.has(s.sitzId));
-  const serviceGebuehr = aktuellesEvent?.service_gebuehr_cent ?? 0;
-  const gesamtCent = ausgewaehlteSitze.reduce((s, a) => s + a.preisCent, 0) + ausgewaehlteSitze.length * serviceGebuehr;
+  const serviceGebuehr = freikarte ? 0 : (aktuellesEvent?.service_gebuehr_cent ?? 0);
+  const gesamtCent = freikarte ? 0 : ausgewaehlteSitze.reduce((s, a) => s + a.preisCent, 0) + ausgewaehlteSitze.length * serviceGebuehr;
 
   async function absenden(e: React.FormEvent) {
     e.preventDefault();
@@ -128,7 +130,9 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
         eventId,
         gaestName: name,
         gaestEmail: email,
-        status,
+        status: freikarte ? "bezahlt" : status,
+        freikarte,
+        freikarteLabel: freikarte ? freikarteLabel : undefined,
         sitzplaetze: ausgewaehlteSitze.map((s) => ({
           sitzId: s.sitzId,
           bezeichnung: `${s.kategorieName} · ${s.elementBezeichnung}`,
@@ -277,8 +281,9 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
                 {(["bezahlt", "ausstehend"] as const).map((s) => (
                   <button
                     key={s} type="button"
+                    disabled={freikarte}
                     onClick={() => setStatus(s)}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${
+                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                       status === s
                         ? s === "bezahlt"
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
@@ -290,6 +295,21 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="rounded-lg border border-dashed border-input p-3 space-y-2">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" checked={freikarte}
+                  onChange={(e) => setFreikarte(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-primary" />
+                <span className="text-sm font-medium">{t.freikarte}</span>
+              </label>
+              <p className="text-xs text-muted-foreground pl-6">{t.freikarteHinweis}</p>
+              {freikarte && (
+                <div className="pl-6">
+                  <Input value={freikarteLabel} onChange={(e) => setFreikarteLabel(e.target.value)}
+                    placeholder={t.freikarteLabelPlaceholder} className="h-8 text-sm" maxLength={40} />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -305,10 +325,17 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
                     <span>{s.sitzId}</span>
                     <span className="text-muted-foreground text-xs">{s.kategorieName}</span>
                   </div>
-                  <span className="tabular-nums">{euro(s.preisCent)}</span>
+                  {freikarte ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="line-through text-muted-foreground text-xs">{euro(s.preisCent)}</span>
+                      <span className="tabular-nums text-emerald-600 font-medium">{t.kostenlos}</span>
+                    </span>
+                  ) : (
+                    <span className="tabular-nums">{euro(s.preisCent)}</span>
+                  )}
                 </div>
               ))}
-              {serviceGebuehr > 0 && (
+              {!freikarte && serviceGebuehr > 0 && (
                 <div className="flex justify-between text-muted-foreground text-xs pt-1">
                   <span>{fmt(dict.buchungen.servicegebuehr, { n: ausgewaehlt.size })}</span>
                   <span>{euro(ausgewaehlt.size * serviceGebuehr)}</span>

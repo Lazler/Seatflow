@@ -24,6 +24,7 @@ type Buchung = {
   gesamt_cent: number; status: string; erstellt_am: string;
   event_id: string; notiz: string | null; ticket_typ: TicketTypInfo | null;
   stripe_payment_intent: string | null;
+  freikarte: boolean; freikarte_label: string | null;
 };
 type TicketRow = { id: string; sitzplatz_id: string; sitzplatz_bezeichnung: string; preis_cent: number };
 type Kommentar = { id: string; text: string; erstellt_am: string };
@@ -207,6 +208,11 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
               <Badge variant={STATUS_VARIANT[buchung.status] ?? "secondary"}>
                 {STATUS_LABEL[buchung.status] ?? buchung.status}
               </Badge>
+              {buchung.freikarte && (
+                <Badge variant="outline" className="border-red-300 text-red-700 bg-red-50">
+                  {buchung.freikarte_label || t.buchungen.freikarteBadge}
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               #{kurzId(buchung.id)} · {datumsAnzeige(buchung.erstellt_am, dateLocale)}

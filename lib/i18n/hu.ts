@@ -453,6 +453,10 @@ export const dict = {
     angelegtText_pl: "{n} hely {name} részére.",
     wirdAngelegt: "Létrehozás…",
     buchungAnlegen: "Foglalás létrehozása",
+    freikarte: "Tiszteletjegy",
+    freikarteHinweis: "Ingyenes — az ár és a kezelési díj elmarad. Az indok bélyegzőként jelenik meg a jegyen és a visszaigazoló e-mailben.",
+    freikarteLabelPlaceholder: "Indok (opcionális) — pl. Sajtó, Szponzor, Csapat",
+    kostenlos: "Ingyenes",
   },
   common: {
     speichern: "Mentés",
@@ -564,6 +568,7 @@ export const dict = {
     ereignisTicketFehler: "A jegyküldés nem sikerült",
     ereignisErstattet: "Visszatérítve",
     ereignisBearbeitet: "Szerkesztve",
+    freikarteBadge: "Tiszteletjegy",
   },
   events: {
     title: "Rendezvények",

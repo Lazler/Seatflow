@@ -20,6 +20,7 @@ type Buchung = {
   erstellt_am: string;
   event_id: string;
   notiz: string | null;
+  freikarte: boolean;
 };
 
 type Event = { id: string; titel: string };
@@ -207,7 +208,14 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
                 >
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{kurzId(b.id)}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium">{b.gaest_name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium">{b.gaest_name}</p>
+                      {b.freikarte && (
+                        <Badge variant="outline" className="border-red-300 text-red-700 bg-red-50 text-[10px] px-1.5 py-0 shrink-0">
+                          {t.buchungen.freikarteBadge}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{b.gaest_email}</p>
                     {b.notiz && <p className="text-xs text-muted-foreground/60 truncate max-w-[180px] mt-0.5">📝 {b.notiz}</p>}
                   </td>

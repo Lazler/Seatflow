@@ -21,7 +21,7 @@ export async function POST(
 
   const { data: buchung } = await admin
     .from("buchungen")
-    .select("id, gaest_name, gaest_email, gesamt_cent, status, event_id, ticket_typ")
+    .select("id, gaest_name, gaest_email, gesamt_cent, status, event_id, ticket_typ, freikarte, freikarte_label")
     .eq("id", id)
     .single();
 
@@ -84,6 +84,7 @@ export async function POST(
       ticketTypName: ticketTyp?.name,
       design,
       sprache,
+      freikarteLabel: buchung.freikarte ? (buchung.freikarte_label ?? "") : undefined,
     });
   } catch (err) {
     console.error("[bookings/resend] Versand fehlgeschlagen:", err);
