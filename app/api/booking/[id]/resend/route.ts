@@ -28,7 +28,7 @@ export async function POST(
   const admin = createAdminClient();
   const { data: buchung } = await admin
     .from("buchungen")
-    .select("id, gaest_name, gaest_email, gesamt_cent, status, event_id, ticket_typ")
+    .select("id, gaest_name, gaest_email, gesamt_cent, status, event_id, ticket_typ, freikarte, freikarte_label")
     .eq("id", id)
     .single();
   if (!buchung || buchung.status !== "bezahlt") {
@@ -91,15 +91,16 @@ export async function POST(
       design,
       sprache: "de",
       poweredBySeatflow: plan === "free",
+      freikarteLabel: buchung.freikarte ? (buchung.freikarte_label ?? "") : undefined,
     });
   } catch (err) {
     console.error("[booking/resend] Versand fehlgeschlagen:", err);
     const grund = grobeVersandFehlerbeschreibung(err);
-    await protokolliereEreignis(id, "ticket_sende_fehler", grund);
+    await protokolliereEreignis(id, "ticket_sende_fehler", grund, { typ: "gast", name: buchung.gaest_name });
     return NextResponse.json({ error: grund }, { status: 502 });
   }
 
-  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Gast angefordert");
+  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Gast angefordert", { typ: "gast", name: buchung.gaest_name });
 
   // Adresse nur maskiert zurückgeben
   const [local, domain] = buchung.gaest_email.split("@");

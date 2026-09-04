@@ -13,16 +13,28 @@ export type BuchungsEreignisTyp =
   | "erstattet"
   | "bearbeitet";
 
+// system = automatisiert (Stripe-Webhook, initiale Ticket-Mail nach Zahlung).
+// veranstalter/gast = durch eine Person ausgelöst — akteurName ist z.B. die
+// E-Mail des Veranstalters oder der Gastname, für die Anzeige im Verlauf.
+export type Akteur = { typ: "veranstalter" | "gast"; name?: string | null };
+
 export async function protokolliereEreignis(
   buchungId: string,
   typ: BuchungsEreignisTyp,
   details?: string | null,
+  akteur?: Akteur,
 ) {
   try {
     const admin = createAdminClient();
     const { error } = await admin
       .from("buchungs_ereignisse")
-      .insert({ buchung_id: buchungId, typ, details: details ?? null });
+      .insert({
+        buchung_id: buchungId,
+        typ,
+        details: details ?? null,
+        akteur_typ: akteur?.typ ?? "system",
+        akteur_name: akteur?.name ?? null,
+      });
     if (error) console.error("[buchungs-historie] Insert fehlgeschlagen:", error.message);
   } catch (err) {
     console.error("[buchungs-historie] Protokollierung fehlgeschlagen:", err);

@@ -17,7 +17,7 @@ export default async function BuchungenSeite() {
   const { data: buchungen } = eventIds.length > 0
     ? await supabase
         .from("buchungen")
-        .select("id, gaest_name, gaest_email, gesamt_cent, status, erstellt_am, event_id, notiz")
+        .select("id, gaest_name, gaest_email, gesamt_cent, status, erstellt_am, event_id, notiz, freikarte")
         .in("event_id", eventIds)
         .order("erstellt_am", { ascending: false })
     : { data: [] };

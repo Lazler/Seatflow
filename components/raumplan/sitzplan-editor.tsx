@@ -352,6 +352,23 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     setAuswahl(null);
   }
 
+  // Sperrt/entsperrt ALLE Sitze eines Elements auf einmal für den
+  // Online-Verkauf (statt Klick für Klick im Sperrmodus) — z.B. um einen
+  // ganzen Tisch nur für die manuelle Buchung im Dashboard zu reservieren.
+  function elementSperrenToggeln(id: string) {
+    const el = konfig.elemente.find((e) => e.id === id);
+    if (!el) return;
+    const ids = elementSitzIds(el);
+    if (ids.length === 0) return;
+    const aktuellGesperrt = new Set(konfig.gesperrteSitze ?? []);
+    const alleGesperrt = ids.every((sid) => aktuellGesperrt.has(sid));
+    mutiere((k) => {
+      const gesperrt = new Set(k.gesperrteSitze ?? []);
+      ids.forEach((sid) => alleGesperrt ? gesperrt.delete(sid) : gesperrt.add(sid));
+      return { ...k, gesperrteSitze: [...gesperrt] };
+    });
+  }
+
   function elementDuplizieren(id: string) {
     const original = konfig.elemente.find((e) => e.id === id);
     if (!original) return;
@@ -488,6 +505,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           .flatMap((e) => elementSitzIds(e))
       : []
   );
+  // true, wenn ALLE Sitze des ausgewählten Elements gesperrt sind
+  const ausgewaehltesElementGesperrt = ausgewaehltesElement
+    ? elementSitzIds(ausgewaehltesElement).length > 0 &&
+      elementSitzIds(ausgewaehltesElement).every((sid) => (konfig.gesperrteSitze ?? []).includes(sid))
+    : false;
   const hatDuplikate = doppelteSitzIds(konfig.elemente).length > 0;
   // Elemente außerhalb der Raumgröße — z.B. nach nachträglichem Verkleinern.
   // Der Buchungs-Canvas zeigt immer den tatsächlichen Inhalt, Käufer würden
@@ -645,10 +667,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           el={ausgewaehltesElement}
           kategorien={konfig.kategorien}
           fremdeSitzIds={fremdeSitzIds}
+          gesperrt={ausgewaehltesElementGesperrt}
           onChange={(d) => elementAktualisieren(ausgewaehltesElement.id, d)}
           onLoeschen={() => { elementLoeschen(ausgewaehltesElement.id); onClose?.(); }}
           onSchliessen={() => { setAuswahl(null); onClose?.(); }}
           onDuplizieren={() => elementDuplizieren(ausgewaehltesElement.id)}
+          onSperrenToggeln={() => elementSperrenToggeln(ausgewaehltesElement.id)}
         />
       );
     }

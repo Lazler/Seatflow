@@ -21,7 +21,7 @@ export async function POST(
 
   const { data: buchung } = await admin
     .from("buchungen")
-    .select("id, gaest_name, gaest_email, gesamt_cent, status, event_id, ticket_typ")
+    .select("id, gaest_name, gaest_email, gesamt_cent, status, event_id, ticket_typ, freikarte, freikarte_label")
     .eq("id", id)
     .single();
 
@@ -84,14 +84,15 @@ export async function POST(
       ticketTypName: ticketTyp?.name,
       design,
       sprache,
+      freikarteLabel: buchung.freikarte ? (buchung.freikarte_label ?? "") : undefined,
     });
   } catch (err) {
     console.error("[bookings/resend] Versand fehlgeschlagen:", err);
     const grund = grobeVersandFehlerbeschreibung(err);
-    await protokolliereEreignis(id, "ticket_sende_fehler", grund);
+    await protokolliereEreignis(id, "ticket_sende_fehler", grund, { typ: "veranstalter", name: user.email });
     return NextResponse.json({ error: grund }, { status: 502 });
   }
 
-  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Veranstalter gesendet");
+  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Veranstalter gesendet", { typ: "veranstalter", name: user.email });
   return NextResponse.json({ ok: true });
 }

@@ -20,10 +20,19 @@ type TicketMailParams = {
   design?: TicketDesign | null;
   sprache?: "de" | "en" | "hu";
   poweredBySeatflow?: boolean;
+  // Gesetzt bei Freikarten — erscheint als Stempel auf dem PDF-Ticket und als
+  // Badge in der Mail. Leerstring = generische "Freikarte" ohne eigenen Grund.
+  freikarteLabel?: string | null;
 };
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 export async function sendTicketMail(params: TicketMailParams) {
   const { to, guestName, eventTitel, eventDatum, venue, buchungId, sitze, gesamtCent, ticketTypName, design } = params;
+  const istFreikarte = params.freikarteLabel !== undefined && params.freikarteLabel !== null;
+  const freikarteText = istFreikarte ? escapeHtml(params.freikarteLabel || "Freikarte") : "";
 
   const lang = params.sprache ?? "de";
   const emailStrings = {
@@ -98,6 +107,8 @@ export async function sendTicketMail(params: TicketMailParams) {
       <p style="margin:0 0 8px;color:#64748b;font-size:14px">${emailStrings.hallo(guestName)}</p>
       <p style="margin:0 0 24px;font-size:15px">${emailStrings.bestaetigt}</p>
 
+      ${istFreikarte ? `<div style="display:inline-block;border:2px solid #dc2626;color:#dc2626;font-weight:700;font-size:11px;letter-spacing:1px;padding:4px 10px;border-radius:4px;margin-bottom:16px;transform:rotate(-2deg)">${freikarteText.toUpperCase()}</div>` : ""}
+
       <div style="background:#f1f5f9;border-radius:8px;padding:16px 20px;margin-bottom:24px">
         <p style="margin:0 0 4px;font-weight:700;font-size:16px">${eventTitel}</p>
         <p style="margin:0 0 2px;color:#64748b;font-size:14px">${datumFormatiert}</p>
@@ -146,6 +157,7 @@ export async function sendTicketMail(params: TicketMailParams) {
       ticketTypName,
       qrCodeDataUrl: await QRCode.toDataURL(s.qrCode ?? buchungId, { width: 200, margin: 1, errorCorrectionLevel: "M" }),
       design: activeDesign,
+      freikarteLabel: params.freikarteLabel,
       poweredBySeatflow: params.poweredBySeatflow,
     }))
   );

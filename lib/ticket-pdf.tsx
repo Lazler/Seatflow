@@ -14,6 +14,10 @@ type TicketData = {
   qrCodeDataUrl: string;
   design: TicketDesign;
   poweredBySeatflow?: boolean;
+  // Gesetzt bei Freikarten (nur über die manuelle Buchung anlegbar) — Text
+  // erscheint als Stempel auf dem Ticket, z.B. "FREIKARTE" oder ein
+  // frei gewählter Grund wie "PRESSE"/"SPONSOR".
+  freikarteLabel?: string | null;
 };
 
 function euro(cent: number) {
@@ -108,6 +112,7 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
     },
     ticketWrapper: {
       marginBottom: 20,
+      position: "relative",
     },
     ticket: {
       backgroundColor: design.hintergrundFarbe,
@@ -117,6 +122,26 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       // Kräftigere Kante, damit das weiße Ticket auf weißem Papier klar
       // abgegrenzt ist (dient zugleich als Schnittkante).
       border: "1pt solid #cbd5e1",
+    },
+    // Freikarten-Stempel — rotiert über die obere rechte Ecke gesetzt, wie ein
+    // echter Stempel. overflow:"visible" oben, damit er nicht abgeschnitten wird.
+    freikarteStempel: {
+      position: "absolute",
+      top: -11,
+      right: 22,
+      zIndex: 10,
+      transform: "rotate(-8deg)",
+      backgroundColor: "#ffffff",
+      border: "2pt solid #dc2626",
+      borderRadius: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+    },
+    freikarteStempelText: {
+      fontSize: 10,
+      fontFamily: "Helvetica-Bold",
+      color: "#dc2626",
+      letterSpacing: 1.2,
     },
     leftAccent: {
       width: 8,
@@ -364,6 +389,15 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
                 </View>
               </View>
             </View>
+
+            {/* Freikarten-Stempel — NACH der Ticket-Karte gerendert, damit er
+                über ihr liegt statt darunter verdeckt zu werden (spätere
+                Geschwister überlagern frühere, unabhängig von position). */}
+            {ticket.freikarteLabel !== undefined && ticket.freikarteLabel !== null && (
+              <View style={styles.freikarteStempel}>
+                <Text style={styles.freikarteStempelText}>{(ticket.freikarteLabel || "Freikarte").toUpperCase()}</Text>
+              </View>
+            )}
 
             {/* Fine print / Kleingedrucktes — rendered as formatted markdown below ticket */}
             {design.kleingedrucktes?.trim() && (

@@ -24,11 +24,17 @@ type Buchung = {
   gesamt_cent: number; status: string; erstellt_am: string;
   event_id: string; notiz: string | null; ticket_typ: TicketTypInfo | null;
   stripe_payment_intent: string | null;
+  freikarte: boolean; freikarte_label: string | null;
 };
 type TicketRow = { id: string; sitzplatz_id: string; sitzplatz_bezeichnung: string; preis_cent: number };
 type Kommentar = { id: string; text: string; erstellt_am: string };
 type EreignisTyp = "erstellt" | "bezahlt" | "ticket_gesendet" | "ticket_sende_fehler" | "erstattet" | "bearbeitet";
-type Ereignis = { id: string; typ: EreignisTyp; details: string | null; erstellt_am: string };
+type AkteurTyp = "system" | "veranstalter" | "gast";
+type Ereignis = {
+  id: string; typ: EreignisTyp; details: string | null;
+  akteur_typ: AkteurTyp; akteur_name: string | null;
+  erstellt_am: string;
+};
 type EventInfo = { id: string; titel: string; datum: string; serviceGebuehrCent: number };
 
 const STATUS_OPTIONEN = ["ausstehend", "bezahlt", "storniert", "erstattet"] as const;
@@ -50,6 +56,12 @@ function euro(cent: number, loc: string) {
 }
 
 function kurzId(id: string) { return id.slice(0, 8).toUpperCase(); }
+
+function akteurLabel(e: Ereignis, tb: Dict["buchungen"]): string {
+  if (e.akteur_typ === "system") return tb.akteurSystem;
+  if (e.akteur_typ === "gast") return e.akteur_name ? fmt(tb.akteurGast, { name: e.akteur_name }) : tb.akteurGastUnbekannt;
+  return e.akteur_name || tb.akteurVeranstalter;
+}
 
 function datumsAnzeige(iso: string, loc: string) {
   return new Date(iso).toLocaleDateString(loc, {
@@ -75,9 +87,10 @@ type Props = {
   tickets: TicketRow[];
   kommentare: Kommentar[];
   ereignisse: Ereignis[];
+  veranstalterEmail: string | null;
 };
 
-export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare, ereignisse }: Props) {
+export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare, ereignisse, veranstalterEmail }: Props) {
   const t = useT();
   const locale = useLocale();
   const dateLocale = intlLocale(locale);
@@ -155,6 +168,7 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
     if (aenderungen.length > 0) {
       await supabase.from("buchungs_ereignisse").insert({
         buchung_id: buchung.id, typ: "bearbeitet", details: aenderungen.join(" · "),
+        akteur_typ: "veranstalter", akteur_name: veranstalterEmail,
       });
     }
 
@@ -207,6 +221,11 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
               <Badge variant={STATUS_VARIANT[buchung.status] ?? "secondary"}>
                 {STATUS_LABEL[buchung.status] ?? buchung.status}
               </Badge>
+              {buchung.freikarte && (
+                <Badge variant="outline" className="border-red-300 text-red-700 bg-red-50">
+                  {buchung.freikarte_label || t.buchungen.freikarteBadge}
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               #{kurzId(buchung.id)} · {datumsAnzeige(buchung.erstellt_am, dateLocale)}
@@ -453,7 +472,9 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                         <div className="min-w-0 pb-0.5">
                           <p className="text-sm font-medium">{t.buchungen[cfg.label]}</p>
                           {e.details && <p className="text-xs text-muted-foreground mt-0.5">{e.details}</p>}
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{zeitVor(e.erstellt_am, t.time)}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {zeitVor(e.erstellt_am, t.time)} · {akteurLabel(e, t.buchungen)}
+                          </p>
                         </div>
                       </div>
                     );
