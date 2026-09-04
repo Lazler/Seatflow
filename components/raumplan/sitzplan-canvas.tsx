@@ -77,13 +77,18 @@ type SitzProps = {
   nummerAusblenden: boolean;
   sperrModus?: boolean;
   barrierefrei?: boolean;
+  // Bei tischweiser Buchung wählt der Käufer den Tisch, nicht den einzelnen
+  // Platz — einzelne Sitzkreise sind dann nicht direkt klickbar, Klicks
+  // fallen auf den Tisch (Group) durch, siehe TischreiheKomponente/
+  // RundtischKomponente.
+  tischweiseModus?: boolean;
   onSitzKlick?: (id: string) => void;
   onHoverInfo?: (info: SeatHoverInfo) => void;
 };
 
-const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, sperrModus, barrierefrei = false, onSitzKlick, onHoverInfo }: SitzProps) {
+const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe, kategorieName, kategoriePreisCent, belegt, buchungAusgewaehlt, editorAusgewaehlt, istBuchungsmodus, elementWinkel, nummerAusblenden, sperrModus, barrierefrei = false, tischweiseModus = false, onSitzKlick, onHoverInfo }: SitzProps) {
   // Im Sperrmodus sind ALLE Sitze klickbar (auch gesperrte, zum Entsperren)
-  const istKlickbar = sperrModus || (istBuchungsmodus && !belegt);
+  const istKlickbar = sperrModus || (istBuchungsmodus && !belegt && !tischweiseModus);
 
   // Ausgewählte Plätze behalten ihre Kategoriefarbe — erkennbar wird die
   // Auswahl über Ring + Häkchen (siehe unten), nicht über eine zweite Farbe.
@@ -206,6 +211,9 @@ type ElementProps<T> = {
   istBuchungsmodus: boolean; raumbreite: number; raumhoehe: number;
   nummerAusblenden: boolean;
   sperrModus?: boolean;
+  // Bei Tischen (Tischreihe/Rundtisch): Käufer wählt nur den Tisch + Anzahl,
+  // nicht den exakten Platz. Andere Elementtypen ignorieren das Flag.
+  tischweiseBuchung: boolean;
   zonenTexte: typeof TEXTE_DEFAULT;
   onKlick: () => void; onDragEnd: (x: number, y: number) => void;
   onDragMove: (x: number, y: number) => void;
@@ -277,7 +285,7 @@ const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kate
 
 // ── Einzelner Rechtecktisch ───────────────────────────────────────────────────
 
-const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onDragMove, registerNode, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
+const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, tischweiseBuchung, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onDragMove, registerNode, onSitzKlick, onHoverInfo }: ElementProps<TischreiheElement>) {
   const tischBreite = el.sitzeProSeite * TISCH_SITZ_ABSTAND;
   const sitzTopY  = -(TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
   const sitzBotY  =  (TISCH_HOEHE / 2 + TISCH_SEAT_GAP + SITZ_RADIUS);
@@ -286,14 +294,29 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
   const selTop = (el.sitzeOben  ? sitzTopY - SITZ_RADIUS : -TISCH_HOEHE / 2) - 8;
   const selBot = (el.sitzeUnten ? sitzBotY + SITZ_RADIUS :  TISCH_HOEHE / 2) + 8;
 
+  // Tischweise Buchung: Käufer klickt den Tisch statt einen Sitzkreis —
+  // der nächste freie Platz am Tisch wird automatisch gewählt.
+  const tischweiseModus = istBuchungsmodus && tischweiseBuchung;
+  const freieTischSitze = tischweiseModus
+    ? elementSitzIds(el).filter((id) => !belegte.has(id) && !buchungAusgewaehlt.has(id))
+    : [];
+  const tischKlickbar = tischweiseModus && freieTischSitze.length > 0;
+  const gruppenKlick = !istBuchungsmodus
+    ? (!sperrModus ? onKlick : undefined)
+    : (tischKlickbar ? () => onSitzKlick?.(freieTischSitze[0]) : undefined);
+
   return (
     <Group ref={registerNode} x={el.x} y={el.y} rotation={el.winkel} offsetX={tischBreite / 2}
       draggable={!istBuchungsmodus && !sperrModus}
       dragBoundFunc={(pos) => begrenzeUndSnappe(pos, stageScale, snapRaster, DRAG_MARGIN, raumbreite - DRAG_MARGIN, DRAG_MARGIN, raumhoehe - DRAG_MARGIN)}
-      onClick={!istBuchungsmodus && !sperrModus ? onKlick : undefined} onTap={!istBuchungsmodus && !sperrModus ? onKlick : undefined}
+      onClick={gruppenKlick} onTap={gruppenKlick}
       onDragMove={(e) => onDragMove(e.target.x(), e.target.y())}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
-      onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
+      onMouseEnter={(e) => {
+        const c = e.target.getStage()!.container();
+        if (!istBuchungsmodus) c.style.cursor = "grab";
+        else if (tischKlickbar) c.style.cursor = "pointer";
+      }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
       {/* Table surface */}
@@ -329,6 +352,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
             sperrModus={sperrModus}
             barrierefrei={barrierefreie.has(sitzId)}
+            tischweiseModus={tischweiseModus}
             onHoverInfo={onHoverInfo}
           />
         );
@@ -347,6 +371,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
             kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
             sperrModus={sperrModus}
             barrierefrei={barrierefreie.has(sitzId)}
+            tischweiseModus={tischweiseModus}
             onHoverInfo={onHoverInfo}
           />
         );
@@ -366,19 +391,35 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
 
 // ── Rundtisch ─────────────────────────────────────────────────────────────────
 
-const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onDragMove, registerNode, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
+const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefarbe, kategorieName, kategoriePreisCent, stageScale, snapRaster, sperrModus, tischweiseBuchung, editorAusgewaehlt, belegte, buchungAusgewaehlt, barrierefreie, istBuchungsmodus, raumbreite, raumhoehe, nummerAusblenden, onKlick, onDragEnd, onDragMove, registerNode, onSitzKlick, onHoverInfo }: ElementProps<RundtischElement>) {
   const sitzAbstand = rundtischSitzRadius(el);
   const r = sitzAbstand + SITZ_RADIUS + 8;
   const labelD = el.tischRadius * 2;
   const sitze = rundtischSitzPositionen(el);
+
+  // Tischweise Buchung: Käufer klickt den Tisch statt einen Sitzkreis —
+  // der nächste freie Platz am Tisch wird automatisch gewählt.
+  const tischweiseModus = istBuchungsmodus && tischweiseBuchung;
+  const freieTischSitze = tischweiseModus
+    ? elementSitzIds(el).filter((id) => !belegte.has(id) && !buchungAusgewaehlt.has(id))
+    : [];
+  const tischKlickbar = tischweiseModus && freieTischSitze.length > 0;
+  const gruppenKlick = !istBuchungsmodus
+    ? (!sperrModus ? onKlick : undefined)
+    : (tischKlickbar ? () => onSitzKlick?.(freieTischSitze[0]) : undefined);
+
   return (
     <Group ref={registerNode} x={el.x} y={el.y} rotation={el.winkel}
       draggable={!istBuchungsmodus}
       dragBoundFunc={(pos) => begrenzeUndSnappe(pos, stageScale, snapRaster, r, raumbreite - r, r, raumhoehe - r)}
-      onClick={!istBuchungsmodus && !sperrModus ? onKlick : undefined} onTap={!istBuchungsmodus && !sperrModus ? onKlick : undefined}
+      onClick={gruppenKlick} onTap={gruppenKlick}
       onDragMove={(e) => onDragMove(e.target.x(), e.target.y())}
       onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
-      onMouseEnter={(e) => { if (!istBuchungsmodus) e.target.getStage()!.container().style.cursor = "grab"; }}
+      onMouseEnter={(e) => {
+        const c = e.target.getStage()!.container();
+        if (!istBuchungsmodus) c.style.cursor = "grab";
+        else if (tischKlickbar) c.style.cursor = "pointer";
+      }}
       onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = "default"; }}
     >
       {/* Premium round table */}
@@ -418,6 +459,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
           kategorieName={kategorieName} kategoriePreisCent={kategoriePreisCent}
           sperrModus={sperrModus}
           barrierefrei={barrierefreie.has(sitzId)}
+          tischweiseModus={tischweiseModus}
           onHoverInfo={onHoverInfo}
         />
       ))}
@@ -783,6 +825,7 @@ export default function SitzplanCanvas({
       stageScale: scale,
       snapRaster,
       sperrModus,
+      tischweiseBuchung: konfiguration.tischweiseBuchung ?? false,
       zonenTexte: txt,
       onHoverInfo: istBuchungsmodus ? setTooltip : undefined,
       editorAusgewaehlt: istAusgewaehlt,

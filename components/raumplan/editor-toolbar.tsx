@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, PencilSimple as Pencil, Check, X, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2, ArrowsOutSimple as Maximize2, MaskHappy as Theater, ArrowsInSimple as AlignCenter } from "@phosphor-icons/react";
+import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Minus, Plus, PencilSimple as Pencil, Check, X, Users, TextT as Type, Rows as Rows3, MagicWand as Wand2, ArrowsOutSimple as Maximize2, MaskHappy as Theater, ArrowsInSimple as AlignCenter, Ticket } from "@phosphor-icons/react";
 import {
   type ElementTyp, type Preiskategorie,
 } from "@/types/sitzplan";
@@ -152,13 +152,15 @@ export function PreiskategorienInhalt({ kategorien, onChange }: {
 // ── Modal: "Planeinstellungen" (Raumgröße + Bestuhlungs-Generator) ─────────
 export function PlaneinstellungenInhalt({
   raumbreite, raumhoehe, onRaumgroesseAktualisieren, onInhaltZentrieren,
-  leer, onBestuhlungErzeugen, onVorlage,
+  leer, onBestuhlungErzeugen, onVorlage, tischweiseBuchung, onTischweiseBuchungAendern,
 }: {
   raumbreite: number; raumhoehe: number; onRaumgroesseAktualisieren: (b: number, h: number) => void;
   onInhaltZentrieren: () => void;
   leer: boolean;
   onBestuhlungErzeugen: (reihen: number, sitzeProReihe: number, mittelgang: boolean) => void;
   onVorlage: (typ: "theater" | "kabarett" | "misch") => void;
+  tischweiseBuchung: boolean;
+  onTischweiseBuchungAendern: (v: boolean) => void;
 }) {
   const t = useT();
   const [reihen, setReihen] = useState(8);
@@ -225,6 +227,19 @@ export function PlaneinstellungenInhalt({
         <Button size="sm" variant="outline" className="w-full h-8 text-xs" onClick={onInhaltZentrieren}>
           <AlignCenter className="h-3.5 w-3.5 mr-1.5" /> {t.editorToolbar.inhaltZentrieren}
         </Button>
+      </div>
+
+      <div className="space-y-3 pt-4 border-t border-border">
+        <AbschnittsTitel icon={Ticket}>{t.editorToolbar.buchung}</AbschnittsTitel>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-xs text-muted-foreground">{t.editorToolbar.tischweiseBuchung}</Label>
+          <button type="button" onClick={() => onTischweiseBuchungAendern(!tischweiseBuchung)}
+            role="switch" aria-checked={tischweiseBuchung}
+            className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${tischweiseBuchung ? "bg-brand" : "bg-input"}`}>
+            <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${tischweiseBuchung ? "translate-x-4" : "translate-x-0"}`} />
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">{t.editorToolbar.tischweiseBuchungHinweis}</p>
       </div>
     </div>
   );

@@ -89,6 +89,11 @@ export type SitzplanKonfiguration = {
   gesperrteSitze?: string[];
   // Barrierefreie Plätze (Rollstuhl) — buchbar, mit Symbol gekennzeichnet
   barrierefreieSitze?: string[];
+  // Bei Tischen (Tischreihe/Rundtisch) wählt der Käufer nur noch den Tisch
+  // und eine Anzahl — nicht mehr den exakten nummerierten Platz. Reihen und
+  // Stehplätze sind davon unberührt (Stehplätze funktionieren ohnehin schon
+  // so, Reihen bleiben exakt wählbar).
+  tischweiseBuchung?: boolean;
 };
 
 // --- Konstanten ---
@@ -306,6 +311,7 @@ export function migrierteKonfiguration(raw: unknown): SitzplanKonfiguration {
     kategorien: (k.kategorien as Preiskategorie[]) || DEFAULT_KATEGORIEN,
     gesperrteSitze: Array.isArray(k.gesperrteSitze) ? (k.gesperrteSitze as string[]) : [],
     barrierefreieSitze: Array.isArray(k.barrierefreieSitze) ? (k.barrierefreieSitze as string[]) : [],
+    tischweiseBuchung: Boolean(k.tischweiseBuchung),
   };
   if (k.buehne) {
     const b = k.buehne as Record<string, unknown>;

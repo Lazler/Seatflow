@@ -435,6 +435,10 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     mutiere((k) => ({ ...k, breite, hoehe }), "raum");
   }
 
+  function tischweiseBuchungAendern(v: boolean) {
+    mutiere((k) => ({ ...k, tischweiseBuchung: v }));
+  }
+
   function inhaltZentrieren() {
     mutiere((k) => zentriereInhalt(k));
   }
@@ -868,6 +872,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               leer={konfig.elemente.length === 0}
               onBestuhlungErzeugen={(reihen, sitze, gang) => { bestuhlungErzeugen(reihen, sitze, gang); setModalOffen(null); }}
               onVorlage={(typ) => { vorlageAnwenden(typ); setModalOffen(null); }}
+              tischweiseBuchung={konfig.tischweiseBuchung ?? false}
+              onTischweiseBuchungAendern={tischweiseBuchungAendern}
             />
           </DialogBody>
         </DialogContent>
