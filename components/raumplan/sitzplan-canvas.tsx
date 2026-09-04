@@ -57,6 +57,19 @@ function begrenzeUndSnappe(
   };
 }
 
+// Beschriftungen (Tischnummern, Bühnentitel, Zonen-Labels) sollen im
+// Buchungsmodus nicht mit der Geometrie mitschrumpfen, wenn der Plan wegen
+// einer breiten Raumform stark verkleinert dargestellt wird — sonst werden
+// sie unleserlich. Sitzkreise und sonstige Geometrie bleiben unverändert;
+// nur betroffene Schriftgrößen werden gegen die Fit-Skalierung ausgeglichen
+// (nach unten begrenzt, damit sie bei sehr kleiner Skalierung nicht
+// überproportional groß werden).
+function lesbareSchrift(basis: number, stageScale: number, istBuchungsmodus: boolean) {
+  if (!istBuchungsmodus) return basis;
+  const s = Math.min(1, Math.max(0.4, stageScale || 1));
+  return basis / s;
+}
+
 // ── Seat component with smooth hover scale animation ──────────────────────────
 
 export type SeatHoverInfo = {
@@ -177,11 +190,13 @@ const SitzKreis = memo(function SitzKreis({ x, y, sitzId, nummer, kategoriefarbe
 
 // ── Label chip — always upright, always readable ──────────────────────────────
 
-function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
+function LabelChip({ x, y, text, winkel, kategoriefarbe, stageScale, istBuchungsmodus }: {
   x: number; y: number; text: string; winkel: number; kategoriefarbe: string;
+  stageScale: number; istBuchungsmodus: boolean;
 }) {
-  const W = Math.max(22, text.length * 8 + 12);
-  const H = 20;
+  const fontSize = lesbareSchrift(11, stageScale, istBuchungsmodus);
+  const W = Math.max(22, text.length * fontSize * 0.73 + 12);
+  const H = Math.max(20, fontSize * 1.8);
   return (
     <Group x={x} y={y} rotation={-winkel} listening={false}>
       <Rect
@@ -194,7 +209,7 @@ function LabelChip({ x, y, text, winkel, kategoriefarbe }: {
       />
       <Text
         x={-W / 2} y={-H / 2} width={W} height={H}
-        text={text} fill="#17181a" fontSize={11} fontStyle="bold"
+        text={text} fill="#17181a" fontSize={fontSize} fontStyle="bold"
         align="center" verticalAlign="middle"
       />
     </Group>
@@ -250,7 +265,7 @@ const ReiheKomponente = memo(function ReiheKomponente({ el, kategoriefarbe, kate
       )}
       {/* Row label — pill chip, anchored left of first seat */}
       {!el.labelAusblenden && (
-        <LabelChip x={-(SITZ_RADIUS + 20)} y={sitze[0]?.y ?? 0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} />
+        <LabelChip x={-(SITZ_RADIUS + 20)} y={sitze[0]?.y ?? 0} text={el.bezeichnung} winkel={el.winkel} kategoriefarbe={kategoriefarbe} stageScale={stageScale} istBuchungsmodus={istBuchungsmodus} />
       )}
       {sitze.map(({ sitzId, nummer, x, y }) => (
         <SitzKreis key={sitzId}
@@ -344,7 +359,7 @@ const TischreiheKomponente = memo(function TischreiheKomponente({ el, kategorief
         rotation={-el.winkel}
         width={tischBreite} height={TISCH_HOEHE}
         text={gewaehlteAmTisch > 0 ? `${el.bezeichnung} · ${gewaehlteAmTisch}` : el.bezeichnung}
-        fill="#17181a" fontSize={11} fontStyle="bold"
+        fill="#17181a" fontSize={lesbareSchrift(11, stageScale, istBuchungsmodus)} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
       {/* Top seats */}
@@ -457,7 +472,7 @@ const RundtischKomponente = memo(function RundtischKomponente({ el, kategoriefar
         rotation={-el.winkel}
         width={labelD} height={labelD}
         text={gewaehlteAmTisch > 0 ? `${el.bezeichnung} · ${gewaehlteAmTisch}` : el.bezeichnung}
-        fill="#17181a" fontSize={12} fontStyle="bold"
+        fill="#17181a" fontSize={lesbareSchrift(12, stageScale, istBuchungsmodus)} fontStyle="bold"
         align="center" verticalAlign="middle" listening={false}
       />
       {sitze.map(({ sitzId, nummer, x, y }) => (
@@ -528,7 +543,7 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
         <Text
           x={-el.breite / 2} y={-20} width={el.breite} height={16}
           text={`${zonenTexte.stehplatz} ${el.bezeichnung}`}
-          fill="#17181a" fontSize={11} fontStyle="bold" letterSpacing={1.5}
+          fill="#17181a" fontSize={lesbareSchrift(11, stageScale, istBuchungsmodus)} fontStyle="bold" letterSpacing={1.5}
           align="center" verticalAlign="middle"
         />
         <Text
@@ -538,14 +553,14 @@ const StehplatzKomponente = memo(function StehplatzKomponente({ el, kategoriefar
                 ? zonenTexte.zoneAusverkauft
                 : `${freie.length} ${zonenTexte.zoneFrei}${gewaehlt > 0 ? ` · ${gewaehlt} ${zonenTexte.zoneGewaehlt}` : ""}`)
             : fmt(zonenTexte.stehplatzInfo, { kapazitaet: el.kapazitaet, kategorieName, preis: (kategoriePreisCent / 100).toLocaleString(zonenTexte.currencyLocale, { style: "currency", currency: "EUR" }) })}
-          fill="#6b6e73" fontSize={10}
+          fill="#6b6e73" fontSize={lesbareSchrift(10, stageScale, istBuchungsmodus)}
           align="center" verticalAlign="middle"
         />
         {istBuchungsmodus && klickbar && (
           <Text
             x={-el.breite / 2} y={14} width={el.breite} height={13}
             text={zonenTexte.zoneHinzufuegen}
-            fill={kategoriefarbe} fontSize={9.5} fontStyle="bold"
+            fill={kategoriefarbe} fontSize={lesbareSchrift(9.5, stageScale, istBuchungsmodus)} fontStyle="bold"
             align="center" verticalAlign="middle"
           />
         )}
@@ -636,14 +651,19 @@ function BuehneKomponente({ buehne, ausgewaehlt, istBuchungsmodus, raumbreite, r
         shadowOffsetY={4}
         perfectDrawEnabled={false} shadowForStrokeEnabled={false}
       />
-      {/* Stage label — counter-rotated, bounded to visual footprint */}
+      {/* Stage label — counter-rotated, bounded to visual footprint.
+          wrap="none" verhindert, dass das Label bei schmalen Bühnen (z.B. an
+          der Seitenwand) Buchstabe für Buchstabe umbricht — es bleibt
+          einzeilig und darf notfalls leicht über die schmale Form hinausragen,
+          das ist besser lesbar als gestapelte Einzelbuchstaben. */}
       <Text
         x={buehne.breite / 2} y={buehne.hoehe / 2}
         offsetX={labelW / 2} offsetY={labelH / 2}
         rotation={-buehne.winkel}
         width={labelW} height={labelH}
         text={buehne.label}
-        fill="rgba(248,250,252,0.92)" fontSize={11} fontStyle="bold" letterSpacing={3}
+        fill="rgba(248,250,252,0.92)" fontSize={lesbareSchrift(11, stageScale, istBuchungsmodus)} fontStyle="bold" letterSpacing={3}
+        wrap="none"
         align="center" verticalAlign="middle" listening={false}
       />
     </Group>
