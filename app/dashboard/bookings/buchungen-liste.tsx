@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { MagnifyingGlass as Search, ArrowRight, Receipt as ReceiptText, Plus } from "@phosphor-icons/react";
 import { useT, useLocale } from "@/components/i18n-provider";
@@ -131,15 +132,16 @@ export default function BuchungenListe({ buchungen, events }: { buchungen: Buchu
             className="pl-9 h-9"
           />
         </div>
-        <select
-          value={sortierung}
-          onChange={(e) => setSortierung(e.target.value as SortKey)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.key} value={o.key}>{o.label}</option>
-          ))}
-        </select>
+        <Select value={sortierung} onValueChange={(v) => setSortierung(v as SortKey)}>
+          <SelectTrigger className="h-9 w-auto text-sm shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Status filter tabs — horizontal scrollbar auf schmalen Screens */}

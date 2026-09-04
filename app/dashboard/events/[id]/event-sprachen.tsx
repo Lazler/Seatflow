@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ export default function EventSprachen({
   deBeschreibung: string | null;
 }) {
   const t = useT();
+  const router = useRouter();
   const [zusatzSprachen, setZusatzSprachen] = useState<Locale[]>(
     (initialSprachen.filter((l) => l !== "de") as Locale[]).filter((l) =>
       ADDITIONAL_LOCALES.includes(l)
@@ -39,6 +41,12 @@ export default function EventSprachen({
       Object.entries(initialTranslations).filter(([k]) => k !== "de")
     ) as Partial<Record<Locale, LangContent>>
   );
+  // Deutsch ist die Hauptsprache des Events — Titel/Beschreibung werden nur
+  // beim Erstellen gesetzt (event-formular.tsx unter events/new) und lassen
+  // sich sonst nirgends mehr ändern. Deshalb hier direkt editierbar statt
+  // (wie zuvor) nur als Info-Text angezeigt.
+  const [deTitelWert, setDeTitelWert] = useState(deTitel);
+  const [deBeschreibungWert, setDeBeschreibungWert] = useState(deBeschreibung ?? "");
   const [laden, setLaden] = useState(false);
   const [erfolg, setErfolg] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -62,6 +70,12 @@ export default function EventSprachen({
   }
 
   function setContent(lang: Locale, field: keyof LangContent, value: string) {
+    if (lang === "de") {
+      if (field === "titel") setDeTitelWert(value);
+      else setDeBeschreibungWert(value);
+      setErfolg(false);
+      return;
+    }
     setTranslations((prev) => ({
       ...prev,
       [lang]: { ...((prev[lang] as LangContent) ?? { titel: "", beschreibung: "" }), [field]: value },
@@ -70,11 +84,15 @@ export default function EventSprachen({
   }
 
   function getContent(lang: Locale): LangContent {
-    if (lang === "de") return { titel: deTitel, beschreibung: deBeschreibung ?? "" };
+    if (lang === "de") return { titel: deTitelWert, beschreibung: deBeschreibungWert };
     return (translations[lang] as LangContent) ?? { titel: "", beschreibung: "" };
   }
 
   async function handleSave() {
+    if (!deTitelWert.trim()) {
+      setFehler(t.eventSprachen.titelPflichtDe);
+      return;
+    }
     setLaden(true);
     setFehler(null);
     setErfolg(false);
@@ -90,12 +108,18 @@ export default function EventSprachen({
     const res = await fetch(`/api/events/${eventId}/languages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sprachen: alleSprachen, translations: translationsClean }),
+      body: JSON.stringify({
+        sprachen: alleSprachen,
+        translations: translationsClean,
+        titel: deTitelWert.trim(),
+        beschreibung: deBeschreibungWert.trim() || null,
+      }),
     });
 
     setLaden(false);
     if (res.ok) {
       setErfolg(true);
+      router.refresh();
     } else {
       setFehler(t.eventSprachen.fehlerSpeichern);
     }
@@ -138,51 +162,43 @@ export default function EventSprachen({
         </div>
 
         {zusatzSprachen.length > 0 && (
-          <>
-            <div className="flex gap-0.5 border-b border-border">
-              {alleSprachen.map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => setAktiveSprache(lang)}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors relative ${
-                    aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {lang.toUpperCase()} · {LOCALE_LABELS[lang]}
-                  {aktiveSprache === lang && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-                </button>
-              ))}
-            </div>
-
-            {aktiveSprache !== "de" ? (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">{fmt(t.eventSprachen.titel, { lang: LOCALE_LABELS[aktiveSprache] })}</Label>
-                  <Input
-                    value={content.titel}
-                    onChange={(e) => setContent(aktiveSprache, "titel", e.target.value)}
-                    placeholder={fmt(t.eventSprachen.titelPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
-                    className="text-sm h-8"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">{fmt(t.eventSprachen.beschreibung, { lang: LOCALE_LABELS[aktiveSprache] })}</Label>
-                  <textarea
-                    className="flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={content.beschreibung}
-                    onChange={(e) => setContent(aktiveSprache, "beschreibung", e.target.value)}
-                    placeholder={fmt(t.eventSprachen.beschreibungPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
-                  />
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {t.eventSprachen.hauptsprache}
-              </p>
-            )}
-          </>
+          <div className="flex gap-0.5 border-b border-border">
+            {alleSprachen.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setAktiveSprache(lang)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors relative ${
+                  aktiveSprache === lang ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {lang.toUpperCase()} · {LOCALE_LABELS[lang]}
+                {aktiveSprache === lang && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+              </button>
+            ))}
+          </div>
         )}
+
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">{fmt(t.eventSprachen.titel, { lang: LOCALE_LABELS[aktiveSprache] })}</Label>
+            <Input
+              value={content.titel}
+              onChange={(e) => setContent(aktiveSprache, "titel", e.target.value)}
+              placeholder={fmt(t.eventSprachen.titelPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
+              className="text-sm h-8"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{fmt(t.eventSprachen.beschreibung, { lang: LOCALE_LABELS[aktiveSprache] })}</Label>
+            <textarea
+              className="flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={content.beschreibung}
+              onChange={(e) => setContent(aktiveSprache, "beschreibung", e.target.value)}
+              placeholder={fmt(t.eventSprachen.beschreibungPlaceholder, { lang: LOCALE_LABELS[aktiveSprache] })}
+            />
+          </div>
+        </div>
 
         {fehler && <p className="text-xs text-destructive">{fehler}</p>}
 

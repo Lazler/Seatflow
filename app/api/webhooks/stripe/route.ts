@@ -7,6 +7,7 @@ import type Stripe from "stripe";
 import type { TicketDesign } from "@/types/ticket-design";
 import { DEFAULT_TICKET_DESIGN } from "@/types/ticket-design";
 import { sitzAnzeige } from "@/types/sitzplan";
+import { protokolliereEreignis, grobeVersandFehlerbeschreibung } from "@/lib/buchungs-historie";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!buchung) return NextResponse.json({ received: true });
+  await protokolliereEreignis(buchungId, "bezahlt", buchung.rechnung_nummer ? `Rechnung ${buchung.rechnung_nummer}` : null);
 
   const [{ data: tickets }, { data: ev }, { data: buchungDetail }] = await Promise.all([
     admin
@@ -179,25 +181,33 @@ export async function POST(req: NextRequest) {
 
   const ticketTyp = buchungDetail?.ticket_typ as { name: string } | null;
 
-  await sendTicketMail({
-    to: buchung.gaest_email,
-    guestName: buchung.gaest_name,
-    eventTitel: ev.titel,
-    eventDatum: new Date(ev.datum),
-    venue,
-    buchungId,
-    sitze: tickets.map((t) => ({
-      sitzId: sitzAnzeige(t.sitzplatz_id),
-      kategorieName: t.sitzplatz_bezeichnung,
-      preisCent: t.preis_cent,
-      qrCode: t.qr_code,
-    })),
-    gesamtCent: buchung.gesamt_cent,
-    ticketTypName: ticketTyp?.name,
-    design,
-    sprache,
-    poweredBySeatflow: plan === "free",
-  });
+  try {
+    await sendTicketMail({
+      to: buchung.gaest_email,
+      guestName: buchung.gaest_name,
+      eventTitel: ev.titel,
+      eventDatum: new Date(ev.datum),
+      venue,
+      buchungId,
+      sitze: tickets.map((t) => ({
+        sitzId: sitzAnzeige(t.sitzplatz_id),
+        kategorieName: t.sitzplatz_bezeichnung,
+        preisCent: t.preis_cent,
+        qrCode: t.qr_code,
+      })),
+      gesamtCent: buchung.gesamt_cent,
+      ticketTypName: ticketTyp?.name,
+      design,
+      sprache,
+      poweredBySeatflow: plan === "free",
+    });
+    await protokolliereEreignis(buchungId, "ticket_gesendet", "Bestätigung nach Zahlung");
+  } catch (err) {
+    await protokolliereEreignis(buchungId, "ticket_sende_fehler", grobeVersandFehlerbeschreibung(err));
+    // Weiterwerfen: Stripe wiederholt den Webhook bei einem 500 automatisch,
+    // ein verschluckter Fehler würde den Käufer sonst ohne Tickets zurücklassen.
+    throw err;
+  }
 
   // Verkaufs-Benachrichtigung an den Veranstalter (best effort, abschaltbar)
   if (profil?.benachrichtigung_verkauf !== false) {

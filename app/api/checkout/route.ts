@@ -11,6 +11,7 @@ import { PLAN_SERVICE_FEE_CENT, effectivePlan } from "@/lib/plan";
 import { HOLD_MINUTEN } from "@/lib/belegte-sitze";
 import { fruehbucherAktiv, fruehbucherPreis, type Fruehbucher, type EventAddon } from "@/types/event-extras";
 import { istDemo } from "@/lib/demo";
+import { protokolliereEreignis } from "@/lib/buchungs-historie";
 
 const SitzplatzSchema = z.object({
   sitzId: z.string().min(1).max(100),
@@ -213,6 +214,7 @@ export async function POST(req: NextRequest) {
   if (buchungsFehler || !buchung) {
     return NextResponse.json({ error: "Buchung konnte nicht angelegt werden" }, { status: 500 });
   }
+  await protokolliereEreignis(buchung.id, "erstellt", "Online-Checkout");
 
   const { error: ticketFehler } = await admin.from("tickets").insert(
     validatedSitzplaetze.map((p) => ({

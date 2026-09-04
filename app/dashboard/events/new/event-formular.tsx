@@ -9,10 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Info, CaretDown, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
 type Venue = { id: string; name: string; hatPlan?: boolean };
+
+// Radix Select erlaubt keinen leeren String als Item-Value.
+const KEIN_VENUE = "__kein_venue__";
 type LangContent = { titel: string; beschreibung: string };
 
 const ADDITIONAL_LOCALES: Locale[] = ["en", "hu"];
@@ -161,15 +165,15 @@ export default function NeuesEventFormular({
 
             <div className="space-y-2">
               <Label htmlFor="venue">{t.eventForm.venueLabel}</Label>
-              <select
-                id="venue"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={venueId}
-                onChange={(e) => setVenueId(e.target.value)}
-              >
-                <option value="">{t.eventForm.keinVenueOption}</option>
-                {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
+              <Select value={venueId || KEIN_VENUE} onValueChange={(v) => setVenueId(v === KEIN_VENUE ? "" : v)}>
+                <SelectTrigger id="venue" className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={KEIN_VENUE}>{t.eventForm.keinVenueOption}</SelectItem>
+                  {venues.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
               {venueOhnePlan && (
                 <p className="flex items-start gap-1.5 text-xs text-amber-600">
                   <WarningCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />

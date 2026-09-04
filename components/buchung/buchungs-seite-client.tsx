@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Check, CircleNotch as Loader2, CaretUp as ChevronUp, CaretDown as ChevronDown, ArrowLeft, Lock, ShieldCheck, Ticket, MapPin, Calendar, Timer, Sparkle as Sparkles, Wheelchair } from "@phosphor-icons/react";
 import type { SitzplanKonfiguration, Preiskategorie } from "@/types/sitzplan";
 import { alleSitze, elementSitzIds, floorSitzId, sitzGehoertZuFloor, aufInhaltZugeschnitten } from "@/types/sitzplan";
@@ -124,6 +125,10 @@ function FloorPicker({ floors, aktiv, onWechseln, floorLabel }: {
   );
 }
 
+// Radix Select erlaubt keinen leeren String als Item-Value.
+const NORMALPREIS_WERT = "__normalpreis__";
+const KEIN_FELD_WERT = "__kein_feld__";
+
 /* ─── Per-seat type selector ───────────────────────────────────────────────── */
 function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange, displayLang }: {
   sitz: AusgewaehlterSitz;
@@ -138,31 +143,39 @@ function SitzTypSelector({ sitz, ticketTypen, onTypChange, onFeldChange, display
 
   return (
     <div className="space-y-1.5">
-      <select
-        value={sitz.ticketTypId ?? ""}
-        onChange={(e) => onTypChange(e.target.value || null)}
-        className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      <Select
+        value={sitz.ticketTypId ?? NORMALPREIS_WERT}
+        onValueChange={(v) => onTypChange(v === NORMALPREIS_WERT ? null : v)}
       >
-        <option value="">{normalpreis}</option>
-        {ticketTypen.map((t) => (
-          <option key={t.id} value={t.id}>
-            {tn(t)} — {t.preis_regel.typ === "basis" ? normalpreis : regelLabel(t.preis_regel)}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="h-7 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NORMALPREIS_WERT}>{normalpreis}</SelectItem>
+          {ticketTypen.map((t) => (
+            <SelectItem key={t.id} value={t.id}>
+              {tn(t)} — {t.preis_regel.typ === "basis" ? normalpreis : regelLabel(t.preis_regel)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {gewaehlterTyp?.pflichtfelder && gewaehlterTyp.pflichtfelder.length > 0 && (
         <div className="space-y-1 pl-2 border-l-2 border-primary/30">
           {gewaehlterTyp.pflichtfelder.map((feld: PflichtFeld) => (
             <div key={feld.id}>
               {feld.typ === "auswahl" && feld.optionen?.length ? (
-                <select
-                  value={sitz.extraFelder[feld.label] ?? ""}
-                  onChange={(e) => onFeldChange(feld.label, e.target.value)}
-                  className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none"
+                <Select
+                  value={sitz.extraFelder[feld.label] || KEIN_FELD_WERT}
+                  onValueChange={(v) => onFeldChange(feld.label, v === KEIN_FELD_WERT ? "" : v)}
                 >
-                  <option value="">— {feld.label}{feld.pflicht ? " *" : ""} —</option>
-                  {feld.optionen.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={KEIN_FELD_WERT}>— {feld.label}{feld.pflicht ? " *" : ""} —</SelectItem>
+                    {feld.optionen.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               ) : (
                 <Input
                   type={feld.typ === "email" ? "email" : feld.typ === "zahl" ? "number" : "text"}
@@ -252,8 +265,12 @@ export default function BuchungsSeiteClient({
       const w = ref.current.offsetWidth;
       if (w <= 0) return;
       // Plan füllt die Containerbreite (crisp Vektor-Skalierung), moderat
-      // gedeckelt, damit sehr kleine Pläne nicht grotesk aufgeblasen werden.
-      setter(Math.min(1.8, w / anzeigeKonfig.breite));
+      // gedeckelt, damit sehr kleine Pläne nicht grotesk aufgeblasen werden —
+      // und mit einer UNTEREN Grenze, sonst werden Tischnummern/Labels bei
+      // breiten Plänen auf schmalen Bildschirmen unleserlich klein. Wird der
+      // Plan dadurch breiter als der Container, scrollt canvasWrapper
+      // horizontal statt zu clippen.
+      setter(Math.min(1.8, Math.max(0.55, w / anzeigeKonfig.breite)));
     };
     const updateDesktop = makeUpdater(desktopContainerRef, setDesktopRenderScale);
     const updateMobile = makeUpdater(mobileContainerRef, setMobileRenderScale);
@@ -505,7 +522,7 @@ export default function BuchungsSeiteClient({
   }), [uiStrings]);
 
   const canvasWrapper = (ref: React.RefObject<HTMLDivElement | null>, scale: number) => (
-    <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-hidden flex justify-center bg-[#fbfcfe]"
+    <div ref={ref} className="w-full rounded-xl border border-border shadow-sm overflow-x-auto overflow-y-hidden flex justify-center bg-[#fbfcfe]"
       style={{ transition: "opacity 140ms ease-in-out", opacity: fading ? 0 : 1 }}>
       <SitzplanCanvas konfiguration={anzeigeKonfig} modus="buchung"
         renderScale={scale} belegteSitze={belegteAktiverFloor} ausgewaehlteSitze={ausgewaehlteIdsAktiverFloor}

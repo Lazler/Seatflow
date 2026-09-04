@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash as Trash2, CaretDown as ChevronDown, CaretUp as ChevronUp, Ticket as Tickets, DotsSixVertical as GripVertical, X } from "@phosphor-icons/react";
 import type { TicketTyp, PflichtFeld, PreisRegel } from "@/types/ticket-typ";
 import { useT, useLocale } from "@/components/i18n-provider";
@@ -113,16 +114,17 @@ function PflichtFeldEditor({ feld, onChange, onDelete }: {
           onChange={(e) => onChange({ label: e.target.value })}
           className="h-7 text-xs col-span-2"
         />
-        <select
-          value={feld.typ}
-          onChange={(e) => onChange({ typ: e.target.value as PflichtFeld["typ"] })}
-          className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-        >
-          <option value="text">{t.ticketTypen.feldText}</option>
-          <option value="zahl">{t.ticketTypen.feldZahl}</option>
-          <option value="email">{t.ticketTypen.feldEmail}</option>
-          <option value="auswahl">{t.ticketTypen.feldAuswahl}</option>
-        </select>
+        <Select value={feld.typ} onValueChange={(v) => onChange({ typ: v as PflichtFeld["typ"] })}>
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="text">{t.ticketTypen.feldText}</SelectItem>
+            <SelectItem value="zahl">{t.ticketTypen.feldZahl}</SelectItem>
+            <SelectItem value="email">{t.ticketTypen.feldEmail}</SelectItem>
+            <SelectItem value="auswahl">{t.ticketTypen.feldAuswahl}</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-1.5">
           <input
             type="checkbox"

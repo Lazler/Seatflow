@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Plus, Lock } from "@phosphor-icons/react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toaster";
 import { useT } from "@/components/i18n-provider";
 
 type Venue = { id: string; name: string };
+
+// Radix Select erlaubt keinen leeren String als Item-Value.
+const KEIN_VENUE = "__kein_venue__";
 
 // Ordnet einem bestehenden Event die Venue zu bzw. ändert sie. Ohne diese
 // Karte könnte eine ohne Venue angelegte Veranstaltung nie einen Sitzplan
@@ -88,16 +92,20 @@ export default function VenueZuweisung({
           </div>
         ) : (
           <>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={venueId}
-              onChange={(e) => setVenueId(e.target.value)}
+            <Select
+              value={venueId || KEIN_VENUE}
+              onValueChange={(v) => setVenueId(v === KEIN_VENUE ? "" : v)}
             >
-              <option value="">{t.venueZuweisung.keinVenueOption}</option>
-              {venues.map((v) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={KEIN_VENUE}>{t.venueZuweisung.keinVenueOption}</SelectItem>
+                {venues.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {venueGewechselt && (
               <p className="text-[11px] text-amber-600">
                 {t.venueZuweisung.wechselHinweis}

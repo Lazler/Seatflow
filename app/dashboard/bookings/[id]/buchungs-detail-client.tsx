@@ -12,8 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/toaster";
 import { sitzAnzeige } from "@/types/sitzplan";
-import { ArrowLeft, PencilSimple as Pencil, Check, X, PaperPlaneTilt as Send, CircleNotch as Loader2, Ticket, DownloadSimple as Download, ArrowCounterClockwise as RotateCcw, ArrowsClockwise as RefreshCw } from "@phosphor-icons/react";
+import { ArrowLeft, PencilSimple as Pencil, Check, X, PaperPlaneTilt as Send, CircleNotch as Loader2, Ticket, DownloadSimple as Download, ArrowCounterClockwise as RotateCcw, ArrowsClockwise as RefreshCw, Plus, CheckCircle, WarningCircle, type Icon } from "@phosphor-icons/react";
 
 type TicketTypInfo = { id: string; name: string; extra_felder?: Record<string, string> };
 
@@ -25,11 +27,22 @@ type Buchung = {
 };
 type TicketRow = { id: string; sitzplatz_id: string; sitzplatz_bezeichnung: string; preis_cent: number };
 type Kommentar = { id: string; text: string; erstellt_am: string };
+type EreignisTyp = "erstellt" | "bezahlt" | "ticket_gesendet" | "ticket_sende_fehler" | "erstattet" | "bearbeitet";
+type Ereignis = { id: string; typ: EreignisTyp; details: string | null; erstellt_am: string };
 type EventInfo = { id: string; titel: string; datum: string; serviceGebuehrCent: number };
 
 const STATUS_OPTIONEN = ["ausstehend", "bezahlt", "storniert", "erstattet"] as const;
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bezahlt: "default", ausstehend: "secondary", storniert: "destructive", erstattet: "outline",
+};
+
+const EREIGNIS_CONFIG: Record<EreignisTyp, { icon: Icon; farbe: string; fill?: boolean; label: keyof Dict["buchungen"] }> = {
+  erstellt:            { icon: Plus,         farbe: "bg-muted text-muted-foreground",       label: "ereignisErstellt" },
+  bezahlt:              { icon: CheckCircle,  farbe: "bg-green-100 text-green-700", fill: true, label: "ereignisBezahlt" },
+  ticket_gesendet:      { icon: Send,         farbe: "bg-primary/10 text-primary",           label: "ereignisTicketGesendet" },
+  ticket_sende_fehler:  { icon: WarningCircle,farbe: "bg-destructive/10 text-destructive", fill: true, label: "ereignisTicketFehler" },
+  erstattet:            { icon: RotateCcw,    farbe: "bg-amber-100 text-amber-700",          label: "ereignisErstattet" },
+  bearbeitet:           { icon: Pencil,       farbe: "bg-muted text-muted-foreground",       label: "ereignisBearbeitet" },
 };
 
 function euro(cent: number, loc: string) {
@@ -61,9 +74,10 @@ type Props = {
   event: EventInfo;
   tickets: TicketRow[];
   kommentare: Kommentar[];
+  ereignisse: Ereignis[];
 };
 
-export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare }: Props) {
+export default function BuchungsDetail({ buchung, event, tickets, kommentare: initialKommentare, ereignisse }: Props) {
   const t = useT();
   const locale = useLocale();
   const dateLocale = intlLocale(locale);
@@ -95,7 +109,12 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
     setResendLaden(false);
     if (res.ok) {
       setResendErfolg(true);
+      toast.success(t.buchungen.ticketsGesendet);
       setTimeout(() => setResendErfolg(false), 4000);
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      toast.error(t.buchungen.sendeFehler, json.error ?? undefined);
     }
   }
 
@@ -126,6 +145,19 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
       status,
       notiz: notiz.trim() || null,
     }).eq("id", buchung.id);
+
+    // Änderungen im Verlauf festhalten — nur was sich wirklich geändert hat.
+    const aenderungen: string[] = [];
+    if (name.trim() !== buchung.gaest_name) aenderungen.push(t.buchungen.name);
+    if (email.trim() !== buchung.gaest_email) aenderungen.push(t.buchungen.eMail);
+    if (status !== buchung.status) aenderungen.push(`${t.buchungen.colStatus}: ${STATUS_LABEL[buchung.status] ?? buchung.status} → ${STATUS_LABEL[status] ?? status}`);
+    if (notiz.trim() !== (buchung.notiz ?? "")) aenderungen.push(t.buchungen.notiz);
+    if (aenderungen.length > 0) {
+      await supabase.from("buchungs_ereignisse").insert({
+        buchung_id: buchung.id, typ: "bearbeitet", details: aenderungen.join(" · "),
+      });
+    }
+
     setSpeichertEdit(false);
     setEditModus(false);
     router.refresh();
@@ -353,15 +385,16 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                 <>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{t.buchungen.colStatus}</Label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {STATUS_OPTIONEN.map((s) => (
-                        <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                      ))}
-                    </select>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONEN.map((s) => (
+                          <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{t.buchungen.interneNotiz}</Label>
@@ -395,6 +428,37 @@ export default function BuchungsDetail({ buchung, event, tickets, kommentare: in
                     </button>
                   )}
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Verlauf */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">{t.buchungen.verlauf}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ereignisse.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t.buchungen.verlaufLeer}</p>
+              ) : (
+                <div className="space-y-4">
+                  {[...ereignisse].reverse().map((e) => {
+                    const cfg = EREIGNIS_CONFIG[e.typ];
+                    const Icon = cfg.icon;
+                    return (
+                      <div key={e.id} className="flex gap-3">
+                        <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${cfg.farbe}`}>
+                          <Icon className="h-3.5 w-3.5" weight={cfg.fill ? "fill" : undefined} />
+                        </div>
+                        <div className="min-w-0 pb-0.5">
+                          <p className="text-sm font-medium">{t.buchungen[cfg.label]}</p>
+                          {e.details && <p className="text-xs text-muted-foreground mt-0.5">{e.details}</p>}
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{zeitVor(e.erstellt_am, t.time)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

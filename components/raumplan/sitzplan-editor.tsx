@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ElementHinzufuegenInhalt, PreiskategorienInhalt, PlaneinstellungenInhalt } from "./editor-toolbar";
 import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import ElementEigenschaftenPanel, { BuehneEigenschaftenPanel } from "./element-eigenschaften-panel";
 import { EditorGuideModal } from "./editor-guide";
 import { EditorTour } from "./editor-tour";
@@ -24,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
 import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair, Question as HelpCircle, AlignLeft, AlignCenterHorizontal, AlignRight, AlignTop, AlignCenterVertical, AlignBottom, ListBullets, WarningCircle } from "@phosphor-icons/react";
-import Link from "next/link";
 import { useT, useLocale } from "@/components/i18n-provider";
 import { fmt, intlLocale } from "@/lib/i18n/buchung";
 
@@ -63,7 +63,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [konfig, setKonfig] = useState<SitzplanKonfiguration>(() => zentriereInhalt(migrierteKonfiguration(initialKonfiguration)));
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
 
-  const [gespeichert, setGespeichert] = useState(false);
+  // Frisch geladener Stand entspricht der DB, gilt also als "gespeichert" —
+  // wird bei jeder Mutation (inkl. undo/redo) auf false gesetzt und bei
+  // erfolgreichem Speichern wieder auf true. Doppelt genutzt: zeigt den
+  // "✓ Gespeichert"-Indikator UND steuert die Verlassen-ohne-Speichern-Warnung.
+  const [gespeichert, setGespeichert] = useState(true);
 
   // ── Undo/Redo ────────────────────────────────────────────────────────────
   // Ref-Spiegel des aktuellen Zustands, damit mutiere() außerhalb des
@@ -160,6 +164,12 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
   const [modalOffen, setModalOffen] = useState<"element" | "kategorien" | "einstellungen" | null>(null);
   const [elementListeOffen, setElementListeOffen] = useState(false);
+  const [verlassenBestaetigungOffen, setVerlassenBestaetigungOffen] = useState(false);
+
+  function editorVerlassen() {
+    if (!gespeichert) { setVerlassenBestaetigungOffen(true); return; }
+    router.push(`/dashboard/venues/${venueId}`);
+  }
 
   // ── Einführungs-Guide + interaktive Tour ────────────────────────────────
   // Beim allerersten Öffnen eines leeren Plans startet direkt die Tour (zeigt
@@ -510,6 +520,23 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     return () => window.removeEventListener("keydown", onKey);
   }, [auswahl, mutiere, undo, redo]);
 
+  // Browser-Zurück bei ungespeicherten Änderungen abfangen: ein zusätzlicher
+  // History-Eintrag fängt den ersten "Zurück"-Druck ab und zeigt denselben
+  // Modal-Dialog statt den Editor kommentarlos zu verlassen. Der eigentliche
+  // Tab-Schließen/Neuladen-Fall lässt sich technisch nur mit der nativen
+  // Browser-Abfrage abdecken — die will der Nutzer explizit nicht, daher hier
+  // bewusst kein beforeunload-Handler.
+  useEffect(() => {
+    if (gespeichert) return;
+    window.history.pushState(null, "", window.location.href);
+    function onPopState() {
+      window.history.pushState(null, "", window.location.href);
+      setVerlassenBestaetigungOffen(true);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [gespeichert]);
+
   // Max. möglicher Umsatz bei Vollauslastung (Kapazitäts-/Umsatz-Widget)
   const maxUmsatzCent = konfig.elemente.reduce((summe, el) => {
     const kat = konfig.kategorien.find((k) => k.id === el.kategorie_id);
@@ -637,8 +664,8 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-background">
       {/* Header */}
       <div className="border-b border-border flex items-center px-4 gap-3 shrink-0 h-14" style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}>
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/dashboard/venues/${venueId}`}><ArrowLeft className="h-4 w-4" /></Link>
+        <Button variant="ghost" size="icon" onClick={editorVerlassen} aria-label={t.common.zurueck}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground truncate">{venueName}</p>
@@ -883,6 +910,16 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       />
       <EditorGuideModal open={guideOffen} onClose={guideSchliessen} onStartTour={tourStarten} />
       {tourOffen && <EditorTour onClose={tourSchliessen} />}
+
+      <ConfirmDialog
+        open={verlassenBestaetigungOffen}
+        onOpenChange={setVerlassenBestaetigungOffen}
+        title={t.editor.verlassenTitel}
+        description={t.editor.verlassenText}
+        confirmLabel={t.editor.verlassenBestaetigen}
+        cancelLabel={t.editor.verlassenAbbrechen}
+        onConfirm={() => router.push(`/dashboard/venues/${venueId}`)}
+      />
 
       {/* Element hinzufügen / Preiskategorien / Planeinstellungen — Modals */}
       <Modal open={modalOffen === "element"} onOpenChange={(o) => !o && setModalOffen(null)}>

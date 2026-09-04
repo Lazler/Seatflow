@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CircleNotch as Loader2, UserPlus } from "@phosphor-icons/react";
 import { migrierteKonfiguration, elementSitzIds, type SitzplanKonfiguration } from "@/types/sitzplan";
 import { toast } from "@/components/ui/toaster";
@@ -168,19 +169,18 @@ export default function BuchungNeuClient({ events }: { events: EventRow[] }) {
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm">{dict.buchungen.colEvent}</CardTitle></CardHeader>
           <CardContent>
-            <select
-              value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              required
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">{t.eventWaehlen}</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.titel} · {new Date(ev.datum).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}
-                </option>
-              ))}
-            </select>
+            <Select value={eventId} onValueChange={setEventId}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder={t.eventWaehlen} />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((ev) => (
+                  <SelectItem key={ev.id} value={ev.id}>
+                    {ev.titel} · {new Date(ev.datum).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 
