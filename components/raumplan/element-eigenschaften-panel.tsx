@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TextAlignJustify as AlignJustify, Armchair, Record as CircleDot, Trash as Trash2, Minus, Plus, ArrowCounterClockwise as RotateCcw, CaretLeft as ChevronLeft, Users, Check, Copy, TextT as Type, MaskHappy as Theater } from "@phosphor-icons/react";
@@ -50,6 +50,21 @@ function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
   onChange: (v: number) => void; einheit?: string;
 }) {
   function clamp(v: number) { return Math.min(max ?? 9999, Math.max(min ?? 0, v)); }
+
+  // Getippter Text lebt lokal und wird erst beim Verlassen des Felds
+  // geklemmt+committet — sonst reißt Min/Max jeden Tastenanschlag zurück,
+  // sobald der Zwischenwert außerhalb des erlaubten Bereichs liegt.
+  const [entwurf, setEntwurf] = useState(String(value));
+  const fokussiertRef = useRef(false);
+  useEffect(() => { if (!fokussiertRef.current) setEntwurf(String(value)); }, [value]);
+
+  function commit() {
+    const v = parseInt(entwurf, 10);
+    const geklemmt = isNaN(v) ? value : clamp(v);
+    setEntwurf(String(geklemmt));
+    if (geklemmt !== value) onChange(geklemmt);
+  }
+
   return (
     <div className="flex items-center justify-between px-4 py-2">
       <span className="text-sm text-foreground">{label}</span>
@@ -60,9 +75,12 @@ function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
           onClick={() => onChange(clamp(value - schritt))}>
           <Minus className="h-3.5 w-3.5" />
         </button>
-        <input type="number" value={value} min={min} max={max}
+        <input type="number" value={entwurf} min={min} max={max}
           className={`h-9 w-16 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
-          onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) onChange(clamp(v)); }}
+          onFocus={() => { fokussiertRef.current = true; }}
+          onChange={(e) => setEntwurf(e.target.value)}
+          onBlur={() => { fokussiertRef.current = false; commit(); }}
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
         />
         <button type="button"
           className="h-9 w-9 rounded-md border border-input bg-background hover:bg-accent flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -72,6 +90,45 @@ function Stepper({ label, value, min, max, onChange, einheit, schritt = 1 }: {
         </button>
         {einheit && <span className="text-xs text-muted-foreground w-5">{einheit}</span>}
       </div>
+    </div>
+  );
+}
+
+// Geteilt zwischen Element- und Bühnen-Eigenschaften — Slider + Zahlenfeld
+// für den Winkel (-180°…180°). Gleiches Tipp-Problem wie bei Stepper: Text
+// lebt lokal, wird erst beim Verlassen des Felds geklemmt+committet.
+function WinkelEingabe({ winkel, onChange, resetLabel }: { winkel: number; onChange: (winkel: number) => void; resetLabel: string }) {
+  const [entwurf, setEntwurf] = useState(String(Math.round(winkel)));
+  const fokussiertRef = useRef(false);
+  useEffect(() => { if (!fokussiertRef.current) setEntwurf(String(Math.round(winkel))); }, [winkel]);
+
+  function commit() {
+    const v = parseInt(entwurf, 10);
+    const geklemmt = isNaN(v) ? Math.round(winkel) : Math.min(180, Math.max(-180, v));
+    setEntwurf(String(geklemmt));
+    if (geklemmt !== Math.round(winkel)) onChange(geklemmt);
+  }
+
+  return (
+    <div className="px-4 pb-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <input type="range" min={-180} max={180} step={1} value={winkel}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="flex-1 h-1.5 accent-primary cursor-pointer" />
+        <input type="number" min={-180} max={180} value={entwurf}
+          className={`h-7 w-14 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
+          onFocus={() => { fokussiertRef.current = true; }}
+          onChange={(e) => setEntwurf(e.target.value)}
+          onBlur={() => { fokussiertRef.current = false; commit(); }}
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+        />
+        <span className="text-xs text-muted-foreground w-4">°</span>
+      </div>
+      <button type="button"
+        onClick={() => onChange(0)}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md px-2 py-1 transition-colors w-full">
+        <RotateCcw className="h-3 w-3" /> {resetLabel}
+      </button>
     </div>
   );
 }
@@ -221,25 +278,9 @@ export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzId
 
         {/* Winkel */}
         <SectionLabel>{t.elementPanel.winkel}</SectionLabel>
-        <div className="px-4 pb-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <input type="range" min={-180} max={180} step={1} value={el.winkel}
-              onChange={(e) => onChange({ winkel: Number(e.target.value) } as Partial<SitzplanElement>)}
-              className="flex-1 h-1.5 accent-primary cursor-pointer" />
-            <input type="number" min={-180} max={180} value={Math.round(el.winkel)}
-              className={`h-7 w-14 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
-              onChange={(e) => {
-                const v = parseInt(e.target.value);
-                if (!isNaN(v)) onChange({ winkel: Math.min(180, Math.max(-180, v)) } as Partial<SitzplanElement>);
-              }} />
-            <span className="text-xs text-muted-foreground w-4">°</span>
-          </div>
-          <button type="button"
-            onClick={() => onChange({ winkel: 0 } as Partial<SitzplanElement>)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md px-2 py-1 transition-colors w-full">
-            <RotateCcw className="h-3 w-3" /> {t.elementPanel.winkelZuruecksetzen}
-          </button>
-        </div>
+        <WinkelEingabe winkel={el.winkel}
+          onChange={(w) => onChange({ winkel: w } as Partial<SitzplanElement>)}
+          resetLabel={t.elementPanel.winkelZuruecksetzen} />
 
         <Divider />
 
@@ -355,25 +396,9 @@ export function BuehneEigenschaftenPanel({ buehne, onChange, onSchliessen }: {
         <Divider />
 
         <SectionLabel>{t.elementPanel.winkel}</SectionLabel>
-        <div className="px-4 pb-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <input type="range" min={-180} max={180} step={1} value={buehne.winkel}
-              onChange={(e) => onChange({ winkel: Number(e.target.value) })}
-              className="flex-1 h-1.5 accent-primary cursor-pointer" />
-            <input type="number" min={-180} max={180} value={Math.round(buehne.winkel)}
-              className={`h-7 w-14 text-sm font-medium text-center rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring ${NO_SPIN}`}
-              onChange={(e) => {
-                const v = parseInt(e.target.value);
-                if (!isNaN(v)) onChange({ winkel: Math.min(180, Math.max(-180, v)) });
-              }} />
-            <span className="text-xs text-muted-foreground w-4">°</span>
-          </div>
-          <button type="button"
-            onClick={() => onChange({ winkel: 0 })}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md px-2 py-1 transition-colors w-full">
-            <RotateCcw className="h-3 w-3" /> {t.elementPanel.winkelZuruecksetzen}
-          </button>
-        </div>
+        <WinkelEingabe winkel={buehne.winkel}
+          onChange={(w) => onChange({ winkel: w })}
+          resetLabel={t.elementPanel.winkelZuruecksetzen} />
 
         <Divider />
         <p className="px-4 py-3 text-xs text-muted-foreground leading-relaxed">{t.editorToolbar.canvasZiehen}</p>

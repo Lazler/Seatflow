@@ -89,6 +89,11 @@ export type SitzplanKonfiguration = {
   gesperrteSitze?: string[];
   // Barrierefreie Plätze (Rollstuhl) — buchbar, mit Symbol gekennzeichnet
   barrierefreieSitze?: string[];
+  // Bei Tischen (Tischreihe/Rundtisch) wählt der Käufer nur noch den Tisch
+  // und eine Anzahl — nicht mehr den exakten nummerierten Platz. Reihen und
+  // Stehplätze sind davon unberührt (Stehplätze funktionieren ohnehin schon
+  // so, Reihen bleiben exakt wählbar).
+  tischweiseBuchung?: boolean;
 };
 
 // --- Konstanten ---
@@ -231,6 +236,19 @@ function elementHalbmasse(el: SitzplanElement): { hw: number; hh: number } {
   return { hw, hh };
 }
 
+// Elemente, deren Bounding-Box (grob, siehe elementHalbmasse) die
+// Raumgröße überschreitet — z.B. weil der Raum nachträglich verkleinert
+// wurde, ohne die Elemente mitzuverschieben. Im Editor-Canvas (feste
+// breite/hoehe) fallen sie kaum auf, der Buchungs-Canvas zeigt aber IMMER
+// den tatsächlichen Inhalt (aufInhaltZugeschnitten) — Käufer sähen und
+// buchten sie also trotzdem.
+export function elementeAusserhalb(k: SitzplanKonfiguration): SitzplanElement[] {
+  return k.elemente.filter((el) => {
+    const { hw, hh } = elementHalbmasse(el);
+    return el.x - hw < 0 || el.x + hw > k.breite || el.y - hh < 0 || el.y + hh > k.hoehe;
+  });
+}
+
 // Tatsächliche Inhaltsgrenzen (Bühne + alle Elemente). Anders als
 // breite/hoehe beschreibt dies, wo der Inhalt WIRKLICH liegt — Basis dafür,
 // den ganzen Plan im Buchungs-Canvas zu zeigen.
@@ -306,6 +324,7 @@ export function migrierteKonfiguration(raw: unknown): SitzplanKonfiguration {
     kategorien: (k.kategorien as Preiskategorie[]) || DEFAULT_KATEGORIEN,
     gesperrteSitze: Array.isArray(k.gesperrteSitze) ? (k.gesperrteSitze as string[]) : [],
     barrierefreieSitze: Array.isArray(k.barrierefreieSitze) ? (k.barrierefreieSitze as string[]) : [],
+    tischweiseBuchung: Boolean(k.tischweiseBuchung),
   };
   if (k.buehne) {
     const b = k.buehne as Record<string, unknown>;

@@ -68,10 +68,14 @@ export default function SitzplanListe({ venueId, plaene }: { venueId: string; pl
       return;
     }
 
-    const { error } = await supabase.from("sitzplaene").delete().eq("id", planId);
+    // .select() erzwingt, dass gelöschte Zeilen zurückkommen — sonst meldet
+    // Supabase bei 0 betroffenen Zeilen (z.B. RLS blockiert im Demo-Konto)
+    // trotzdem error:null, und wir würden fälschlich "gelöscht" anzeigen.
+    const { data, error } = await supabase.from("sitzplaene").delete().eq("id", planId).select("id");
     setLoescht(null);
     setConfirming(null);
     if (error) { toast.error(t.loeschenFehlgeschlagen, error.message); return; }
+    if (!data || data.length === 0) { toast.error(t.loeschenFehlgeschlagen, t.loeschenGesperrt); return; }
     toast.success(t.planGeloescht);
     router.refresh();
   }
