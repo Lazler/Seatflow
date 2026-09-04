@@ -96,11 +96,11 @@ export async function POST(
   } catch (err) {
     console.error("[booking/resend] Versand fehlgeschlagen:", err);
     const grund = grobeVersandFehlerbeschreibung(err);
-    await protokolliereEreignis(id, "ticket_sende_fehler", grund);
+    await protokolliereEreignis(id, "ticket_sende_fehler", grund, { typ: "gast", name: buchung.gaest_name });
     return NextResponse.json({ error: grund }, { status: 502 });
   }
 
-  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Gast angefordert");
+  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Gast angefordert", { typ: "gast", name: buchung.gaest_name });
 
   // Adresse nur maskiert zurückgeben
   const [local, domain] = buchung.gaest_email.split("@");

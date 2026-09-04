@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
   if (buchungsFehler || !buchung) {
     return NextResponse.json({ error: "Buchung konnte nicht angelegt werden" }, { status: 500 });
   }
-  await protokolliereEreignis(buchung.id, "erstellt", "Online-Checkout");
+  await protokolliereEreignis(buchung.id, "erstellt", "Online-Checkout", { typ: "gast", name });
 
   const { error: ticketFehler } = await admin.from("tickets").insert(
     validatedSitzplaetze.map((p) => ({

@@ -569,6 +569,10 @@ export const dict = {
     ereignisErstattet: "Erstattet",
     ereignisBearbeitet: "Bearbeitet",
     freikarteBadge: "Freikarte",
+    akteurSystem: "SeatFlow (automatisch)",
+    akteurGast: "Gast · {name}",
+    akteurGastUnbekannt: "Gast",
+    akteurVeranstalter: "Veranstalter",
   },
   events: {
     title: "Events",

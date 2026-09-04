@@ -86,7 +86,7 @@ export async function POST(
       );
     }
 
-    await protokolliereEreignis(id, "erstattet", `${(refund.amount / 100).toFixed(2)} €${parsed.data.grund ? ` — ${parsed.data.grund}` : ""}`);
+    await protokolliereEreignis(id, "erstattet", `${(refund.amount / 100).toFixed(2)} €${parsed.data.grund ? ` — ${parsed.data.grund}` : ""}`, { typ: "veranstalter", name: user.email });
 
     return NextResponse.json({ refund_id: refund.id, status: refund.status });
   } catch (err: unknown) {

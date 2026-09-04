@@ -89,10 +89,10 @@ export async function POST(
   } catch (err) {
     console.error("[bookings/resend] Versand fehlgeschlagen:", err);
     const grund = grobeVersandFehlerbeschreibung(err);
-    await protokolliereEreignis(id, "ticket_sende_fehler", grund);
+    await protokolliereEreignis(id, "ticket_sende_fehler", grund, { typ: "veranstalter", name: user.email });
     return NextResponse.json({ error: grund }, { status: 502 });
   }
 
-  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Veranstalter gesendet");
+  await protokolliereEreignis(id, "ticket_gesendet", "Erneut vom Veranstalter gesendet", { typ: "veranstalter", name: user.email });
   return NextResponse.json({ ok: true });
 }

@@ -41,7 +41,7 @@ export default async function BuchungDetailSeite({
       .order("erstellt_am", { ascending: true }),
     supabase
       .from("buchungs_ereignisse")
-      .select("id, typ, details, erstellt_am")
+      .select("id, typ, details, akteur_typ, akteur_name, erstellt_am")
       .eq("buchung_id", id)
       .order("erstellt_am", { ascending: true }),
   ]);
@@ -53,6 +53,7 @@ export default async function BuchungDetailSeite({
       tickets={ticketsRes.data ?? []}
       kommentare={kommentareRes.data ?? []}
       ereignisse={ereignisseRes.data ?? []}
+      veranstalterEmail={user.email ?? null}
     />
   );
 }

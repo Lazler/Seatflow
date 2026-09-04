@@ -121,10 +121,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const veranstalterAkteur = { typ: "veranstalter" as const, name: user.email };
   await protokolliereEreignis(buchung.id, "erstellt", istFreikarte
     ? `Freikarte — ${freikarteLabel?.trim() || "manuell durch Veranstalter angelegt"}`
-    : "Manuell durch Veranstalter angelegt");
-  if (status === "bezahlt") await protokolliereEreignis(buchung.id, "bezahlt", "Manuell als bezahlt markiert");
+    : "Manuell durch Veranstalter angelegt", veranstalterAkteur);
+  if (status === "bezahlt") await protokolliereEreignis(buchung.id, "bezahlt", "Manuell als bezahlt markiert", veranstalterAkteur);
 
   return NextResponse.json({ id: buchung.id });
 }
