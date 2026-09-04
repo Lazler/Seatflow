@@ -671,16 +671,18 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button type="button" onClick={() => setElementListeOffen(true)}
             aria-label={t.editor.elementListe.oeffnen} title={t.editor.elementListe.oeffnen}
-            className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
-            <ListBullets className="h-4 w-4" />
+            className="h-7 px-1.5 sm:px-2 rounded-md hover:bg-muted flex items-center gap-1 justify-center text-muted-foreground transition-colors">
+            <ListBullets className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs font-medium">{t.editor.elementListe.kurz}</span>
           </button>
           <button type="button" onClick={() => setGuideOffen(true)}
             aria-label={t.editor.guide.hilfeTitle} title={t.editor.guide.hilfeTitle}
-            className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
-            <HelpCircle className="h-4 w-4" />
+            className="h-7 px-1.5 sm:px-2 rounded-md hover:bg-muted flex items-center gap-1 justify-center text-muted-foreground transition-colors">
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline text-xs font-medium">{t.editor.guide.hilfeKurz}</span>
           </button>
           {/* Undo / Redo / Snap */}
-          <div className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
+          <div data-tour="werkzeuge" className="flex items-center gap-0.5 rounded-lg border border-input p-0.5">
             <button type="button" onClick={undo} disabled={!historieStand.kannUndo}
               aria-label={t.editor.rueckgaengig} title={t.editor.rueckgaengig}
               className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground disabled:opacity-30">
@@ -694,26 +696,29 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
             <button type="button" onClick={() => setSnapAktiv((v) => !v)}
               aria-label={t.editor.amRasterAusrichten} aria-pressed={snapAktiv}
               title={snapAktiv ? t.editor.rasterAktiv : t.editor.rasterAus}
-              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+              className={`h-7 px-1.5 sm:px-2 rounded-md flex items-center gap-1 justify-center transition-colors ${
                 snapAktiv ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"
               }`}>
-              <Magnet className="h-3.5 w-3.5" />
+              <Magnet className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline text-xs font-medium">{t.editor.rasterKurz}</span>
             </button>
             <button type="button" onClick={() => { setSperrModus((v) => !v); setBarrierefreiModus(false); setAuswahl(null); }}
               aria-label={t.editor.sitzeSperren} aria-pressed={sperrModus}
               title={t.editor.sperrmodusTitle}
-              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+              className={`h-7 px-1.5 sm:px-2 rounded-md flex items-center gap-1 justify-center transition-colors ${
                 sperrModus ? "bg-destructive/15 text-destructive" : "hover:bg-muted text-muted-foreground"
               }`}>
-              <Ban className="h-3.5 w-3.5" />
+              <Ban className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline text-xs font-medium">{t.editor.sperrenKurz}</span>
             </button>
             <button type="button" onClick={() => { setBarrierefreiModus((v) => !v); setSperrModus(false); setAuswahl(null); }}
               aria-label={t.editor.barrierefreieMarkieren} aria-pressed={barrierefreiModus}
               title={t.editor.barrierefreiModusTitle}
-              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+              className={`h-7 px-1.5 sm:px-2 rounded-md flex items-center gap-1 justify-center transition-colors ${
                 barrierefreiModus ? "bg-sky-100 text-sky-700" : "hover:bg-muted text-muted-foreground"
               }`}>
-              <Wheelchair className="h-3.5 w-3.5" />
+              <Wheelchair className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline text-xs font-medium">{t.editor.barrierefreiKurz}</span>
             </button>
           </div>
           {/* Zoom-Steuerung */}

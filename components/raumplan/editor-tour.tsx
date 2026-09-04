@@ -7,7 +7,7 @@ import { useT } from "@/components/i18n-provider";
 import { fmt } from "@/lib/i18n/buchung";
 
 // Reihenfolge korrespondiert mit den data-tour-Attributen in sitzplan-editor.tsx
-const ZIELE = ["planeinstellungen", "element-hinzufuegen", "canvas", "sidebar", "preiskategorien", "speichern"] as const;
+const ZIELE = ["planeinstellungen", "element-hinzufuegen", "canvas", "werkzeuge", "sidebar", "preiskategorien", "speichern"] as const;
 
 const RAND = 8; // Abstand des Spotlight-Rahmens zum Zielelement
 const TOOLTIP_BREITE = 300;
@@ -23,6 +23,7 @@ export function EditorTour({ onClose }: { onClose: () => void }) {
     { titel: t.editor.tour.schritt1Titel, text: t.editor.tour.schritt1Text },
     { titel: t.editor.tour.schritt2Titel, text: t.editor.tour.schritt2Text },
     { titel: t.editor.tour.schritt3Titel, text: t.editor.tour.schritt3Text },
+    { titel: t.editor.tour.schrittWerkzeugeTitel, text: t.editor.tour.schrittWerkzeugeText },
     { titel: t.editor.tour.schritt4Titel, text: t.editor.tour.schritt4Text },
     { titel: t.editor.tour.schritt5Titel, text: t.editor.tour.schritt5Text },
     { titel: t.editor.tour.schritt6Titel, text: t.editor.tour.schritt6Text },
