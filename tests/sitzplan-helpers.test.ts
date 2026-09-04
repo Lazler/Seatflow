@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { elementSitzIds, doppelteSitzIds, migrierteKonfiguration } from "@/types/sitzplan";
-import type { ReiheElement, TischreiheElement, RundtischElement } from "@/types/sitzplan";
+import { elementSitzIds, doppelteSitzIds, migrierteKonfiguration, elementeAusserhalb, LEERE_KONFIGURATION } from "@/types/sitzplan";
+import type { ReiheElement, TischreiheElement, RundtischElement, SitzplanKonfiguration } from "@/types/sitzplan";
 
 describe("elementSitzIds", () => {
   it("returns seat IDs for a Reihe element", () => {
@@ -120,5 +120,42 @@ describe("nummerStart + doppelteSitzIds (geteilte Reihen)", () => {
     const kollision: ReiheElement = { ...rechteHaelfte, id: "r2", nummerStart: 6 };
     const dupes = doppelteSitzIds([linkeHaelfte, kollision]);
     expect(dupes).toContain("A-6");
+  });
+});
+
+describe("elementeAusserhalb", () => {
+  const basis: SitzplanKonfiguration = { ...LEERE_KONFIGURATION, breite: 900, hoehe: 620 };
+
+  it("returns nothing when every element fits inside the room", () => {
+    const reihe: ReiheElement = {
+      typ: "reihe", id: "r1", bezeichnung: "A", x: 450, y: 300, winkel: 0,
+      anzahlSitze: 5, sitzAbstand: 40, kategorie_id: "k",
+    };
+    expect(elementeAusserhalb({ ...basis, elemente: [reihe] })).toEqual([]);
+  });
+
+  it("flags an element left stranded after the room was shrunk", () => {
+    // Reihe wurde bei einer größeren Raumgröße nah an den rechten Rand
+    // platziert; die Raumgröße wurde danach verkleinert, das Element ist
+    // stehen geblieben.
+    const reihe: ReiheElement = {
+      typ: "reihe", id: "r1", bezeichnung: "A", x: 880, y: 300, winkel: 0,
+      anzahlSitze: 10, sitzAbstand: 40, kategorie_id: "k",
+    };
+    const treffer = elementeAusserhalb({ ...basis, elemente: [reihe] });
+    expect(treffer.map((e) => e.id)).toEqual(["r1"]);
+  });
+
+  it("ignores elements safely inside even with other elements outside", () => {
+    const drinnen: ReiheElement = {
+      typ: "reihe", id: "drin", bezeichnung: "A", x: 450, y: 300, winkel: 0,
+      anzahlSitze: 5, sitzAbstand: 30, kategorie_id: "k",
+    };
+    const draussen: ReiheElement = {
+      typ: "reihe", id: "raus", bezeichnung: "B", x: 450, y: -50, winkel: 0,
+      anzahlSitze: 5, sitzAbstand: 30, kategorie_id: "k",
+    };
+    const treffer = elementeAusserhalb({ ...basis, elemente: [drinnen, draussen] });
+    expect(treffer.map((e) => e.id)).toEqual(["raus"]);
   });
 });

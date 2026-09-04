@@ -236,6 +236,19 @@ function elementHalbmasse(el: SitzplanElement): { hw: number; hh: number } {
   return { hw, hh };
 }
 
+// Elemente, deren Bounding-Box (grob, siehe elementHalbmasse) die
+// Raumgröße überschreitet — z.B. weil der Raum nachträglich verkleinert
+// wurde, ohne die Elemente mitzuverschieben. Im Editor-Canvas (feste
+// breite/hoehe) fallen sie kaum auf, der Buchungs-Canvas zeigt aber IMMER
+// den tatsächlichen Inhalt (aufInhaltZugeschnitten) — Käufer sähen und
+// buchten sie also trotzdem.
+export function elementeAusserhalb(k: SitzplanKonfiguration): SitzplanElement[] {
+  return k.elemente.filter((el) => {
+    const { hw, hh } = elementHalbmasse(el);
+    return el.x - hw < 0 || el.x + hw > k.breite || el.y - hh < 0 || el.y + hh > k.hoehe;
+  });
+}
+
 // Tatsächliche Inhaltsgrenzen (Bühne + alle Elemente). Anders als
 // breite/hoehe beschreibt dies, wo der Inhalt WIRKLICH liegt — Basis dafür,
 // den ganzen Plan im Buchungs-Canvas zu zeigen.

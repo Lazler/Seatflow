@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,18 +10,20 @@ import { Dialog as Modal, DialogContent, DialogHeader, DialogTitle, DialogBody }
 import ElementEigenschaftenPanel, { BuehneEigenschaftenPanel } from "./element-eigenschaften-panel";
 import { EditorGuideModal } from "./editor-guide";
 import { EditorTour } from "./editor-tour";
+import { ElementListeModal, type ElementListeAuswahl } from "./element-liste";
 import type { Auswahl } from "./sitzplan-canvas";
 import {
   type SitzplanElement, type SitzplanKonfiguration, type ElementTyp, type Buehne, type Preiskategorie,
   type ReiheElement, type TischreiheElement, type RundtischElement,
   type StehplatzElement, type TextElement,
   naechsteBezeichnung, migrierteKonfiguration, elementSitzIds, doppelteSitzIds, DEFAULT_KATEGORIEN, zentriereInhalt,
+  elementeAusserhalb,
 } from "@/types/sitzplan";
 import { erzeugeReihenbestuhlung, erzeugeRundtischGruppe, REIHEN_ABSTAND_GEN } from "@/lib/bestuhlung-generator";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { toast } from "@/components/ui/toaster";
-import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair, Question as HelpCircle, AlignLeft, AlignCenterHorizontal, AlignRight, AlignTop, AlignCenterVertical, AlignBottom } from "@phosphor-icons/react";
+import { FloppyDisk as Save, ArrowLeft, CaretLeft as ChevronLeft, CursorClick as MousePointer2, Trash as Trash2, PencilSimple as Pencil, Check, X, Plus, Tag as Tags, SlidersHorizontal, MagnifyingGlassPlus as ZoomIn, MagnifyingGlassMinus as ZoomOut, ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Magnet, Prohibit as Ban, Lock, Wheelchair, Question as HelpCircle, AlignLeft, AlignCenterHorizontal, AlignRight, AlignTop, AlignCenterVertical, AlignBottom, ListBullets, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useT, useLocale } from "@/components/i18n-provider";
 import { fmt, intlLocale } from "@/lib/i18n/buchung";
@@ -157,6 +159,7 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
   const [nameLaedt, setNameLaedt] = useState(false);
   const [mobilePanelOffen, setMobilePanelOffen] = useState(false);
   const [modalOffen, setModalOffen] = useState<"element" | "kategorien" | "einstellungen" | null>(null);
+  const [elementListeOffen, setElementListeOffen] = useState(false);
 
   // ── Einführungs-Guide + interaktive Tour ────────────────────────────────
   // Beim allerersten Öffnen eines leeren Plans startet direkt die Tour (zeigt
@@ -227,6 +230,10 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       setMobilePanelOffen(true);
     }
   }, []);
+
+  function elementListeAuswahl(ziel: ElementListeAuswahl) {
+    waehleAus(ziel.typ === "buehne" ? { typ: "buehne" } : { typ: "element", ids: [ziel.id] });
+  }
 
   function mobilePanelSchliessen() {
     setMobilePanelOffen(false);
@@ -472,6 +479,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
       : []
   );
   const hatDuplikate = doppelteSitzIds(konfig.elemente).length > 0;
+  // Elemente außerhalb der Raumgröße — z.B. nach nachträglichem Verkleinern.
+  // Der Buchungs-Canvas zeigt immer den tatsächlichen Inhalt, Käufer würden
+  // sie also trotzdem sehen und buchen können.
+  const ausserhalbElemente = useMemo(() => elementeAusserhalb(konfig), [konfig]);
+  const ausserhalbIds = useMemo(() => new Set(ausserhalbElemente.map((e) => e.id)), [ausserhalbElemente]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -657,6 +669,11 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
           )}
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button type="button" onClick={() => setElementListeOffen(true)}
+            aria-label={t.editor.elementListe.oeffnen} title={t.editor.elementListe.oeffnen}
+            className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
+            <ListBullets className="h-4 w-4" />
+          </button>
           <button type="button" onClick={() => setGuideOffen(true)}
             aria-label={t.editor.guide.hilfeTitle} title={t.editor.guide.hilfeTitle}
             className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors">
@@ -748,6 +765,16 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
               {fmt(t.editor.verkaufteWarnung, { n: verkauft.size })}
             </div>
           )}
+          {ausserhalbElemente.length > 0 && (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800 font-medium shrink-0">
+              <WarningCircle className="h-4 w-4 shrink-0" />
+              <span>{fmt(ausserhalbElemente.length === 1 ? t.editor.ausserhalbBanner : t.editor.ausserhalbBanner_pl, { n: ausserhalbElemente.length })}</span>
+              <button type="button" onClick={() => setElementListeOffen(true)}
+                className="underline underline-offset-2 hover:no-underline shrink-0">
+                {t.editor.ausserhalbAnzeigen}
+              </button>
+            </div>
+          )}
           {schutzHinweis && (
             <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/25 px-4 py-2 text-sm text-destructive font-medium shrink-0">
               {schutzHinweis}
@@ -835,6 +862,20 @@ export default function SitzplanEditor({ planId, planName, venueId, venueName, i
         </aside>
       </div>
 
+      <ElementListeModal
+        open={elementListeOffen}
+        onClose={() => setElementListeOffen(false)}
+        elemente={konfig.elemente}
+        buehne={konfig.buehne}
+        kategorien={konfig.kategorien}
+        ausgewaehlteId={
+          auswahl?.typ === "buehne" ? "buehne"
+          : auswahl?.typ === "element" && auswahl.ids.length === 1 ? auswahl.ids[0]
+          : null
+        }
+        ausserhalbIds={ausserhalbIds}
+        onAuswaehlen={elementListeAuswahl}
+      />
       <EditorGuideModal open={guideOffen} onClose={guideSchliessen} onStartTour={tourStarten} />
       {tourOffen && <EditorTour onClose={tourSchliessen} />}
 
