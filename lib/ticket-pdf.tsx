@@ -129,6 +129,7 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       position: "absolute",
       top: -11,
       right: 22,
+      zIndex: 10,
       transform: "rotate(-8deg)",
       backgroundColor: "#ffffff",
       border: "2pt solid #dc2626",
@@ -314,11 +315,6 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
       <Page size="A4" style={styles.page}>
         {tickets.map((ticket, ti) => (
           <View key={ti} style={styles.ticketWrapper}>
-            {ticket.freikarteLabel !== undefined && ticket.freikarteLabel !== null && (
-              <View style={styles.freikarteStempel}>
-                <Text style={styles.freikarteStempelText}>{(ticket.freikarteLabel || "Freikarte").toUpperCase()}</Text>
-              </View>
-            )}
             {/* Ticket card */}
             <View style={styles.ticket}>
               <View style={styles.leftAccent} />
@@ -393,6 +389,15 @@ export function TicketPDF({ tickets }: { tickets: TicketData[] }) {
                 </View>
               </View>
             </View>
+
+            {/* Freikarten-Stempel — NACH der Ticket-Karte gerendert, damit er
+                über ihr liegt statt darunter verdeckt zu werden (spätere
+                Geschwister überlagern frühere, unabhängig von position). */}
+            {ticket.freikarteLabel !== undefined && ticket.freikarteLabel !== null && (
+              <View style={styles.freikarteStempel}>
+                <Text style={styles.freikarteStempelText}>{(ticket.freikarteLabel || "Freikarte").toUpperCase()}</Text>
+              </View>
+            )}
 
             {/* Fine print / Kleingedrucktes — rendered as formatted markdown below ticket */}
             {design.kleingedrucktes?.trim() && (

@@ -138,13 +138,17 @@ type Props = {
   kategorien: Preiskategorie[];
   // Sitz-IDs aller anderen Elemente — für die Kollisionswarnung
   fremdeSitzIds: Set<string>;
+  // true, wenn ALLE Sitze dieses Elements aktuell gesperrt sind (nicht
+  // öffentlich buchbar, aber weiterhin über die manuelle Buchung möglich)
+  gesperrt: boolean;
   onChange: (delta: Partial<SitzplanElement>) => void;
   onLoeschen: () => void;
   onSchliessen: () => void;
   onDuplizieren: () => void;
+  onSperrenToggeln: () => void;
 };
 
-export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzIds, onChange, onLoeschen, onSchliessen, onDuplizieren }: Props) {
+export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzIds, gesperrt, onChange, onLoeschen, onSchliessen, onDuplizieren, onSperrenToggeln }: Props) {
   const t = useT();
   const locale = useLocale();
   const Icon = TYP_ICON[el.typ];
@@ -211,6 +215,20 @@ export default function ElementEigenschaftenPanel({ el, kategorien, fremdeSitzId
         </div>
 
         <Divider />
+
+        {/* Verfügbarkeit — ganzes Element für den Online-Verkauf sperren.
+            Nutzt denselben gesperrteSitze-Mechanismus wie der Sperrmodus im
+            Editor, nur für alle Sitze des Elements auf einmal statt Klick
+            für Klick. Gesperrte Sitze bleiben über die manuelle Buchung im
+            Dashboard weiterhin buchbar (z.B. für reservierte Tische). */}
+        {el.typ !== "text" && sitzAnzahl > 0 && (<>
+          <SectionLabel>{t.elementPanel.verfuegbarkeit}</SectionLabel>
+          <ToggleRow label={t.elementPanel.nurManuellBuchbar} value={gesperrt} onChange={onSperrenToggeln} />
+          <p className="px-4 -mt-1.5 pb-2 text-[11px] text-muted-foreground leading-relaxed">
+            {t.elementPanel.nurManuellBuchbarHinweis}
+          </p>
+          <Divider />
+        </>)}
 
         {/* Typ-spezifische Konfiguration */}
         <SectionLabel>{t.elementPanel.konfiguration}</SectionLabel>

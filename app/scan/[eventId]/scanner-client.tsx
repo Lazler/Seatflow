@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
-import { CheckCircle, XCircle, WarningCircle as AlertCircle, Camera, CameraSlash as CameraOff, ArrowCounterClockwise as RotateCcw, Lightning as Zap, LightningSlash as ZapOff, CaretUp as ChevronUp, CaretDown as ChevronDown, X } from "@phosphor-icons/react";
+import { CheckCircle, XCircle, WarningCircle as AlertCircle, Camera, CameraSlash as CameraOff, ArrowCounterClockwise as RotateCcw, Lightning as Zap, LightningSlash as ZapOff, CaretUp as ChevronUp, CaretDown as ChevronDown, X, Pause, Play } from "@phosphor-icons/react";
 
 type ScanStatus = "ok" | "ungueltig" | "bereits_eingeloest";
 
@@ -90,6 +90,11 @@ export default function ScannerClient({
   const controlsRef = useRef<IScannerControls | null>(null);
   const cooldownRef = useRef(false);
   const verlaufIdRef = useRef(0);
+  // Ref statt nur State: der Decode-Callback von decodeFromConstraints wird
+  // einmal beim Scanner-Start registriert und läuft danach unabhängig vom
+  // React-Render — ein Re-Read von state würde den zuletzt gesetzten Wert
+  // nicht sehen (stale closure), der Ref schon.
+  const pausiertRef = useRef(false);
 
   const [kameraAktiv, setKameraAktiv] = useState(false);
   const [kameraFehler, setKameraFehler] = useState<string | null>(null);
@@ -99,6 +104,12 @@ export default function ScannerClient({
   const [verlauf, setVerlauf] = useState<HistorieEintrag[]>([]);
   const [taschenlampe, setTaschenlampe] = useState(false);
   const [taschenlampVerfuegbar, setTaschenlampVerfuegbar] = useState(false);
+  const [pausiert, setPausiertState] = useState(false);
+
+  const setPausiert = useCallback((v: boolean) => {
+    pausiertRef.current = v;
+    setPausiertState(v);
+  }, []);
 
   const verarbeiteCode = useCallback(async (code: string) => {
     if (cooldownRef.current) return;
@@ -138,17 +149,21 @@ export default function ScannerClient({
     if (!videoRef.current) return;
     setKameraFehler(null);
     try {
-      const reader = new BrowserQRCodeReader();
+      // Kleinere Zielauflösung + kürzerer Abstand zwischen Decode-Versuchen
+      // (Default 500ms) — bei voller 1080p-Auflösung sucht jeder Versuch in
+      // deutlich mehr Pixeln, macht den Scanner spürbar träge. 720p reicht für
+      // QR-Codes im üblichen Scan-Abstand völlig aus.
+      const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 100 });
       const controls = await reader.decodeFromConstraints(
         {
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
           },
         },
         videoRef.current,
-        (result) => { if (result) verarbeiteCode(result.getText()); }
+        (result) => { if (result && !pausiertRef.current) verarbeiteCode(result.getText()); }
       );
       controlsRef.current = controls;
       setKameraAktiv(true);
@@ -220,6 +235,20 @@ export default function ScannerClient({
 
           {/* Controls + counter */}
           <div className="flex items-center gap-2 shrink-0">
+            {kameraAktiv && (
+              <button
+                onClick={() => setPausiert(!pausiert)}
+                className={`w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-sm border active:scale-95 transition-transform ${
+                  pausiert ? "bg-amber-500 border-amber-400" : "bg-black/40 border-white/10"
+                }`}
+                aria-label={pausiert ? "Scanner fortsetzen" : "Scanner pausieren"}
+              >
+                {pausiert
+                  ? <Play className="w-[18px] h-[18px]" />
+                  : <Pause className="w-[18px] h-[18px]" />
+                }
+              </button>
+            )}
             {taschenlampVerfuegbar && (
               <button
                 onClick={toggleTaschenlampe}
@@ -277,15 +306,19 @@ export default function ScannerClient({
             style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}
           >
             {/* Corner brackets */}
-            <span className="absolute top-0 left-0 w-9 h-9 border-t-[3px] border-l-[3px] border-white rounded-tl-sm" />
-            <span className="absolute top-0 right-0 w-9 h-9 border-t-[3px] border-r-[3px] border-white rounded-tr-sm" />
-            <span className="absolute bottom-0 left-0 w-9 h-9 border-b-[3px] border-l-[3px] border-white rounded-bl-sm" />
-            <span className="absolute bottom-0 right-0 w-9 h-9 border-b-[3px] border-r-[3px] border-white rounded-br-sm" />
-            {/* Sweep line */}
-            <div className="scan-sweep-line left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-green-400 to-transparent" />
+            <span className={`absolute top-0 left-0 w-9 h-9 border-t-[3px] border-l-[3px] rounded-tl-sm ${pausiert ? "border-amber-400" : "border-white"}`} />
+            <span className={`absolute top-0 right-0 w-9 h-9 border-t-[3px] border-r-[3px] rounded-tr-sm ${pausiert ? "border-amber-400" : "border-white"}`} />
+            <span className={`absolute bottom-0 left-0 w-9 h-9 border-b-[3px] border-l-[3px] rounded-bl-sm ${pausiert ? "border-amber-400" : "border-white"}`} />
+            <span className={`absolute bottom-0 right-0 w-9 h-9 border-b-[3px] border-r-[3px] rounded-br-sm ${pausiert ? "border-amber-400" : "border-white"}`} />
+            {/* Sweep line — pausiert es nicht, sonst würde weiterhin "aktives Scannen" suggeriert */}
+            {!pausiert && (
+              <div className="scan-sweep-line left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-green-400 to-transparent" />
+            )}
           </div>
 
-          <p className="mt-6 text-white/60 text-sm tracking-wide">QR-Code in den Rahmen halten</p>
+          <p className="mt-6 text-white/60 text-sm tracking-wide">
+            {pausiert ? "Scanner pausiert" : "QR-Code in den Rahmen halten"}
+          </p>
         </div>
       )}
 
@@ -365,11 +398,11 @@ export default function ScannerClient({
             <div className="flex items-center gap-2">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  kameraAktiv ? "bg-green-400 animate-pulse" : "bg-white/30"
+                  !kameraAktiv ? "bg-white/30" : pausiert ? "bg-amber-400" : "bg-green-400 animate-pulse"
                 }`}
               />
               <span className="text-xs text-white/50">
-                {kameraAktiv ? "Scanner aktiv" : "Scanner inaktiv"}
+                {!kameraAktiv ? "Scanner inaktiv" : pausiert ? "Scanner pausiert" : "Scanner aktiv"}
               </span>
             </div>
             {verlauf.length > 0 ? (
